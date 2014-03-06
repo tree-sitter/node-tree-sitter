@@ -1,7 +1,7 @@
 {
   "targets": [
     {
-      "target_name": "binding",
+      "target_name": "tree_sitter_binding",
       "dependencies": [
         "vendor/tree_sitter/tree_sitter.gyp:tree_sitter",
       ],

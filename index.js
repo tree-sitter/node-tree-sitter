@@ -1,3 +1,5 @@
-var binding = require("./build/Release/binding");
+var binding = require("./build/Release/tree_sitter_binding");
 
-console.log(binding);
+exports.compile = binding.compile;
+exports.grammar = require("./lib/build_grammar");
+exports.rules = require("./lib/rules");
