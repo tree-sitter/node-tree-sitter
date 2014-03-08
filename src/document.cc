@@ -1,5 +1,4 @@
-#include "./runtime.h"
-#include "./helpers.h"
+#include "./binding.h"
 #include <node.h>
 
 using namespace v8;
@@ -29,10 +28,9 @@ void Document::Init(Handle<Object> exports) {
 
 Handle<Value> Document::New(const Arguments& args) {
   HandleScope scope;
-
   if (args.IsConstructCall()) {
-    Document *obj = new Document();
-    obj->Wrap(args.This());
+    Document *document = new Document();
+    document->Wrap(args.This());
     return args.This();
   } else {
     const int argc = 1;
@@ -44,8 +42,8 @@ Handle<Value> Document::New(const Arguments& args) {
 Handle<Value> Document::ToString(const Arguments& args) {
   HandleScope scope;
 
-  Document *doc = ObjectWrap::Unwrap<Document>(args.This());
-  const char *result = ts_document_string(doc->value_);
+  Document *document = ObjectWrap::Unwrap<Document>(args.This());
+  const char *result = ts_document_string(document->value_);
 
   return scope.Close(String::Concat(
     String::New("Document: "),
@@ -53,7 +51,7 @@ Handle<Value> Document::ToString(const Arguments& args) {
   ));
 }
 
-const char * js_input_read(void *data) {
+const char * JsInputRead(void *data) {
   Persistent<Object> reader = *(Persistent<Object> *)data;
   Handle<Function> read_fn = Handle<Function>::Cast(reader->Get(String::NewSymbol("read")));
   Handle<String> result = Handle<String>::Cast(read_fn->Call(reader, 0, NULL));
@@ -61,7 +59,7 @@ const char * js_input_read(void *data) {
   return *value;
 }
 
-int js_input_seek(void *data, size_t position) {
+int JsInputSeek(void *data, size_t position) {
   Persistent<Object> reader = *(Persistent<Object> *)data;
   Handle<Function> fn = Handle<Function>::Cast(reader->Get(String::NewSymbol("seek")));
   Handle<Value> argv[1] = { Number::New(position) };
@@ -69,7 +67,7 @@ int js_input_seek(void *data, size_t position) {
   return result->NumberValue();
 }
 
-void js_input_release(void *data) {
+void JsInputRelease(void *data) {
   Persistent<Object> *reader = (Persistent<Object> *)data;
   delete reader;
 }
@@ -80,29 +78,27 @@ Handle<Value> Document::SetInput(const Arguments& args) {
 
   ts_input input = {
     .data = (void *)(new Persistent<Object>(reader)),
-    .read_fn = js_input_read,
-    .seek_fn = js_input_seek,
-    .release_fn = js_input_release
+    .read_fn = JsInputRead,
+    .seek_fn = JsInputSeek,
+    .release_fn = JsInputRelease
   };
 
-  Document* doc = ObjectWrap::Unwrap<Document>(args.This());
-  ts_document_set_input(doc->value_, input);
+  Document *document = ObjectWrap::Unwrap<Document>(args.This());
+  ts_document_set_input(document->value_, input);
 
   return scope.Close(String::New(""));
 }
 
 Handle<Value> Document::SetParser(const Arguments& args) {
   HandleScope scope;
-
-  Document* doc = ObjectWrap::Unwrap<Document>(args.This());
   Handle<Object> arg = Handle<Object>::Cast(args[0]);
-  ParseConfig *config = ObjectWrap::Unwrap<ParseConfig>(arg);
+  Document *document = ObjectWrap::Unwrap<Document>(args.This());
+  Parser *parser = ObjectWrap::Unwrap<Parser>(arg);
 
-  if (config) {
-    ts_document_set_parser(doc->value_, config->value());
-  } else {
-    throw_type_error("Expected parse config object");
-  }
+  if (parser)
+    ts_document_set_parser(document->value_, parser->value());
+  else
+    ThrowException(Exception::TypeError(String::New("Expected parser object")));
 
   return scope.Close(Undefined());
 }

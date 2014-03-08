@@ -9,7 +9,7 @@
         "src/binding.cc",
         "src/compile.cc",
         "src/document.cc",
-        "src/parse_config.cc",
+        "src/parser.cc",
       ],
       'conditions': [
         ['OS == "mac"', {

@@ -16,13 +16,13 @@ describe "documents", ->
     code = ts.compile(grammar)
     libPath = ts.buildParser("trivial_grammar", code)
 
-    parser = ts.loadParserLib(libPath, "trivial_grammar");
+    parser = ts.loadParserLib(libPath, "trivial_grammar")
     doc.setParser(parser)
 
     reader = new SpyReader("the input text", 3)
     doc.setInput(reader)
 
-    assert.equal("hi", doc.toString())
+    assert.equal(doc.toString(), "Document: (phrase (word) (word) (word))")
     assert.deepEqual(reader.chunksRead, [
       "the", " in", "put", " te", "xt"
     ])
