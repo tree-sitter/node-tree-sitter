@@ -45,4 +45,3 @@ describe "building grammars", ->
   describe "compiling the grammar", ->
     it "returns the C parsing code", ->
       code = ts.compile(grammar)
-      console.log code
