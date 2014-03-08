@@ -20,6 +20,7 @@ coverage
 build
 gyp-mac-tool
 tree_sitter
+*.xcodeproj
 
 # Dependency directory
 # Deployed apps should consider commenting this line out:
