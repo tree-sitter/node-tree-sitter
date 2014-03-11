@@ -51,33 +51,44 @@ Handle<Value> Document::ToString(const Arguments& args) {
   ));
 }
 
-const char * JsInputRead(void *data) {
-  Persistent<Object> reader = *(Persistent<Object> *)data;
-  Handle<Function> read_fn = Handle<Function>::Cast(reader->Get(String::NewSymbol("read")));
-  Handle<String> result = Handle<String>::Cast(read_fn->Call(reader, 0, NULL));
-  String::Utf8Value value(result);
-  return *value;
+struct JsInputReader {
+  Persistent<Object> object;
+  char *buffer;
+  JsInputReader(Persistent<Object> object, char *buffer) :
+    object(object),
+    buffer(buffer)
+    {}
+};
+
+const char * JsInputRead(void *data, size_t *bytes_read) {
+  JsInputReader *reader = (JsInputReader *)data;
+  Handle<Function> read_fn = Handle<Function>::Cast(reader->object->Get(String::NewSymbol("read")));
+  Handle<String> result = Handle<String>::Cast(read_fn->Call(reader->object, 0, NULL));
+  *bytes_read = result->WriteUtf8(reader->buffer, 1024, NULL, 2);
+  return reader->buffer;
 }
 
 int JsInputSeek(void *data, size_t position) {
-  Persistent<Object> reader = *(Persistent<Object> *)data;
-  Handle<Function> fn = Handle<Function>::Cast(reader->Get(String::NewSymbol("seek")));
+  JsInputReader *reader = (JsInputReader *)data;
+  Handle<Function> fn = Handle<Function>::Cast(reader->object->Get(String::NewSymbol("seek")));
   Handle<Value> argv[1] = { Number::New(position) };
-  Handle<Number> result = Handle<Number>::Cast(fn->Call(reader, 1, argv));
+  Handle<Number> result = Handle<Number>::Cast(fn->Call(reader->object, 1, argv));
   return result->NumberValue();
 }
 
 void JsInputRelease(void *data) {
-  Persistent<Object> *reader = (Persistent<Object> *)data;
+  JsInputReader *reader = (JsInputReader *)data;
+  delete reader->buffer;
   delete reader;
 }
 
 Handle<Value> Document::SetInput(const Arguments& args) {
   HandleScope scope;
   Handle<Object> reader = Handle<Object>::Cast(args[0]);
+  char *buffer = new char[1024];
 
   ts_input input = {
-    .data = (void *)(new Persistent<Object>(reader)),
+    .data = (void *)(new JsInputReader(Persistent<Object>(reader), buffer)),
     .read_fn = JsInputRead,
     .seek_fn = JsInputSeek,
     .release_fn = JsInputRelease

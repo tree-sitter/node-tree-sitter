@@ -1,28 +1,36 @@
 assert = require("assert")
 SpyReader = require "./helpers/spy_reader"
 ts = require("..")
-{ repeat } = ts.rules
+{ repeat, seq } = ts.rules
 
 grammar = ts.grammar
   name: 'trivial_grammar'
-  start: 'phrase'
+  start: 'paragraph'
   rules:
-    phrase: -> repeat(@word)
+    paragraph: -> repeat(@sentence)
+    sentence: -> seq repeat(@word), "."
     word: -> /\w+/
 
-describe "documents", ->
-  it "works", ->
-    doc = new ts.Document()
-    code = ts.compile(grammar)
-    libPath = ts.buildParser("trivial_grammar", code)
+cCode = ts.compile(grammar)
+libPath = ts.buildParser(grammar.name, cCode)
+parser = ts.loadParserLib(libPath, grammar.name)
 
-    parser = ts.loadParserLib(libPath, "trivial_grammar")
+describe "documents", ->
+  doc = null
+
+  beforeEach ->
+    doc = new ts.Document()
     doc.setParser(parser)
 
-    reader = new SpyReader("the input text", 3)
+  it "reads the entire input", ->
+    reader = new SpyReader("see spot run. spot runs fast.", 3)
     doc.setInput(reader)
-
-    assert.equal(doc.toString(), "Document: (phrase (word) (word) (word))")
     assert.deepEqual(reader.chunksRead, [
-      "the", " in", "put", " te", "xt"
+      "see", " sp", "ot ", "run",
+      ". s", "pot", " ru", "ns ", "fas", "t.", ""
     ])
+
+  it "parses the input", ->
+    reader = new SpyReader("see spot run. spot runs fast.", 3)
+    doc.setInput(reader)
+    assert.equal(doc.toString(), "Document: (paragraph (sentence (word) (word) (word)) (sentence (word) (word) (word)))")
