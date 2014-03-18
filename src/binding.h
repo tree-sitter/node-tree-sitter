@@ -11,15 +11,15 @@ class Parser : public node::ObjectWrap {
 public:
   static void Init(v8::Handle<v8::Object> exports);
   static v8::Handle<v8::Value> NewInstance(const v8::Arguments& args);
-  ts_parse_config value() const;
+  ts_parser value() const;
 
 private:
-  explicit Parser(ts_parse_config);
+  explicit Parser(ts_parser);
 
   static v8::Handle<v8::Value> New(const v8::Arguments& args);
   static v8::Persistent<v8::Function> constructor;
 
-  ts_parse_config value_;
+  ts_parser value_;
 };
 
 class Document : public node::ObjectWrap {

@@ -6,9 +6,9 @@ using namespace v8;
 
 Persistent<Function> Parser::constructor;
 
-Parser::Parser(ts_parse_config value) : value_(value) {}
+Parser::Parser(ts_parser value) : value_(value) {}
 
-ts_parse_config Parser::value() const {
+ts_parser Parser::value() const {
   return value_;
 }
 
@@ -35,16 +35,16 @@ Handle<Value> Parser::New(const Arguments &args) {
       String::Concat(String::New("Error opening parser file - "), message)));
   }
 
-  ts_parse_config *config;
-  error_code = uv_dlsym(&parser_lib, (std::string("ts_parse_config_") + *parser_name).c_str(), (void **)&config);
+  ts_parser (* parser_constructor)();
+  error_code = uv_dlsym(&parser_lib, (std::string("ts_parser_") + *parser_name).c_str(), (void **)&parser_constructor);
   if (error_code) {
     Handle<String> message = String::New(uv_dlerror(&parser_lib));
     ThrowException(Exception::Error(
       String::Concat(String::New("Error loading parser from parser file - "), message)));
   }
 
-  Parser *parse_config = new Parser(*config);
-  parse_config->Wrap(args.This());
+  Parser *parser = new Parser(parser_constructor());
+  parser->Wrap(args.This());
   return args.This();
 }
 
