@@ -27,7 +27,7 @@ describe "documents", ->
     doc.setInput(reader)
     assert.deepEqual(reader.chunksRead, [
       "see", " sp", "ot ", "run",
-      ". s", "pot", " ru", "ns ", "fas", "t.", ""
+      ". s", "pot", " ru", "ns ", "fas", "t.", "", ""
     ])
 
   it "parses the input", ->

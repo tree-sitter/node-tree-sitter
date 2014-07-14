@@ -14,9 +14,10 @@
   "license": "MIT",
   "dependencies": {
     "temp": "0.7.x",
-    "execSync": "0.5.x"
+    "execSync": "1.0.x"
   },
   "devDependencies": {
+    "node-gyp": "0.13.x",
     "mocha": "1.17.x",
     "coffee-script": "1.7.x"
   }

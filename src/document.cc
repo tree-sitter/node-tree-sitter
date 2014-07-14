@@ -87,7 +87,7 @@ Handle<Value> Document::SetInput(const Arguments& args) {
   Handle<Object> reader = Handle<Object>::Cast(args[0]);
   char *buffer = new char[1024];
 
-  ts_input input = {
+  TSInput input = {
     .data = (void *)(new JsInputReader(Persistent<Object>(reader), buffer)),
     .read_fn = JsInputRead,
     .seek_fn = JsInputSeek,

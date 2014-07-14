@@ -17,7 +17,13 @@
             'MACOSX_DEPLOYMENT_TARGET': '10.7',
           },
         }]
-      ]
+      ],
+      "cflags": [
+        "-std=c++0x",
+      ],
+      'xcode_settings': {
+        'CLANG_CXX_LANGUAGE_STANDARD': 'c++11',
+      },
     },
   ],
 }

@@ -4,9 +4,12 @@
 using namespace v8;
 using namespace tree_sitter::rules;
 using tree_sitter::Grammar;
-using std::map;
+using tree_sitter::Conflict;
+using tree_sitter::GrammarError;
 using std::string;
+using std::get;
 using std::pair;
+using std::tuple;
 using std::vector;
 
 static inline std::string StringFromJsString(Handle<String> js_string) {
@@ -78,25 +81,21 @@ rule_ptr RuleFromJsRule(Handle<Object> js_rule) {
 }
 
 Grammar GrammarFromJsGrammar(Handle<Object> js_grammar) {
-  Handle<String> start = ObjectGet<String>(js_grammar, "start");
-  if (!start->IsString())
-    ThrowException(Exception::TypeError(String::New("Expected grammar start to be a string")));
-  string start_rule_name = StringFromJsString(start);
-
   Handle<Object> js_rules = ObjectGet<Object>(js_grammar, "rules");
   if (!js_rules->IsObject())
     ThrowException(Exception::TypeError(String::New("Expected grammar rules to be an object")));
-  map<const string, const rule_ptr> rules;
+
+  vector<pair<string, rule_ptr>> rules;
   Local<Array> rule_names = js_rules->GetOwnPropertyNames();
   uint32_t length = rule_names->Length();
   for (uint32_t i = 0; i < length; i++) {
     Local<String> js_rule_name = Local<String>::Cast(rule_names->Get(i));
     string rule_name = StringFromJsString(js_rule_name);
     rule_ptr rule = RuleFromJsRule(Handle<Object>::Cast(js_rules->Get(js_rule_name)));
-    rules.insert(pair<const string, const rule_ptr>(rule_name, rule));
+    rules.push_back({ rule_name, rule });
   }
 
-  return Grammar(start_rule_name, rules);
+  return Grammar(rules);
 }
 
 Handle<Value> Compile(const Arguments &args) {
@@ -112,6 +111,6 @@ Handle<Value> Compile(const Arguments &args) {
   string name =  StringFromJsString(js_name);
 
   Grammar grammar = GrammarFromJsGrammar(js_grammar);
-  string code = tree_sitter::compile(grammar, name);
-  return scope.Close(String::New(code.c_str()));
+  tuple<string, vector<Conflict>, const GrammarError *> result = tree_sitter::compile(grammar, name);
+  return scope.Close(String::New(get<0>(result).c_str()));
 }
