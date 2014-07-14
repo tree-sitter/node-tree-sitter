@@ -5,7 +5,6 @@ ts = require("..")
 
 grammar = ts.grammar
   name: 'trivial_grammar'
-  start: 'paragraph'
   rules:
     paragraph: -> repeat(@sentence)
     sentence: -> seq repeat(@word), "."
