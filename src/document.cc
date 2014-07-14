@@ -87,12 +87,11 @@ Handle<Value> Document::SetInput(const Arguments& args) {
   Handle<Object> reader = Handle<Object>::Cast(args[0]);
   char *buffer = new char[1024];
 
-  TSInput input = {
-    .data = (void *)(new JsInputReader(Persistent<Object>(reader), buffer)),
-    .read_fn = JsInputRead,
-    .seek_fn = JsInputSeek,
-    .release_fn = JsInputRelease
-  };
+  TSInput input;
+  input.data = (void *)(new JsInputReader(Persistent<Object>(reader), buffer));
+  input.read_fn = JsInputRead;
+  input.seek_fn = JsInputSeek;
+  input.release_fn = JsInputRelease;
 
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
   ts_document_set_input(document->value_, input);
