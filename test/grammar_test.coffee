@@ -21,9 +21,6 @@ describe "building grammars", ->
   it "returns a grammar with the given name", ->
     assert.equal(grammar.name, "the_json_grammar")
 
-  it "gets the start rule name from the first rule", ->
-    assert.equal(grammar.start, "value")
-
   it "converts @property references to symbol rules", ->
     assert.deepEqual(
       grammar.rules.value,
