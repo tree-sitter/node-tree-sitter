@@ -15,32 +15,32 @@ void ASTNode::Init(Handle<Object> exports) {
 
   // Properties
   tpl->InstanceTemplate()->SetAccessor(
-    String::NewSymbol("children"),
-    AccessorGetter(Children));
+      String::NewSymbol("children"),
+      AccessorGetter(Children));
 
   // Prototype
   tpl->PrototypeTemplate()->Set(
-    String::NewSymbol("position"),
-    FunctionTemplate::New(Position)->GetFunction());
+      String::NewSymbol("position"),
+      FunctionTemplate::New(Position)->GetFunction());
   tpl->PrototypeTemplate()->Set(
-    String::NewSymbol("size"),
-    FunctionTemplate::New(Size)->GetFunction());
+      String::NewSymbol("size"),
+      FunctionTemplate::New(Size)->GetFunction());
   tpl->PrototypeTemplate()->Set(
-    String::NewSymbol("name"),
-    FunctionTemplate::New(Name)->GetFunction());
+      String::NewSymbol("name"),
+      FunctionTemplate::New(Name)->GetFunction());
   tpl->PrototypeTemplate()->Set(
-    String::NewSymbol("toString"),
-    FunctionTemplate::New(ToString)->GetFunction());
+      String::NewSymbol("toString"),
+      FunctionTemplate::New(ToString)->GetFunction());
 
   constructor = Persistent<Function>::New(tpl->GetFunction());
 }
 
 ASTNode::ASTNode(TSNode *node) : node_(node) {
-    ts_node_retain(node_);
+  ts_node_retain(node_);
 }
 
 ASTNode::~ASTNode() {
-    ts_node_release(node_);
+  ts_node_release(node_);
 }
 
 Handle<Value> ASTNode::NewInstance(TSNode *node) {
@@ -82,9 +82,8 @@ Handle<Value> ASTNode::ToString(const Arguments& args) {
   ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
   const char *result = ts_node_string(node->node_);
   return scope.Close(String::Concat(
-    String::New("ASTNode: "),
-    String::New(result)
-  ));
+      String::New("ASTNode: "),
+      String::New(result)));
 }
 
 Handle<Value> ASTNode::Children(Local<String> name, const AccessorInfo &info) {

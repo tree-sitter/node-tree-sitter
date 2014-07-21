@@ -6,11 +6,11 @@
 #include "tree_sitter/runtime.h"
 
 class ASTNodeArray : public node::ObjectWrap {
-public:
+ public:
   static void Init(v8::Handle<v8::Object> exports);
   static v8::Handle<v8::Value> NewInstance(TSNode *);
 
-private:
+ private:
   explicit ASTNodeArray(TSNode *);
   ~ASTNodeArray();
 

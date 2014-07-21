@@ -33,7 +33,7 @@ Handle<Value> Parser::Load(const Arguments &args) {
   if (error_code) {
     Handle<String> message = String::New(uv_dlerror(&parser_lib));
     ThrowException(Exception::Error(
-      String::Concat(String::New("Error opening parser file - "), message)));
+        String::Concat(String::New("Error opening parser file - "), message)));
   }
 
   TSParser * (* parser_constructor)();
@@ -41,7 +41,7 @@ Handle<Value> Parser::Load(const Arguments &args) {
   if (error_code) {
     Handle<String> message = String::New(uv_dlerror(&parser_lib));
     ThrowException(Exception::Error(
-      String::Concat(String::New("Error loading parser from parser file - "), message)));
+        String::Concat(String::New("Error loading parser from parser file - "), message)));
   }
 
   Parser *parser = new Parser(parser_constructor());

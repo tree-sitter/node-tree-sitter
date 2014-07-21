@@ -16,17 +16,17 @@ void Document::Init(Handle<Object> exports) {
 
   // Prototype
   tpl->PrototypeTemplate()->Set(
-    String::NewSymbol("rootNode"),
-    FunctionTemplate::New(RootNode)->GetFunction());
+      String::NewSymbol("rootNode"),
+      FunctionTemplate::New(RootNode)->GetFunction());
   tpl->PrototypeTemplate()->Set(
-    String::NewSymbol("toString"),
-    FunctionTemplate::New(ToString)->GetFunction());
+      String::NewSymbol("toString"),
+      FunctionTemplate::New(ToString)->GetFunction());
   tpl->PrototypeTemplate()->Set(
-    String::NewSymbol("setInput"),
-    FunctionTemplate::New(SetInput)->GetFunction());
+      String::NewSymbol("setInput"),
+      FunctionTemplate::New(SetInput)->GetFunction());
   tpl->PrototypeTemplate()->Set(
-    String::NewSymbol("setParser"),
-    FunctionTemplate::New(SetParser)->GetFunction());
+      String::NewSymbol("setParser"),
+      FunctionTemplate::New(SetParser)->GetFunction());
 
   constructor = Persistent<Function>::New(tpl->GetFunction());
   exports->Set(String::NewSymbol("Document"), constructor);
@@ -70,19 +70,18 @@ Handle<Value> Document::ToString(const Arguments& args) {
 
 Handle<Value> Document::SetInput(const Arguments& args) {
   HandleScope scope;
+  Document *document = ObjectWrap::Unwrap<Document>(args.This());
+
   Handle<Object> reader = Handle<Object>::Cast(args[0]);
-  char *buffer = new char[1024];
 
   TSInput input;
-  input.data = (void *)(new JsInputReader(Persistent<Object>(reader), buffer));
+  input.data = (void *)(new JsInputReader(Persistent<Object>(reader), new char[1024]));
   input.read_fn = JsInputRead;
   input.seek_fn = JsInputSeek;
   input.release_fn = JsInputRelease;
 
-  Document *document = ObjectWrap::Unwrap<Document>(args.This());
   ts_document_set_input(document->value_, input);
-
-  return scope.Close(String::New(""));
+  return scope.Close(Undefined());
 }
 
 Handle<Value> Document::SetParser(const Arguments& args) {

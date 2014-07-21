@@ -30,20 +30,15 @@ Handle<T> ArrayGet(Handle<Array> array, uint32_t i) {
 rule_ptr RuleFromJsRule(Handle<Object> js_rule) {
   if (!js_rule->IsObject())
     ThrowException(Exception::TypeError(String::New("Expected rule to be an object")));
+
   Handle<String> js_type = ObjectGet<String>(js_rule, "type");
   if (!js_type->IsString())
     ThrowException(Exception::TypeError(String::New("Expected rule type to be a string")));
   string type = StringFromJsString(js_type);
 
-  if (type == "STRING") {
-    return str(StringFromJsString(ObjectGet<String>(js_rule, "value")));
-  }
-  if (type == "PATTERN") {
-    return pattern(StringFromJsString(ObjectGet<String>(js_rule, "value")));
-  }
-  if (type == "SYMBOL") {
-    return sym(StringFromJsString(ObjectGet<String>(js_rule, "name")));
-  }
+  if (type == "BLANK")
+    return blank();
+
   if (type == "CHOICE") {
     Handle<Array> js_members = ObjectGet<Array>(js_rule, "members");
     vector<rule_ptr> members;
@@ -54,6 +49,16 @@ rule_ptr RuleFromJsRule(Handle<Object> js_rule) {
     }
     return choice(members);
   }
+
+  if (type == "ERROR")
+    return err(RuleFromJsRule(ObjectGet<Object>(js_rule, "value")));
+
+  if (type == "PATTERN")
+    return pattern(StringFromJsString(ObjectGet<String>(js_rule, "value")));
+
+  if (type == "REPEAT")
+    return repeat(RuleFromJsRule(ObjectGet<Object>(js_rule, "value")));
+
   if (type == "SEQ") {
     Handle<Array> js_members = ObjectGet<Array>(js_rule, "members");
     vector<rule_ptr> members;
@@ -64,17 +69,12 @@ rule_ptr RuleFromJsRule(Handle<Object> js_rule) {
     }
     return seq(members);
   }
-  if (type == "BLANK") {
-    return blank();
-  }
-  if (type == "REPEAT") {
-    Handle<Object> content = ObjectGet<Object>(js_rule, "value");
-    return repeat(RuleFromJsRule(content));
-  }
-  if (type == "ERROR") {
-    Handle<Object> content = ObjectGet<Object>(js_rule, "value");
-    return err(RuleFromJsRule(content));
-  }
+
+  if (type == "STRING")
+    return str(StringFromJsString(ObjectGet<String>(js_rule, "value")));
+
+  if (type == "SYMBOL")
+    return sym(StringFromJsString(ObjectGet<String>(js_rule, "name")));
 
   ThrowException(Exception::TypeError(String::Concat(String::New("Unexpected rule type: "), js_type)));
   return blank();

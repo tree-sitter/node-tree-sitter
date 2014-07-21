@@ -13,11 +13,11 @@ void InitAll(Handle<Object> exports) {
   ASTNodeArray::Init(exports);
 
   exports->Set(
-    String::NewSymbol("compile"),
-    FunctionTemplate::New(Compile)->GetFunction());
+      String::NewSymbol("compile"),
+      FunctionTemplate::New(Compile)->GetFunction());
   exports->Set(
-    String::NewSymbol("loadParser"),
-    FunctionTemplate::New(Parser::Load)->GetFunction());
+      String::NewSymbol("loadParser"),
+      FunctionTemplate::New(Parser::Load)->GetFunction());
 }
 
 NODE_MODULE(tree_sitter_binding, InitAll)

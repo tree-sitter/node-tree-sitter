@@ -6,13 +6,13 @@
 #include "tree_sitter/runtime.h"
 
 class Parser : public node::ObjectWrap {
-public:
+ public:
   static void Init(v8::Handle<v8::Object> exports);
   static v8::Handle<v8::Value> Load(const v8::Arguments& args);
 
   TSParser * value() const;
 
-private:
+ private:
   explicit Parser(TSParser *);
 
   static v8::Handle<v8::Value> New(const v8::Arguments& args);

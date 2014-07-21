@@ -6,10 +6,10 @@
 #include "tree_sitter/runtime.h"
 
 class Document : public node::ObjectWrap {
-public:
+ public:
   static void Init(v8::Handle<v8::Object> exports);
 
-private:
+ private:
   explicit Document();
   ~Document();
 
