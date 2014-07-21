@@ -2,10 +2,10 @@
 
 using namespace v8;
 
-JsInputReader::JsInputReader(v8::Persistent<v8::Object> object, char *buffer) :
-    object(object),
-    buffer(buffer)
-    {}
+JsInputReader::JsInputReader(Handle<Object> object, char *buffer) :
+  object(object),
+  buffer(buffer)
+  {}
 
 const char * JsInputRead(void *data, size_t *bytes_read) {
   JsInputReader *reader = (JsInputReader *)data;

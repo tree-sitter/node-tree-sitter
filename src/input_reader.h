@@ -4,9 +4,9 @@
 #include <v8.h>
 
 struct JsInputReader {
-  v8::Persistent<v8::Object> object;
+  v8::Handle<v8::Object> object;
   char *buffer;
-  JsInputReader(v8::Persistent<v8::Object>, char *);
+  JsInputReader(v8::Handle<v8::Object>, char *);
 };
 
 const char * JsInputRead(void *data, size_t *bytes_read);
