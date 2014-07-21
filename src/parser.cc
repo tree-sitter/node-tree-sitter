@@ -6,20 +6,21 @@ using namespace v8;
 
 Persistent<Function> Parser::constructor;
 
+void Parser::Init(Handle<Object> exports) {
+  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
+  tpl->SetClassName(String::NewSymbol("Parser"));
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  constructor = Persistent<Function>::New(tpl->GetFunction());
+}
+
 Parser::Parser(TSParser *value) : value_(value) {}
 
 TSParser * Parser::value() const {
   return value_;
 }
 
-void Parser::Init(Handle<Object> exports) {
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("Parser"));
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
-  constructor = Persistent<Function>::New(tpl->GetFunction());
-}
-
-Handle<Value> Parser::New(const Arguments &args) {
+Handle<Value> Parser::Load(const Arguments &args) {
   HandleScope scope;
 
   Handle<String> js_filename = Handle<String>::Cast(args[0]);
@@ -44,14 +45,12 @@ Handle<Value> Parser::New(const Arguments &args) {
   }
 
   Parser *parser = new Parser(parser_constructor());
-  parser->Wrap(args.This());
-  return args.This();
+  Local<Object> instance = constructor->NewInstance(0, NULL);
+  parser->Wrap(instance);
+  return scope.Close(instance);
 }
 
-Handle<Value> Parser::NewInstance(const Arguments &args) {
+Handle<Value> Parser::New(const Arguments &args) {
   HandleScope scope;
-  const unsigned argc = 2;
-  Handle<Value> argv[argc] = { args[0], args[1] };
-  Handle<Object> instance = constructor->NewInstance(argc, argv);
-  return scope.Close(instance);
+  return scope.Close(Undefined());
 }

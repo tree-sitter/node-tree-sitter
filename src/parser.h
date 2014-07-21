@@ -8,8 +8,8 @@
 class Parser : public node::ObjectWrap {
 public:
   static void Init(v8::Handle<v8::Object> exports);
+  static v8::Handle<v8::Value> Load(const v8::Arguments& args);
 
-  static v8::Handle<v8::Value> NewInstance(const v8::Arguments& args);
   TSParser * value() const;
 
 private:

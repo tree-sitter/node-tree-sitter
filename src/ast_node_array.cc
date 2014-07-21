@@ -9,7 +9,7 @@ Persistent<Function> ASTNodeArray::constructor;
 
 void ASTNodeArray::Init(Handle<Object> exports) {
     // Constructor
-    Local<FunctionTemplate> tpl = FunctionTemplate::New(0);
+    Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
     tpl->SetClassName(String::NewSymbol("ASTNodeArray"));
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
@@ -23,34 +23,14 @@ void ASTNodeArray::Init(Handle<Object> exports) {
             AccessorSetter(0));
 
     constructor = Persistent<Function>::New(tpl->GetFunction());
-    exports->Set(String::NewSymbol("ASTNode"), constructor);
 }
 
-Handle<Value> ASTNodeArray::GetIndex(size_t index, const AccessorInfo &info) {
-    Local<Object> self = info.This();
-    ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(self);
-    TSNode *child = ts_node_child(array->value_, index);
-    if (child) {
-        return ASTNode::NewInstance(child);
-    } else {
-        return Undefined();
-    }
-}
-
-Handle<Value> ASTNodeArray::Length(Local<String>, const AccessorInfo &info) {
-    HandleScope scope;
-    Local<Object> self = info.This();
-    ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(self);
-    size_t count = ts_node_child_count(array->value_);
-    return scope.Close(Integer::New(count));
-}
-
-ASTNodeArray::ASTNodeArray(TSNode *node) : value_(node) {
+ASTNodeArray::ASTNodeArray(TSNode *node) : parent_node_(node) {
     ts_node_retain(node);
 }
 
 ASTNodeArray::~ASTNodeArray() {
-    ts_node_release(value_);
+    ts_node_release(parent_node_);
 }
 
 Handle<Value> ASTNodeArray::NewInstance(TSNode *node) {
@@ -59,4 +39,26 @@ Handle<Value> ASTNodeArray::NewInstance(TSNode *node) {
     ASTNodeArray *array = new ASTNodeArray(node);
     array->Wrap(instance);
     return scope.Close(instance);
+}
+
+Handle<Value> ASTNodeArray::New(const Arguments& args) {
+  HandleScope scope;
+  return scope.Close(Undefined());
+}
+
+Handle<Value> ASTNodeArray::GetIndex(size_t index, const AccessorInfo &info) {
+    Local<Object> self = info.This();
+    ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(self);
+    TSNode *child = ts_node_child(array->parent_node_, index);
+    if (child)
+        return ASTNode::NewInstance(child);
+    else
+        return Undefined();
+}
+
+Handle<Value> ASTNodeArray::Length(Local<String>, const AccessorInfo &info) {
+    HandleScope scope;
+    Local<Object> self = info.This();
+    ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(self);
+    return scope.Close(Integer::New(ts_node_child_count(array->parent_node_)));
 }

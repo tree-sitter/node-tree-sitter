@@ -12,8 +12,6 @@ void Document::Init(Handle<Object> exports) {
   // Constructor
   Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
   tpl->SetClassName(String::NewSymbol("Document"));
-
-  // Properties
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   // Prototype
@@ -32,6 +30,12 @@ void Document::Init(Handle<Object> exports) {
 
   constructor = Persistent<Function>::New(tpl->GetFunction());
   exports->Set(String::NewSymbol("Document"), constructor);
+}
+
+Document::Document() : value_(ts_document_make()) {}
+
+Document::~Document() {
+  ts_document_free(value_);
 }
 
 Handle<Value> Document::New(const Arguments& args) {
@@ -56,10 +60,8 @@ Handle<Value> Document::RootNode(const Arguments& args) {
 
 Handle<Value> Document::ToString(const Arguments& args) {
   HandleScope scope;
-
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
   const char *result = ts_document_string(document->value_);
-
   return scope.Close(String::Concat(
     String::New("Document: "),
     String::New(result)
@@ -95,10 +97,4 @@ Handle<Value> Document::SetParser(const Arguments& args) {
     ThrowException(Exception::TypeError(String::New("Expected parser object")));
 
   return scope.Close(Undefined());
-}
-
-Document::Document() : value_(ts_document_make()) {}
-
-Document::~Document() {
-  ts_document_free(value_);
 }

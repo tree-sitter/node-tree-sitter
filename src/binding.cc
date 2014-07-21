@@ -17,7 +17,7 @@ void InitAll(Handle<Object> exports) {
     FunctionTemplate::New(Compile)->GetFunction());
   exports->Set(
     String::NewSymbol("loadParserLib"),
-    FunctionTemplate::New(Parser::NewInstance)->GetFunction());
+    FunctionTemplate::New(Parser::Load)->GetFunction());
 }
 
 NODE_MODULE(tree_sitter_binding, InitAll)
