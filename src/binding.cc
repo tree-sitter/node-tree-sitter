@@ -16,7 +16,7 @@ void InitAll(Handle<Object> exports) {
     String::NewSymbol("compile"),
     FunctionTemplate::New(Compile)->GetFunction());
   exports->Set(
-    String::NewSymbol("loadParserLib"),
+    String::NewSymbol("loadParser"),
     FunctionTemplate::New(Parser::Load)->GetFunction());
 }
 

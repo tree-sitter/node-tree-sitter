@@ -12,7 +12,7 @@ grammar = ts.grammar
 
 cCode = ts.compile(grammar)
 libPath = ts.buildParser(grammar.name, cCode)
-parser = ts.loadParserLib(libPath, grammar.name)
+parser = ts.loadParser(libPath, grammar.name)
 
 describe "documents", ->
   document = null
