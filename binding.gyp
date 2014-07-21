@@ -6,9 +6,12 @@
         "vendor/tree-sitter/project.gyp:tree_sitter",
       ],
       "sources": [
+        "src/ast_node.cc",
+        "src/ast_node_array.cc",
         "src/binding.cc",
         "src/compile.cc",
         "src/document.cc",
+        "src/input_reader.cc",
         "src/parser.cc",
       ],
       'conditions': [

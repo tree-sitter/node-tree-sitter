@@ -1,4 +1,4 @@
-#include "./binding.h"
+#include "./parser.h"
 #include <uv.h>
 #include <string>
 
@@ -52,6 +52,6 @@ Handle<Value> Parser::NewInstance(const Arguments &args) {
   HandleScope scope;
   const unsigned argc = 2;
   Handle<Value> argv[argc] = { args[0], args[1] };
-  Local<Object> instance = constructor->NewInstance(argc, argv);
+  Handle<Object> instance = constructor->NewInstance(argc, argv);
   return scope.Close(instance);
 }

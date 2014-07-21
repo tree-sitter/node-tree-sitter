@@ -1,11 +1,17 @@
-#include "./binding.h"
-#include <node.h>
+#include "./compile.h"
+#include "./parser.h"
+#include "./document.h"
+#include "./ast_node.h"
+#include "./ast_node_array.h"
 
 using namespace v8;
 
 void InitAll(Handle<Object> exports) {
   Document::Init(exports);
   Parser::Init(exports);
+  ASTNode::Init(exports);
+  ASTNodeArray::Init(exports);
+
   exports->Set(
     String::NewSymbol("compile"),
     FunctionTemplate::New(Compile)->GetFunction());

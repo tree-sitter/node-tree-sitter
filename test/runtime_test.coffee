@@ -15,21 +15,32 @@ libPath = ts.buildParser(grammar.name, cCode)
 parser = ts.loadParserLib(libPath, grammar.name)
 
 describe "documents", ->
-  doc = null
+  document = null
+  reader = null
 
   beforeEach ->
-    doc = new ts.Document()
-    doc.setParser(parser)
+    document = new ts.Document()
+    document.setParser(parser)
+
+    reader = new SpyReader("see spot run. spot runs fast.", 3)
+    document.setInput(reader)
 
   it "reads the entire input", ->
-    reader = new SpyReader("see spot run. spot runs fast.", 3)
-    doc.setInput(reader)
     assert.deepEqual(reader.chunksRead, [
       "see", " sp", "ot ", "run",
       ". s", "pot", " ru", "ns ", "fas", "t.", "", ""
     ])
 
   it "parses the input", ->
-    reader = new SpyReader("see spot run. spot runs fast.", 3)
-    doc.setInput(reader)
-    assert.equal(doc.toString(), "Document: (paragraph (sentence (word) (word) (word)) (sentence (word) (word) (word)))")
+    assert.equal(document.toString(), "Document: (paragraph (sentence (word) (word) (word)) (sentence (word) (word) (word)))")
+
+  describe "the parse tree", ->
+    it "exposes the root node", ->
+      paragraph = document.rootNode()
+      assert.equal(paragraph.name(), "paragraph")
+
+    it "exposes the root node's children", ->
+      paragraph = document.rootNode()
+      assert.equal(paragraph.children.length, 2)
+      assert.equal(paragraph.children[0].name(), "sentence")
+      assert.equal(paragraph.children[1].name(), "sentence")

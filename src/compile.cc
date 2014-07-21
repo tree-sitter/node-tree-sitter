@@ -1,4 +1,4 @@
-#include "./binding.h"
+#include "./compile.h"
 #include "tree_sitter/compiler.h"
 
 using namespace v8;
