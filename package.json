@@ -17,13 +17,9 @@
   "author": "Max Brunsfeld",
   "license": "MIT",
   "dependencies": {
-    "bindings": "1.2.x",
-    "temp": "0.7.x",
-    "execSync": "1.0.x"
+    "bindings": "1.2.x"
   },
   "devDependencies": {
-    "node-gyp": "0.13.x",
-    "mocha": "1.17.x",
-    "coffee-script": "1.7.x"
+    "node-gyp": "0.13.x"
   }
 }

@@ -1,15 +1,14 @@
 {
   "targets": [
     {
-      "target_name": "tree_sitter_binding",
+      "target_name": "tree_sitter_runtime_binding",
       "dependencies": [
-        "vendor/tree-sitter/project.gyp:tree_sitter",
+        "vendor/tree-sitter/project.gyp:runtime",
       ],
       "sources": [
         "src/ast_node.cc",
         "src/ast_node_array.cc",
         "src/binding.cc",
-        "src/compile.cc",
         "src/document.cc",
         "src/input_reader.cc",
         "src/parser.cc",

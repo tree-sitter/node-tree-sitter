@@ -1,5 +1,5 @@
-node-tree-sitter
-================
+tree-sitter
+===========
 
 Incremental parsers for node
 

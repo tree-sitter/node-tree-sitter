@@ -1,10 +1,27 @@
-var binding = require("bindings")("tree_sitter_binding");
+var binding = require("bindings")("tree_sitter_runtime_binding"),
+    Document = binding.Document,
+    loadParser = binding.loadParser;
+
+Document.prototype.setInputString = function(string) {
+  this.setInput(new StringInput(string));
+};
+
+function StringInput(string) {
+  this.position = 0;
+  this.string = string;
+}
+
+StringInput.prototype.seek = function(n) {
+  this.position = n;
+}
+
+StringInput.prototype.read = function() {
+  var result = this.string.slice(this.position);
+  this.position = result.length;
+  return result;
+}
 
 module.exports = {
-  Document: binding.Document,
-  compile: binding.compile,
-  loadParser: binding.loadParser,
-  buildParser: require("./lib/build_parser"),
-  grammar: require("./lib/build_grammar"),
-  rules: require("./lib/rules")
+  Document: Document,
+  loadParser: loadParser
 };
