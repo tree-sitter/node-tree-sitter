@@ -4,7 +4,7 @@
     "type" : "git",
     "url" : "http://github.com/maxbrunsfeld/node-tree-sitter.git"
   },
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Incremental parsers for node",
   "main": "index.js",
   "scripts": {
