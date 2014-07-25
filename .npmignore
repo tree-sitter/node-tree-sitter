@@ -6,4 +6,4 @@ build
 vendor/tree-sitter/*
 !vendor/tree-sitter/src
 !vendor/tree-sitter/include
-
+!vendor/tree-sitter/project.gyp
