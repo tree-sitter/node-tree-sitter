@@ -12,7 +12,7 @@
     "lexer"
   ],
   "main": "index.js",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "dependencies": {
     "bindings": "1.2.x"
   },
