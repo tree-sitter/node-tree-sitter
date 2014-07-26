@@ -44,13 +44,19 @@ Handle<Value> Parser::Load(const Arguments &args) {
         String::Concat(String::New("Error loading parser from parser file - "), message)));
   }
 
-  Parser *parser = new Parser(parser_constructor());
-  Local<Object> instance = constructor->NewInstance(0, NULL);
-  parser->Wrap(instance);
-  return scope.Close(instance);
+  return scope.Close(NewInstance(parser_constructor()));
 }
 
 Handle<Value> Parser::New(const Arguments &args) {
   HandleScope scope;
   return scope.Close(Undefined());
 }
+
+Handle<Value> Parser::NewInstance(TSParser *value) {
+  HandleScope scope;
+  Parser *parser = new Parser(value);
+  Local<Object> instance = constructor->NewInstance(0, NULL);
+  parser->Wrap(instance);
+  return scope.Close(instance);
+}
+
