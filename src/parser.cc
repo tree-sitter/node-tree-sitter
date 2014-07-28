@@ -4,14 +4,16 @@
 
 using namespace v8;
 
-Persistent<Function> Parser::constructor;
+Persistent<Function> Parser::constructor_;
+Persistent<FunctionTemplate> Parser::template_;
 
 void Parser::Init(Handle<Object> exports) {
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("Parser"));
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  template_ = Persistent<FunctionTemplate>::New(FunctionTemplate::New(New));
+  template_->SetClassName(String::NewSymbol("Parser"));
+  template_->InstanceTemplate()->SetInternalFieldCount(1);
 
-  constructor = Persistent<Function>::New(tpl->GetFunction());
+  constructor_ = Persistent<Function>::New(template_->GetFunction());
+  exports->Set(String::NewSymbol("Parser"), constructor_);
 }
 
 Parser::Parser(TSParser *value) : value_(value) {}
@@ -28,7 +30,11 @@ Handle<Value> Parser::New(const Arguments &args) {
 Handle<Value> Parser::NewInstance(TSParser *value) {
   HandleScope scope;
   Parser *parser = new Parser(value);
-  Local<Object> instance = constructor->NewInstance(0, NULL);
+  Local<Object> instance = constructor_->NewInstance(0, NULL);
   parser->Wrap(instance);
   return scope.Close(instance);
+}
+
+bool Parser::HasInstance(Handle<Value> object) {
+  return template_->HasInstance(object);
 }

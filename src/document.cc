@@ -72,10 +72,12 @@ Handle<Value> Document::SetInput(const Arguments& args) {
   HandleScope scope;
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
 
-  Handle<Object> reader = Handle<Object>::Cast(args[0]);
+  Handle<Object> arg = Handle<Object>::Cast(args[0]);
+
+  JsInputReader *reader = new JsInputReader(arg, new char[1024]);
 
   TSInput input;
-  input.data = (void *)(new JsInputReader(Persistent<Object>(reader), new char[1024]));
+  input.data = (void *)reader;
   input.read_fn = JsInputRead;
   input.seek_fn = JsInputSeek;
   input.release_fn = JsInputRelease;
@@ -87,13 +89,15 @@ Handle<Value> Document::SetInput(const Arguments& args) {
 Handle<Value> Document::SetParser(const Arguments& args) {
   HandleScope scope;
   Handle<Object> arg = Handle<Object>::Cast(args[0]);
+
+  if (!Parser::HasInstance(arg)) {
+    ThrowException(Exception::TypeError(String::New("Invalid parser object")));
+    return scope.Close(Undefined());
+  }
+
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
   Parser *parser = ObjectWrap::Unwrap<Parser>(arg);
+  ts_document_set_parser(document->value_, parser->value());
 
-  if (parser)
-    ts_document_set_parser(document->value_, parser->value());
-  else
-    ThrowException(Exception::TypeError(String::New("Expected parser object")));
-
-  return scope.Close(Undefined());
+  return scope.Close(args.This());
 }

@@ -1,6 +1,6 @@
 var binding = require("bindings")("tree_sitter_runtime_binding"),
     Document = binding.Document,
-    loadParser = binding.loadParser;
+    Parser = binding.Parser;
 
 Document.prototype.setInputString = function(string) {
   this.setInput(new StringInput(string));
@@ -23,5 +23,5 @@ StringInput.prototype.read = function() {
 
 module.exports = {
   Document: Document,
-  loadParser: loadParser
+  Parser: Parser,
 };
