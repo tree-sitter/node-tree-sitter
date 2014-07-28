@@ -13,6 +13,9 @@
         "src/input_reader.cc",
         "src/parser.cc",
       ],
+      "include_dirs": [
+        "include",
+      ],
       'conditions': [
         ['OS == "mac"', {
           'xcode_settings': {

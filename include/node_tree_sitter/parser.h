@@ -1,5 +1,5 @@
-#ifndef TREE_SITTER_PARSER_H
-#define TREE_SITTER_PARSER_H
+#ifndef NODE_TREE_SITTER_PARSER_H_
+#define NODE_TREE_SITTER_PARSER_H_
 
 #include <v8.h>
 #include <node.h>
@@ -8,7 +8,6 @@
 class Parser : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Handle<v8::Value> Load(const v8::Arguments& args);
   static v8::Handle<v8::Value> NewInstance(TSParser *);
 
   TSParser * value() const;
@@ -22,4 +21,4 @@ class Parser : public node::ObjectWrap {
   TSParser *value_;
 };
 
-#endif  // TREE_SITTER_PARSER_H
+#endif  // NODE_TREE_SITTER_PARSER_H_

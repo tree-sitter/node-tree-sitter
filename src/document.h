@@ -1,5 +1,5 @@
-#ifndef TREE_SITTER_DOCUMENT_H
-#define TREE_SITTER_DOCUMENT_H
+#ifndef NODE_TREE_SITTER_DOCUMENT_H_
+#define NODE_TREE_SITTER_DOCUMENT_H_
 
 #include <v8.h>
 #include <node.h>
@@ -25,4 +25,4 @@ class Document : public node::ObjectWrap {
 };
 
 
-#endif  // TREE_SITTER_DOCUMENT_H
+#endif  // NODE_TREE_SITTER_DOCUMENT_H_

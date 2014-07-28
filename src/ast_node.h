@@ -1,5 +1,5 @@
-#ifndef TREE_SITTER_AST_NODE_H
-#define TREE_SITTER_AST_NODE_H
+#ifndef NODE_TREE_SITTER_AST_NODE_H_
+#define NODE_TREE_SITTER_AST_NODE_H_
 
 #include <v8.h>
 #include <node.h>
@@ -26,4 +26,4 @@ class ASTNode : public node::ObjectWrap {
   TSNode *node_;
 };
 
-#endif  // TREE_SITTER_AST_NODE_H
+#endif  // NODE_TREE_SITTER_AST_NODE_H_

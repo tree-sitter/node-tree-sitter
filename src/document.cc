@@ -1,6 +1,6 @@
 #include "./document.h"
 #include "./ast_node.h"
-#include "./parser.h"
+#include "node_tree_sitter/parser.h"
 #include "./input_reader.h"
 #include <node.h>
 

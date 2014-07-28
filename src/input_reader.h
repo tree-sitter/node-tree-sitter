@@ -1,5 +1,5 @@
-#ifndef TREE_SITTER_INPUT_READER_H
-#define TREE_SITTER_INPUT_READER_H
+#ifndef NODE_TREE_SITTER_INPUT_READER_H_
+#define NODE_TREE_SITTER_INPUT_READER_H_
 
 #include <v8.h>
 
@@ -13,4 +13,4 @@ const char * JsInputRead(void *data, size_t *bytes_read);
 int JsInputSeek(void *data, size_t position);
 void JsInputRelease(void *data);
 
-#endif  // TREE_SITTER_INPUT_READER_H
+#endif  // NODE_TREE_SITTER_INPUT_READER_H_

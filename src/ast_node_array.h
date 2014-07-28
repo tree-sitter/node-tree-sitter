@@ -1,5 +1,5 @@
-#ifndef TREE_SITTER_AST_NODE_ARRAY_H
-#define TREE_SITTER_AST_NODE_ARRAY_H
+#ifndef NODE_TREE_SITTER_AST_NODE_ARRAY_H_
+#define NODE_TREE_SITTER_AST_NODE_ARRAY_H_
 
 #include <v8.h>
 #include <node.h>
@@ -22,4 +22,4 @@ class ASTNodeArray : public node::ObjectWrap {
   static v8::Persistent<v8::Function> constructor;
 };
 
-#endif  // TREE_SITTER_AST_NODE_ARRAY_H
+#endif  // NODE_TREE_SITTER_AST_NODE_ARRAY_H_
