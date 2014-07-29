@@ -74,13 +74,13 @@ Handle<Value> Document::SetInput(const Arguments& args) {
 
   Handle<Object> arg = Handle<Object>::Cast(args[0]);
 
-  JsInputReader *reader = new JsInputReader(arg, new char[1024]);
+  InputReader *reader = new InputReader(arg, new char[1024]);
 
   TSInput input;
   input.data = (void *)reader;
-  input.read_fn = JsInputRead;
-  input.seek_fn = JsInputSeek;
-  input.release_fn = JsInputRelease;
+  input.read_fn = InputReader::Read;
+  input.seek_fn = InputReader::Seek;
+  input.release_fn = InputReader::Release;
 
   ts_document_set_input(document->value_, input);
   return scope.Close(Undefined());

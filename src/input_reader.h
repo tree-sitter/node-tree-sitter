@@ -3,14 +3,18 @@
 
 #include <v8.h>
 
-struct JsInputReader {
+class InputReader {
   v8::Handle<v8::Object> object;
   char *buffer;
-  JsInputReader(v8::Handle<v8::Object>, char *);
+
+ public:
+  InputReader(v8::Handle<v8::Object>, char *);
+  ~InputReader();
+
+  static const char * Read(void *data, size_t *bytes_read);
+  static int Seek(void *data, size_t position);
+  static void Release(void *data);
 };
 
-const char * JsInputRead(void *data, size_t *bytes_read);
-int JsInputSeek(void *data, size_t position);
-void JsInputRelease(void *data);
 
 #endif  // NODE_TREE_SITTER_INPUT_READER_H_
