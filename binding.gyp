@@ -11,7 +11,6 @@
         "src/binding.cc",
         "src/document.cc",
         "src/input_reader.cc",
-        "src/parser.cc",
       ],
       "include_dirs": [
         "include",

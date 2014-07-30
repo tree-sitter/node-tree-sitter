@@ -1,6 +1,5 @@
 #include "./document.h"
 #include "./ast_node.h"
-#include "node_tree_sitter/parser.h"
 #include "./input_reader.h"
 #include <node.h>
 
@@ -90,14 +89,14 @@ Handle<Value> Document::SetParser(const Arguments& args) {
   HandleScope scope;
   Handle<Object> arg = Handle<Object>::Cast(args[0]);
 
-  if (!Parser::HasInstance(arg)) {
+  if (arg->InternalFieldCount() != 1) {
     ThrowException(Exception::TypeError(String::New("Invalid parser object")));
     return scope.Close(Undefined());
   }
 
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
-  Parser *parser = ObjectWrap::Unwrap<Parser>(arg);
-  ts_document_set_parser(document->value_, parser->value());
+  Local<External> field = Local<External>::Cast(arg->GetInternalField(0));
+  ts_document_set_parser(document->value_, (TSParser *)field->Value());
 
   return scope.Close(args.This());
 }
