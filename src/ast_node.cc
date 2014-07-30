@@ -83,9 +83,7 @@ Handle<Value> ASTNode::ToString(const Arguments& args) {
   HandleScope scope;
   ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
   const char *result = ts_node_string(node->node_);
-  return scope.Close(String::Concat(
-      String::New("ASTNode: "),
-      String::New(result)));
+  return scope.Close(String::New(result));
 }
 
 Handle<Value> ASTNode::Children(Local<String> name, const AccessorInfo &info) {
