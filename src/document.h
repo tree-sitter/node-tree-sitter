@@ -5,6 +5,8 @@
 #include <node.h>
 #include "tree_sitter/runtime.h"
 
+namespace node_tree_sitter {
+
 class Document : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
@@ -24,5 +26,6 @@ class Document : public node::ObjectWrap {
   TSDocument *value_;
 };
 
+}  // namespace node_tree_sitter
 
 #endif  // NODE_TREE_SITTER_DOCUMENT_H_

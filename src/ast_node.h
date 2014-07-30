@@ -5,6 +5,8 @@
 #include <node.h>
 #include "tree_sitter/runtime.h"
 
+namespace node_tree_sitter {
+
 class ASTNode : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
@@ -25,5 +27,7 @@ class ASTNode : public node::ObjectWrap {
   static v8::Persistent<v8::Function> constructor;
   TSNode *node_;
 };
+
+}  // namespace node_tree_sitter
 
 #endif  // NODE_TREE_SITTER_AST_NODE_H_

@@ -1,5 +1,7 @@
 #include "./input_reader.h"
 
+namespace node_tree_sitter {
+
 using namespace v8;
 
 InputReader::InputReader(Handle<Object> object, char *buffer) :
@@ -36,3 +38,5 @@ int InputReader::Seek(void *data, size_t position) {
 void InputReader::Release(void *data) {
   delete (InputReader *)data;
 }
+
+}  // namespace node_tree_sitter

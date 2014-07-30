@@ -2,6 +2,8 @@
 #include "./ast_node_array.h"
 #include "./document.h"
 
+namespace node_tree_sitter {
+
 using namespace v8;
 
 void InitAll(Handle<Object> exports) {
@@ -11,3 +13,5 @@ void InitAll(Handle<Object> exports) {
 }
 
 NODE_MODULE(tree_sitter_runtime_binding, InitAll)
+
+}  // namespace node_tree_sitter

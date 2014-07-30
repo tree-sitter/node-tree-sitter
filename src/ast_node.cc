@@ -3,6 +3,8 @@
 #include <node.h>
 #include <v8.h>
 
+namespace node_tree_sitter {
+
 using namespace v8;
 
 Persistent<Function> ASTNode::constructor;
@@ -91,3 +93,5 @@ Handle<Value> ASTNode::Children(Local<String> name, const AccessorInfo &info) {
   ASTNode *node = ObjectWrap::Unwrap<ASTNode>(info.This());
   return scope.Close(ASTNodeArray::NewInstance(node->node_));
 }
+
+}  // namespace node_tree_sitter

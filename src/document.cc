@@ -3,6 +3,8 @@
 #include "./input_reader.h"
 #include <node.h>
 
+namespace node_tree_sitter {
+
 using namespace v8;
 
 Persistent<Function> Document::constructor;
@@ -100,3 +102,5 @@ Handle<Value> Document::SetParser(const Arguments& args) {
 
   return scope.Close(args.This());
 }
+
+}  // namespace node_tree_sitter

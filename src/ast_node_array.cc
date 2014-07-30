@@ -3,6 +3,8 @@
 #include <node.h>
 #include <v8.h>
 
+namespace node_tree_sitter {
+
 using namespace v8;
 
 Persistent<Function> ASTNodeArray::constructor;
@@ -62,3 +64,5 @@ Handle<Value> ASTNodeArray::Length(Local<String>, const AccessorInfo &info) {
   ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(self);
   return scope.Close(Integer::New(ts_node_child_count(array->parent_node_)));
 }
+
+}  // namespace node_tree_sitter

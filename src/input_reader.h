@@ -3,6 +3,8 @@
 
 #include <v8.h>
 
+namespace node_tree_sitter {
+
 class InputReader {
   v8::Handle<v8::Object> object;
   char *buffer;
@@ -16,5 +18,6 @@ class InputReader {
   static void Release(void *data);
 };
 
+}  // namespace node_tree_sitter
 
 #endif  // NODE_TREE_SITTER_INPUT_READER_H_
