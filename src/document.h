@@ -17,7 +17,7 @@ class Document : public node::ObjectWrap {
 
   static v8::Handle<v8::Value> New(const v8::Arguments& args);
   static v8::Handle<v8::Value> SetInput(const v8::Arguments& args);
-  static v8::Handle<v8::Value> SetParser(const v8::Arguments& args);
+  static v8::Handle<v8::Value> SetLanguage(const v8::Arguments& args);
   static v8::Handle<v8::Value> ToString(const v8::Arguments& args);
   static v8::Handle<v8::Value> RootNode(const v8::Arguments& args);
 

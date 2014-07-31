@@ -26,8 +26,8 @@ void Document::Init(Handle<Object> exports) {
       String::NewSymbol("setInput"),
       FunctionTemplate::New(SetInput)->GetFunction());
   tpl->PrototypeTemplate()->Set(
-      String::NewSymbol("setParser"),
-      FunctionTemplate::New(SetParser)->GetFunction());
+      String::NewSymbol("setLanguage"),
+      FunctionTemplate::New(SetLanguage)->GetFunction());
 
   constructor = Persistent<Function>::New(tpl->GetFunction());
   exports->Set(String::NewSymbol("Document"), constructor);
@@ -87,18 +87,18 @@ Handle<Value> Document::SetInput(const Arguments& args) {
   return scope.Close(Undefined());
 }
 
-Handle<Value> Document::SetParser(const Arguments& args) {
+Handle<Value> Document::SetLanguage(const Arguments& args) {
   HandleScope scope;
   Handle<Object> arg = Handle<Object>::Cast(args[0]);
 
   if (arg->InternalFieldCount() != 1) {
-    ThrowException(Exception::TypeError(String::New("Invalid parser object")));
+    ThrowException(Exception::TypeError(String::New("Invalid language object")));
     return scope.Close(Undefined());
   }
 
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
   Local<External> field = Local<External>::Cast(arg->GetInternalField(0));
-  ts_document_set_parser(document->value_, (TSParser *)field->Value());
+  ts_document_set_language(document->value_, (TSLanguage *)field->Value());
 
   return scope.Close(args.This());
 }
