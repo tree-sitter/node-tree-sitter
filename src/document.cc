@@ -56,7 +56,10 @@ Handle<Value> Document::RootNode(const Arguments& args) {
   HandleScope scope;
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
   TSNode *root_node = ts_document_root_node(document->value_);
-  return scope.Close(ASTNode::NewInstance(root_node));
+  if (root_node)
+    return scope.Close(ASTNode::NewInstance(root_node));
+  else
+    return scope.Close(Null());
 }
 
 Handle<Value> Document::ToString(const Arguments& args) {
