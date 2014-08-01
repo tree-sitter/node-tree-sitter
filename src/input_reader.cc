@@ -20,6 +20,8 @@ const char * InputReader::Read(void *data, size_t *bytes_read) {
     return "";
 
   Handle<String> result = Handle<String>::Cast(read_fn->Call(reader->object, 0, NULL));
+  if (!result->IsString())
+    return "";
   *bytes_read = result->WriteUtf8(reader->buffer, 1024, NULL, 2);
   return reader->buffer;
 }
