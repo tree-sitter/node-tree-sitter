@@ -28,6 +28,9 @@ void Document::Init(Handle<Object> exports) {
   tpl->PrototypeTemplate()->Set(
       String::NewSymbol("setLanguage"),
       FunctionTemplate::New(SetLanguage)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      String::NewSymbol("edit"),
+      FunctionTemplate::New(Edit)->GetFunction());
 
   constructor = Persistent<Function>::New(tpl->GetFunction());
   exports->Set(String::NewSymbol("Document"), constructor);
@@ -75,18 +78,8 @@ Handle<Value> Document::ToString(const Arguments& args) {
 Handle<Value> Document::SetInput(const Arguments& args) {
   HandleScope scope;
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
-
-  Handle<Object> arg = Handle<Object>::Cast(args[0]);
-
-  InputReader *reader = new InputReader(arg, new char[1024]);
-
-  TSInput input;
-  input.data = (void *)reader;
-  input.read_fn = InputReader::Read;
-  input.seek_fn = InputReader::Seek;
-  input.release_fn = InputReader::Release;
-
-  ts_document_set_input(document->value_, input);
+  Persistent<Object> arg = Persistent<Object>::New(Handle<Object>::Cast(args[0]));
+  ts_document_set_input(document->value_, InputReaderMake(arg));
   return scope.Close(Undefined());
 }
 
@@ -103,6 +96,27 @@ Handle<Value> Document::SetLanguage(const Arguments& args) {
   Local<External> field = Local<External>::Cast(arg->GetInternalField(0));
   ts_document_set_language(document->value_, (TSLanguage *)field->Value());
 
+  return scope.Close(args.This());
+}
+
+Handle<Value> Document::Edit(const Arguments& args) {
+  HandleScope scope;
+
+  Handle<Object> arg = Handle<Object>::Cast(args[0]);
+  Document *document = ObjectWrap::Unwrap<Document>(args.This());
+
+  TSInputEdit edit = { 0, 0, 0};
+  Handle<Number> position = Handle<Number>::Cast(arg->Get(String::NewSymbol("position")));
+  if (position->IsNumber())
+    edit.position = position->Int32Value();
+  Handle<Number> bytes_removed = Handle<Number>::Cast(arg->Get(String::NewSymbol("bytesRemoved")));
+  if (bytes_removed->IsNumber())
+    edit.bytes_removed = bytes_removed->Int32Value();
+  Handle<Number> bytes_inserted = Handle<Number>::Cast(arg->Get(String::NewSymbol("bytesInserted")));
+  if (bytes_inserted->IsNumber())
+    edit.bytes_inserted = bytes_inserted->Int32Value();
+
+  ts_document_edit(document->value_, edit);
   return scope.Close(args.This());
 }
 

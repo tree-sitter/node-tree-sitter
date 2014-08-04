@@ -20,6 +20,7 @@ class Document : public node::ObjectWrap {
   static v8::Handle<v8::Value> SetLanguage(const v8::Arguments& args);
   static v8::Handle<v8::Value> ToString(const v8::Arguments& args);
   static v8::Handle<v8::Value> RootNode(const v8::Arguments& args);
+  static v8::Handle<v8::Value> Edit(const v8::Arguments& args);
 
   static v8::Persistent<v8::Function> constructor;
 

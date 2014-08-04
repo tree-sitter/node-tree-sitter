@@ -4,16 +4,34 @@ namespace node_tree_sitter {
 
 using namespace v8;
 
-InputReader::InputReader(Handle<Object> object, char *buffer) :
-  object(object),
-  buffer(buffer)
-  {}
+struct InputReader {
+  v8::Handle<v8::Object> object;
+  char *buffer;
 
-InputReader::~InputReader() {
-  delete buffer;
+ public:
+  InputReader(v8::Handle<v8::Object> object, char *buffer) :
+    object(object),
+    buffer(buffer)
+    {}
+};
+
+static int Seek(void *data, size_t position) {
+  InputReader *reader = (InputReader *)data;
+  Handle<Function> fn = Handle<Function>::Cast(reader->object->Get(String::NewSymbol("seek")));
+  if (!fn->IsFunction())
+    return 0;
+
+  Handle<Value> argv[1] = { Number::New(position) };
+  Handle<Number> result = Handle<Number>::Cast(fn->Call(reader->object, 1, argv));
+  return result->NumberValue();
 }
 
-const char * InputReader::Read(void *data, size_t *bytes_read) {
+static void Release(void *data) {
+  InputReader *reader = (InputReader *)data;
+  delete reader->buffer;
+}
+
+static const char * Read(void *data, size_t *bytes_read) {
   InputReader *reader = (InputReader *)data;
   Handle<Function> read_fn = Handle<Function>::Cast(reader->object->Get(String::NewSymbol("read")));
   if (!read_fn->IsFunction())
@@ -26,19 +44,13 @@ const char * InputReader::Read(void *data, size_t *bytes_read) {
   return reader->buffer;
 }
 
-int InputReader::Seek(void *data, size_t position) {
-  InputReader *reader = (InputReader *)data;
-  Handle<Function> fn = Handle<Function>::Cast(reader->object->Get(String::NewSymbol("seek")));
-  if (!fn->IsFunction())
-    return 0;
-
-  Handle<Value> argv[1] = { Number::New(position) };
-  Handle<Number> result = Handle<Number>::Cast(fn->Call(reader->object, 1, argv));
-  return result->NumberValue();
-}
-
-void InputReader::Release(void *data) {
-  delete (InputReader *)data;
+TSInput InputReaderMake(Handle<Object> object) {
+  TSInput result;
+  result.data = (void *)new InputReader(object, new char[1024]);
+  result.seek_fn = Seek;
+  result.read_fn = Read;
+  result.release_fn = Release;
+  return result;
 }
 
 }  // namespace node_tree_sitter
