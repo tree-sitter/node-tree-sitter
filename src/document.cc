@@ -1,5 +1,6 @@
 #include "./document.h"
 #include "./ast_node.h"
+#include "./ast_node_array.h"
 #include "./input_reader.h"
 #include <node.h>
 
@@ -15,10 +16,21 @@ void Document::Init(Handle<Object> exports) {
   tpl->SetClassName(String::NewSymbol("Document"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
+  // Properties
+  tpl->InstanceTemplate()->SetAccessor(
+      String::NewSymbol("children"),
+      AccessorGetter(Children));
+  tpl->InstanceTemplate()->SetAccessor(
+      String::NewSymbol("position"),
+      AccessorGetter(Position));
+  tpl->InstanceTemplate()->SetAccessor(
+      String::NewSymbol("size"),
+      AccessorGetter(Size));
+  tpl->InstanceTemplate()->SetAccessor(
+      String::NewSymbol("name"),
+      AccessorGetter(Name));
+
   // Prototype
-  tpl->PrototypeTemplate()->Set(
-      String::NewSymbol("rootNode"),
-      FunctionTemplate::New(RootNode)->GetFunction());
   tpl->PrototypeTemplate()->Set(
       String::NewSymbol("toString"),
       FunctionTemplate::New(ToString)->GetFunction());
@@ -55,24 +67,11 @@ Handle<Value> Document::New(const Arguments& args) {
   }
 }
 
-Handle<Value> Document::RootNode(const Arguments& args) {
-  HandleScope scope;
-  Document *document = ObjectWrap::Unwrap<Document>(args.This());
-  TSNode *root_node = ts_document_root_node(document->value_);
-  if (root_node)
-    return scope.Close(ASTNode::NewInstance(root_node));
-  else
-    return scope.Close(Null());
-}
-
 Handle<Value> Document::ToString(const Arguments& args) {
   HandleScope scope;
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
-  const char *result = ts_document_string(document->value_);
-  return scope.Close(String::Concat(
-    String::New("Document: "),
-    String::New(result)
-  ));
+  const char *result = ts_node_string(ts_document_root_node(document->value_));
+  return scope.Close(String::New(result));
 }
 
 Handle<Value> Document::SetInput(const Arguments& args) {
@@ -80,7 +79,7 @@ Handle<Value> Document::SetInput(const Arguments& args) {
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
   Persistent<Object> arg = Persistent<Object>::New(Handle<Object>::Cast(args[0]));
   ts_document_set_input(document->value_, InputReaderMake(arg));
-  return scope.Close(Undefined());
+  return scope.Close(args.This());
 }
 
 Handle<Value> Document::SetLanguage(const Arguments& args) {
@@ -118,6 +117,46 @@ Handle<Value> Document::Edit(const Arguments& args) {
 
   ts_document_edit(document->value_, edit);
   return scope.Close(args.This());
+}
+
+Handle<Value> Document::Name(Local<String>, const AccessorInfo &info) {
+  HandleScope scope;
+  Document *doc = ObjectWrap::Unwrap<Document>(info.This());
+  TSNode *node = ts_document_root_node(doc->value_);
+  if (node)
+    return scope.Close(String::New(ts_node_name(node)));
+  else
+    return scope.Close(Null());
+}
+
+Handle<Value> Document::Size(Local<String>, const AccessorInfo &info) {
+  HandleScope scope;
+  Document *doc = ObjectWrap::Unwrap<Document>(info.This());
+  TSNode *node = ts_document_root_node(doc->value_);
+  if (node)
+    return scope.Close(Integer::New(ts_node_size(node)));
+  else
+    return scope.Close(Null());
+}
+
+Handle<Value> Document::Position(Local<String>, const AccessorInfo &info) {
+  HandleScope scope;
+  Document *doc = ObjectWrap::Unwrap<Document>(info.This());
+  TSNode *node = ts_document_root_node(doc->value_);
+  if (node)
+    return scope.Close(Integer::New(ts_node_pos(node)));
+  else
+    return scope.Close(Null());
+}
+
+Handle<Value> Document::Children(Local<String>, const AccessorInfo &info) {
+  HandleScope scope;
+  Document *doc = ObjectWrap::Unwrap<Document>(info.This());
+  TSNode *node = ts_document_root_node(doc->value_);
+  if (node)
+    return scope.Close(ASTNodeArray::NewInstance(node));
+  else
+    return scope.Close(Null());
 }
 
 }  // namespace node_tree_sitter

@@ -17,11 +17,12 @@ class ASTNode : public node::ObjectWrap {
   ~ASTNode();
 
   static v8::Handle<v8::Value> New(const v8::Arguments &args);
-  static v8::Handle<v8::Value> Name(const v8::Arguments &args);
-  static v8::Handle<v8::Value> Position(const v8::Arguments &args);
-  static v8::Handle<v8::Value> Size(const v8::Arguments &args);
-  static v8::Handle<v8::Value> Parent(const v8::Arguments &args);
   static v8::Handle<v8::Value> ToString(const v8::Arguments &args);
+
+  static v8::Handle<v8::Value> Name(v8::Local<v8::String>, const v8::AccessorInfo &);
+  static v8::Handle<v8::Value> Position(v8::Local<v8::String>, const v8::AccessorInfo &);
+  static v8::Handle<v8::Value> Size(v8::Local<v8::String>, const v8::AccessorInfo &);
+  static v8::Handle<v8::Value> Parent(v8::Local<v8::String>, const v8::AccessorInfo &);
   static v8::Handle<v8::Value> Children(v8::Local<v8::String>, const v8::AccessorInfo &);
 
   static v8::Persistent<v8::Function> constructor;

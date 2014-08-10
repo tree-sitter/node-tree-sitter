@@ -31,30 +31,32 @@ document.setLanguage(require("tree-sitter-javascript"));
 Set the document's text:
 
 ```javascript
-document.setInputString("function(arg1, arg2) { arg2; }");
+document.setInputString("var inc = function(n) { return n + 1; }; inc(5);");
 ```
 
 Access the document's AST:
 
 ```javascript
-var rootNode = document.rootNode();
-rootNode.toString();
+document.toString()
 
 /*
-Returns:
-(program
-  (expression_statement (function
-    (formal_parameters (identifier) (identifier))
-    (statement_block
-      (expression_statement (identifier))))))
-*/
+ *  (DOCUMENT
+ *    (program
+ *      (var_declaration
+ *        (identifier)
+ *        (function (formal_parameters (identifier)) (statement_block
+ *          (return_statement (math_op (identifier) (number))))))
+ *      (expression_statement (function_call
+ *        (identifier) (number)))))
+ */
 
-var statement = rootNote.children[0],
-    func = statement.children[0],
-    parameters = func.children[0];
-parameters.children.length;
+var program = document.children[0];
+program.children[0];
 
 /*
-Returns: 2
-*/
+ *  { name: 'var_declaration',
+ *    size: 40,
+ *    position: 0,
+ *    children: { length: 2 } }
+ */
 ```

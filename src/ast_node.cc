@@ -19,17 +19,17 @@ void ASTNode::Init(Handle<Object> exports) {
   tpl->InstanceTemplate()->SetAccessor(
       String::NewSymbol("children"),
       AccessorGetter(Children));
+  tpl->InstanceTemplate()->SetAccessor(
+      String::NewSymbol("position"),
+      AccessorGetter(Position));
+  tpl->InstanceTemplate()->SetAccessor(
+      String::NewSymbol("size"),
+      AccessorGetter(Size));
+  tpl->InstanceTemplate()->SetAccessor(
+      String::NewSymbol("name"),
+      AccessorGetter(Name));
 
   // Prototype
-  tpl->PrototypeTemplate()->Set(
-      String::NewSymbol("position"),
-      FunctionTemplate::New(Position)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
-      String::NewSymbol("size"),
-      FunctionTemplate::New(Size)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
-      String::NewSymbol("name"),
-      FunctionTemplate::New(Name)->GetFunction());
   tpl->PrototypeTemplate()->Set(
       String::NewSymbol("toString"),
       FunctionTemplate::New(ToString)->GetFunction());
@@ -58,27 +58,6 @@ Handle<Value> ASTNode::New(const Arguments& args) {
   return scope.Close(Undefined());
 }
 
-Handle<Value> ASTNode::Name(const Arguments& args) {
-  HandleScope scope;
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
-  const char *result = ts_node_name(node->node_);
-  return scope.Close(String::New(result));
-}
-
-Handle<Value> ASTNode::Size(const Arguments& args) {
-  HandleScope scope;
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
-  size_t result = ts_node_size(node->node_);
-  return scope.Close(Integer::New(result));
-}
-
-Handle<Value> ASTNode::Position(const Arguments& args) {
-  HandleScope scope;
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
-  size_t result = ts_node_pos(node->node_);
-  return scope.Close(Integer::New(result));
-}
-
 Handle<Value> ASTNode::ToString(const Arguments& args) {
   HandleScope scope;
   ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
@@ -86,7 +65,28 @@ Handle<Value> ASTNode::ToString(const Arguments& args) {
   return scope.Close(String::New(result));
 }
 
-Handle<Value> ASTNode::Children(Local<String> name, const AccessorInfo &info) {
+Handle<Value> ASTNode::Name(Local<String>, const AccessorInfo &info) {
+  HandleScope scope;
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(info.This());
+  const char *result = ts_node_name(node->node_);
+  return scope.Close(String::New(result));
+}
+
+Handle<Value> ASTNode::Size(Local<String>, const AccessorInfo &info) {
+  HandleScope scope;
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(info.This());
+  size_t result = ts_node_size(node->node_);
+  return scope.Close(Integer::New(result));
+}
+
+Handle<Value> ASTNode::Position(Local<String>, const AccessorInfo &info) {
+  HandleScope scope;
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(info.This());
+  size_t result = ts_node_pos(node->node_);
+  return scope.Close(Integer::New(result));
+}
+
+Handle<Value> ASTNode::Children(Local<String>, const AccessorInfo &info) {
   HandleScope scope;
   ASTNode *node = ObjectWrap::Unwrap<ASTNode>(info.This());
   return scope.Close(ASTNodeArray::NewInstance(node->node_));
