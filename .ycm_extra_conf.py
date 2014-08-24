@@ -10,7 +10,7 @@ flags = [
     '-x', 'c++',
     '-I', 'src',
     '-I', 'include',
-    '-I', '/usr/local/include/node',
+    '-I', os.path.expanduser('~/.nvm/current/include/node'),
     '-I', 'vendor/tree-sitter/include',
     '-isystem', '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/c++/v1',
 ]

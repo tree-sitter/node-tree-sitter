@@ -1,2 +1,2 @@
-set path+=/usr/local/include/node
+set path+=~/.nvm/current/include/node
 set path+=$PWD/src
