@@ -48,7 +48,7 @@ NAN_METHOD(ASTNodeArray::New) {
 
 NAN_INDEX_GETTER(ASTNodeArray::GetIndex) {
   NanScope();
-  ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(args.This());
+  ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(args.This()->ToObject());
   TSNode *child = ts_node_child(array->parent_node_, index);
   if (child)
     NanReturnValue(ASTNode::NewInstance(child));
@@ -58,7 +58,7 @@ NAN_INDEX_GETTER(ASTNodeArray::GetIndex) {
 
 NAN_GETTER(ASTNodeArray::Length) {
   NanScope();
-  ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(args.This());
+  ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(args.This()->ToObject());
   NanReturnValue(NanNew<Integer>(ts_node_child_count(array->parent_node_)));
 }
 

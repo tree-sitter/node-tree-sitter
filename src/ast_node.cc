@@ -58,31 +58,31 @@ NAN_METHOD(ASTNode::New) {
 
 NAN_METHOD(ASTNode::ToString) {
   NanScope();
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This()->ToObject());
   NanReturnValue(NanNew<String>(ts_node_string(node->node_)));
 }
 
 NAN_GETTER(ASTNode::Name) {
   NanScope();
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This()->ToObject());
   NanReturnValue(NanNew<String>(ts_node_name(node->node_)));
 }
 
 NAN_GETTER(ASTNode::Size) {
   NanScope();
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This()->ToObject());
   NanReturnValue(NanNew<Integer>(ts_node_size(node->node_)));
 }
 
 NAN_GETTER(ASTNode::Position) {
   NanScope();
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This()->ToObject());
   NanReturnValue(NanNew<Integer>(ts_node_pos(node->node_)));
 }
 
 NAN_GETTER(ASTNode::Children) {
   NanScope();
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This()->ToObject());
   NanReturnValue(ASTNodeArray::NewInstance(node->node_));
 }
 

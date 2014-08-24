@@ -67,14 +67,14 @@ NAN_METHOD(Document::New) {
 
 NAN_METHOD(Document::ToString) {
   NanScope();
-  Document *document = ObjectWrap::Unwrap<Document>(args.This());
+  Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
   const char *result = ts_node_string(ts_document_root_node(document->value_));
   NanReturnValue(NanNew<String>(result));
 }
 
 NAN_METHOD(Document::SetInput) {
   NanScope();
-  Document *document = ObjectWrap::Unwrap<Document>(args.This());
+  Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
   ts_document_set_input(document->value_, InputReaderMake(Local<Object>::Cast(args[0])));
   NanReturnValue(args.This());
 }
@@ -88,7 +88,7 @@ NAN_METHOD(Document::SetLanguage) {
     NanReturnUndefined();
   }
 
-  Document *document = ObjectWrap::Unwrap<Document>(args.This());
+  Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
   TSLanguage *lang = (TSLanguage *)NanGetInternalFieldPointer(arg, 0);
   ts_document_set_language(document->value_, lang);
 
@@ -99,7 +99,7 @@ NAN_METHOD(Document::Edit) {
   NanScope();
 
   Handle<Object> arg = Handle<Object>::Cast(args[0]);
-  Document *document = ObjectWrap::Unwrap<Document>(args.This());
+  Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
 
   TSInputEdit edit = { 0, 0, 0};
   Handle<Number> position = Handle<Number>::Cast(arg->Get(NanNew("position")));
@@ -118,7 +118,7 @@ NAN_METHOD(Document::Edit) {
 
 NAN_GETTER(Document::Name) {
   NanScope();
-  Document *doc = ObjectWrap::Unwrap<Document>(args.This());
+  Document *doc = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
   TSNode *node = ts_document_root_node(doc->value_);
   if (node)
     NanReturnValue(NanNew<String>(ts_node_name(node)));
@@ -128,7 +128,7 @@ NAN_GETTER(Document::Name) {
 
 NAN_GETTER(Document::Size) {
   NanScope();
-  Document *doc = ObjectWrap::Unwrap<Document>(args.This());
+  Document *doc = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
   TSNode *node = ts_document_root_node(doc->value_);
   if (node)
     NanReturnValue(NanNew<Integer>(ts_node_size(node)));
@@ -138,7 +138,7 @@ NAN_GETTER(Document::Size) {
 
 NAN_GETTER(Document::Position) {
   NanScope();
-  Document *doc = ObjectWrap::Unwrap<Document>(args.This());
+  Document *doc = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
   TSNode *node = ts_document_root_node(doc->value_);
   if (node)
     NanReturnValue(NanNew<Integer>(ts_node_pos(node)));
@@ -148,7 +148,7 @@ NAN_GETTER(Document::Position) {
 
 NAN_GETTER(Document::Children) {
   NanScope();
-  Document *doc = ObjectWrap::Unwrap<Document>(args.This());
+  Document *doc = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
   TSNode *node = ts_document_root_node(doc->value_);
   if (node)
     NanReturnValue(ASTNodeArray::NewInstance(node));
