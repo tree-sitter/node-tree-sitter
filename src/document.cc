@@ -75,7 +75,7 @@ NAN_METHOD(Document::ToString) {
 NAN_METHOD(Document::SetInput) {
   NanScope();
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
-  ts_document_set_input(document->value_, InputReaderMake(Handle<Object>::Cast(args[0])));
+  ts_document_set_input(document->value_, InputReaderMake(Local<Object>::Cast(args[0])));
   NanReturnValue(args.This());
 }
 
