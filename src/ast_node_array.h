@@ -3,6 +3,8 @@
 
 #include <v8.h>
 #include <node.h>
+#include <node_object_wrap.h>
+#include "nan.h"
 #include "tree_sitter/runtime.h"
 
 namespace node_tree_sitter {
@@ -16,9 +18,10 @@ class ASTNodeArray : public node::ObjectWrap {
   explicit ASTNodeArray(TSNode *);
   ~ASTNodeArray();
 
-  static v8::Handle<v8::Value> New(const v8::Arguments &args);
-  static v8::Handle<v8::Value> Length(v8::Local<v8::String>, const v8::AccessorInfo &);
-  static v8::Handle<v8::Value> GetIndex(size_t, const v8::AccessorInfo &);
+  static NAN_METHOD(New);
+
+  static NAN_GETTER(Length);
+  static NAN_INDEX_GETTER(GetIndex);
 
   TSNode *parent_node_;
   static v8::Persistent<v8::Function> constructor;

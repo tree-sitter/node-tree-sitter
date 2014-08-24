@@ -3,6 +3,8 @@
 
 #include <v8.h>
 #include <node.h>
+#include <node_object_wrap.h>
+#include "nan.h"
 #include "tree_sitter/runtime.h"
 
 namespace node_tree_sitter {
@@ -15,17 +17,17 @@ class Document : public node::ObjectWrap {
   explicit Document();
   ~Document();
 
-  static v8::Handle<v8::Value> New(const v8::Arguments& args);
-  static v8::Handle<v8::Value> ToString(const v8::Arguments& args);
-  static v8::Handle<v8::Value> SetInput(const v8::Arguments& args);
-  static v8::Handle<v8::Value> SetLanguage(const v8::Arguments& args);
-  static v8::Handle<v8::Value> Edit(const v8::Arguments& args);
+  static NAN_METHOD(New);
+  static NAN_METHOD(ToString);
+  static NAN_METHOD(SetInput);
+  static NAN_METHOD(SetLanguage);
+  static NAN_METHOD(Edit);
 
-  static v8::Handle<v8::Value> Name(v8::Local<v8::String>, const v8::AccessorInfo &);
-  static v8::Handle<v8::Value> Position(v8::Local<v8::String>, const v8::AccessorInfo &);
-  static v8::Handle<v8::Value> Size(v8::Local<v8::String>, const v8::AccessorInfo &);
-  static v8::Handle<v8::Value> Parent(v8::Local<v8::String>, const v8::AccessorInfo &);
-  static v8::Handle<v8::Value> Children(v8::Local<v8::String>, const v8::AccessorInfo &);
+  static NAN_GETTER(Name);
+  static NAN_GETTER(Position);
+  static NAN_GETTER(Size);
+  static NAN_GETTER(Parent);
+  static NAN_GETTER(Children);
 
   static v8::Persistent<v8::Function> constructor;
 

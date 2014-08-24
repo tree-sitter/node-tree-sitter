@@ -1,7 +1,7 @@
+#include <v8.h>
+#include <node.h>
 #include "./ast_node_array.h"
 #include "./ast_node.h"
-#include <node.h>
-#include <v8.h>
 
 namespace node_tree_sitter {
 
@@ -11,20 +11,20 @@ Persistent<Function> ASTNodeArray::constructor;
 
 void ASTNodeArray::Init(Handle<Object> exports) {
   // Constructor
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("ASTNodeArray"));
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
+  tpl->SetClassName(NanNew("ASTNodeArray"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   // Properties
   tpl->InstanceTemplate()->SetIndexedPropertyHandler(
-      IndexedPropertyGetter(GetIndex),
-      IndexedPropertySetter(0));
+      GetIndex,
+      NULL);
   tpl->InstanceTemplate()->SetAccessor(
-      String::NewSymbol("length"),
-      AccessorGetter(Length),
-      AccessorSetter(0));
+      NanNew("length"),
+      Length,
+      NULL);
 
-  constructor = Persistent<Function>::New(tpl->GetFunction());
+  NanAssignPersistent(constructor, tpl->GetFunction());
 }
 
 ASTNodeArray::ASTNodeArray(TSNode *node) : parent_node_(node) {
@@ -36,33 +36,30 @@ ASTNodeArray::~ASTNodeArray() {
 }
 
 Handle<Value> ASTNodeArray::NewInstance(TSNode *node) {
-  HandleScope scope;
-  Local<Object> instance = constructor->NewInstance(0, NULL);
-  ASTNodeArray *array = new ASTNodeArray(node);
-  array->Wrap(instance);
-  return scope.Close(instance);
+  Local<Object> instance = NanNew(constructor)->NewInstance(0, NULL);
+  (new ASTNodeArray(node))->Wrap(instance);
+  return instance;
 }
 
-Handle<Value> ASTNodeArray::New(const Arguments& args) {
-  HandleScope scope;
-  return scope.Close(Undefined());
+NAN_METHOD(ASTNodeArray::New) {
+  NanScope();
+  NanReturnUndefined();
 }
 
-Handle<Value> ASTNodeArray::GetIndex(size_t index, const AccessorInfo &info) {
-  Local<Object> self = info.This();
-  ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(self);
+NAN_INDEX_GETTER(ASTNodeArray::GetIndex) {
+  NanScope();
+  ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(args.This());
   TSNode *child = ts_node_child(array->parent_node_, index);
   if (child)
-    return ASTNode::NewInstance(child);
+    NanReturnValue(ASTNode::NewInstance(child));
   else
-    return Undefined();
+    NanReturnUndefined();
 }
 
-Handle<Value> ASTNodeArray::Length(Local<String>, const AccessorInfo &info) {
-  HandleScope scope;
-  Local<Object> self = info.This();
-  ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(self);
-  return scope.Close(Integer::New(ts_node_child_count(array->parent_node_)));
+NAN_GETTER(ASTNodeArray::Length) {
+  NanScope();
+  ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(args.This());
+  NanReturnValue(NanNew<Integer>(ts_node_child_count(array->parent_node_)));
 }
 
 }  // namespace node_tree_sitter

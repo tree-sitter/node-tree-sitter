@@ -12,6 +12,7 @@ flags = [
     '-I', 'include',
     '-I', os.path.expanduser('~/.nvm/current/include/node'),
     '-I', 'vendor/tree-sitter/include',
+    '-I', 'node_modules/nan',
     '-isystem', '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/c++/v1',
 ]
 

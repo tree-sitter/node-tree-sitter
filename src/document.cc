@@ -12,40 +12,40 @@ Persistent<Function> Document::constructor;
 
 void Document::Init(Handle<Object> exports) {
   // Constructor
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("Document"));
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
+  tpl->SetClassName(NanNew<String>("Document"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   // Properties
   tpl->InstanceTemplate()->SetAccessor(
-      String::NewSymbol("children"),
-      AccessorGetter(Children));
+      NanNew("children"),
+      Children);
   tpl->InstanceTemplate()->SetAccessor(
-      String::NewSymbol("position"),
-      AccessorGetter(Position));
+      NanNew("position"),
+      Position);
   tpl->InstanceTemplate()->SetAccessor(
-      String::NewSymbol("size"),
-      AccessorGetter(Size));
+      NanNew("size"),
+      Size);
   tpl->InstanceTemplate()->SetAccessor(
-      String::NewSymbol("name"),
-      AccessorGetter(Name));
+      NanNew("name"),
+      Name);
 
   // Prototype
   tpl->PrototypeTemplate()->Set(
-      String::NewSymbol("toString"),
-      FunctionTemplate::New(ToString)->GetFunction());
+      NanNew("toString"),
+      NanNew<FunctionTemplate>(ToString)->GetFunction());
   tpl->PrototypeTemplate()->Set(
-      String::NewSymbol("setInput"),
-      FunctionTemplate::New(SetInput)->GetFunction());
+      NanNew("setInput"),
+      NanNew<FunctionTemplate>(SetInput)->GetFunction());
   tpl->PrototypeTemplate()->Set(
-      String::NewSymbol("setLanguage"),
-      FunctionTemplate::New(SetLanguage)->GetFunction());
+      NanNew("setLanguage"),
+      NanNew<FunctionTemplate>(SetLanguage)->GetFunction());
   tpl->PrototypeTemplate()->Set(
-      String::NewSymbol("edit"),
-      FunctionTemplate::New(Edit)->GetFunction());
+      NanNew("edit"),
+      NanNew<FunctionTemplate>(Edit)->GetFunction());
 
-  constructor = Persistent<Function>::New(tpl->GetFunction());
-  exports->Set(String::NewSymbol("Document"), constructor);
+  NanAssignPersistent(constructor, tpl->GetFunction());
+  exports->Set(NanNew("Document"), NanNew(constructor));
 }
 
 Document::Document() : value_(ts_document_make()) {}
@@ -54,109 +54,106 @@ Document::~Document() {
   ts_document_free(value_);
 }
 
-Handle<Value> Document::New(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Document::New) {
+  NanScope();
   if (args.IsConstructCall()) {
     Document *document = new Document();
     document->Wrap(args.This());
-    return args.This();
+    NanReturnValue(args.This());
   } else {
-    const int argc = 1;
-    Local<Value> argv[argc] = { args[0] };
-    return scope.Close(constructor->NewInstance(argc, argv));
+    NanReturnValue(NanNew(constructor)->NewInstance(0, NULL));
   }
 }
 
-Handle<Value> Document::ToString(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Document::ToString) {
+  NanScope();
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
   const char *result = ts_node_string(ts_document_root_node(document->value_));
-  return scope.Close(String::New(result));
+  NanReturnValue(NanNew<String>(result));
 }
 
-Handle<Value> Document::SetInput(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Document::SetInput) {
+  NanScope();
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
-  Persistent<Object> arg = Persistent<Object>::New(Handle<Object>::Cast(args[0]));
-  ts_document_set_input(document->value_, InputReaderMake(arg));
-  return scope.Close(args.This());
+  ts_document_set_input(document->value_, InputReaderMake(Handle<Object>::Cast(args[0])));
+  NanReturnValue(args.This());
 }
 
-Handle<Value> Document::SetLanguage(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Document::SetLanguage) {
+  NanScope();
   Handle<Object> arg = Handle<Object>::Cast(args[0]);
 
   if (arg->InternalFieldCount() != 1) {
-    ThrowException(Exception::TypeError(String::New("Invalid language object")));
-    return scope.Close(Undefined());
+    NanThrowTypeError("Invalid language object");
+    NanReturnUndefined();
   }
 
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
-  Local<External> field = Local<External>::Cast(arg->GetInternalField(0));
-  ts_document_set_language(document->value_, (TSLanguage *)field->Value());
+  TSLanguage *lang = (TSLanguage *)NanGetInternalFieldPointer(arg, 0);
+  ts_document_set_language(document->value_, lang);
 
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
-Handle<Value> Document::Edit(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(Document::Edit) {
+  NanScope();
 
   Handle<Object> arg = Handle<Object>::Cast(args[0]);
   Document *document = ObjectWrap::Unwrap<Document>(args.This());
 
   TSInputEdit edit = { 0, 0, 0};
-  Handle<Number> position = Handle<Number>::Cast(arg->Get(String::NewSymbol("position")));
+  Handle<Number> position = Handle<Number>::Cast(arg->Get(NanNew("position")));
   if (position->IsNumber())
     edit.position = position->Int32Value();
-  Handle<Number> bytes_removed = Handle<Number>::Cast(arg->Get(String::NewSymbol("bytesRemoved")));
+  Handle<Number> bytes_removed = Handle<Number>::Cast(arg->Get(NanNew("bytesRemoved")));
   if (bytes_removed->IsNumber())
     edit.bytes_removed = bytes_removed->Int32Value();
-  Handle<Number> bytes_inserted = Handle<Number>::Cast(arg->Get(String::NewSymbol("bytesInserted")));
+  Handle<Number> bytes_inserted = Handle<Number>::Cast(arg->Get(NanNew("bytesInserted")));
   if (bytes_inserted->IsNumber())
     edit.bytes_inserted = bytes_inserted->Int32Value();
 
   ts_document_edit(document->value_, edit);
-  return scope.Close(args.This());
+  NanReturnValue(args.This());
 }
 
-Handle<Value> Document::Name(Local<String>, const AccessorInfo &info) {
-  HandleScope scope;
-  Document *doc = ObjectWrap::Unwrap<Document>(info.This());
+NAN_GETTER(Document::Name) {
+  NanScope();
+  Document *doc = ObjectWrap::Unwrap<Document>(args.This());
   TSNode *node = ts_document_root_node(doc->value_);
   if (node)
-    return scope.Close(String::New(ts_node_name(node)));
+    NanReturnValue(NanNew<String>(ts_node_name(node)));
   else
-    return scope.Close(Null());
+    NanReturnNull();
 }
 
-Handle<Value> Document::Size(Local<String>, const AccessorInfo &info) {
-  HandleScope scope;
-  Document *doc = ObjectWrap::Unwrap<Document>(info.This());
+NAN_GETTER(Document::Size) {
+  NanScope();
+  Document *doc = ObjectWrap::Unwrap<Document>(args.This());
   TSNode *node = ts_document_root_node(doc->value_);
   if (node)
-    return scope.Close(Integer::New(ts_node_size(node)));
+    NanReturnValue(NanNew<Integer>(ts_node_size(node)));
   else
-    return scope.Close(Null());
+    NanReturnNull();
 }
 
-Handle<Value> Document::Position(Local<String>, const AccessorInfo &info) {
-  HandleScope scope;
-  Document *doc = ObjectWrap::Unwrap<Document>(info.This());
+NAN_GETTER(Document::Position) {
+  NanScope();
+  Document *doc = ObjectWrap::Unwrap<Document>(args.This());
   TSNode *node = ts_document_root_node(doc->value_);
   if (node)
-    return scope.Close(Integer::New(ts_node_pos(node)));
+    NanReturnValue(NanNew<Integer>(ts_node_pos(node)));
   else
-    return scope.Close(Null());
+    NanReturnNull();
 }
 
-Handle<Value> Document::Children(Local<String>, const AccessorInfo &info) {
-  HandleScope scope;
-  Document *doc = ObjectWrap::Unwrap<Document>(info.This());
+NAN_GETTER(Document::Children) {
+  NanScope();
+  Document *doc = ObjectWrap::Unwrap<Document>(args.This());
   TSNode *node = ts_document_root_node(doc->value_);
   if (node)
-    return scope.Close(ASTNodeArray::NewInstance(node));
+    NanReturnValue(ASTNodeArray::NewInstance(node));
   else
-    return scope.Close(Null());
+    NanReturnNull();
 }
 
 }  // namespace node_tree_sitter

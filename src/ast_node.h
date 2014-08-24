@@ -3,6 +3,8 @@
 
 #include <v8.h>
 #include <node.h>
+#include <node_object_wrap.h>
+#include "nan.h"
 #include "tree_sitter/runtime.h"
 
 namespace node_tree_sitter {
@@ -16,14 +18,14 @@ class ASTNode : public node::ObjectWrap {
   explicit ASTNode(TSNode *);
   ~ASTNode();
 
-  static v8::Handle<v8::Value> New(const v8::Arguments &args);
-  static v8::Handle<v8::Value> ToString(const v8::Arguments &args);
+  static NAN_METHOD(New);
+  static NAN_METHOD(ToString);
 
-  static v8::Handle<v8::Value> Name(v8::Local<v8::String>, const v8::AccessorInfo &);
-  static v8::Handle<v8::Value> Position(v8::Local<v8::String>, const v8::AccessorInfo &);
-  static v8::Handle<v8::Value> Size(v8::Local<v8::String>, const v8::AccessorInfo &);
-  static v8::Handle<v8::Value> Parent(v8::Local<v8::String>, const v8::AccessorInfo &);
-  static v8::Handle<v8::Value> Children(v8::Local<v8::String>, const v8::AccessorInfo &);
+  static NAN_GETTER(Name);
+  static NAN_GETTER(Position);
+  static NAN_GETTER(Size);
+  static NAN_GETTER(Parent);
+  static NAN_GETTER(Children);
 
   static v8::Persistent<v8::Function> constructor;
   TSNode *node_;

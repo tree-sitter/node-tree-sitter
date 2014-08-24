@@ -14,6 +14,7 @@
       ],
       "include_dirs": [
         "include",
+        "<!(node -e \"require('nan')\")",
       ],
       'conditions': [
         ['OS == "mac"', {

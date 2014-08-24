@@ -11,30 +11,30 @@ Persistent<Function> ASTNode::constructor;
 
 void ASTNode::Init(Handle<Object> exports) {
   // Constructor
-  Local<FunctionTemplate> tpl = FunctionTemplate::New(New);
-  tpl->SetClassName(String::NewSymbol("ASTNode"));
+  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
+  tpl->SetClassName(NanNew<String>("ASTNode"));
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   // Properties
   tpl->InstanceTemplate()->SetAccessor(
-      String::NewSymbol("children"),
-      AccessorGetter(Children));
+      NanNew<String>("children"),
+      Children);
   tpl->InstanceTemplate()->SetAccessor(
-      String::NewSymbol("position"),
-      AccessorGetter(Position));
+      NanNew<String>("position"),
+      Position);
   tpl->InstanceTemplate()->SetAccessor(
-      String::NewSymbol("size"),
-      AccessorGetter(Size));
+      NanNew<String>("size"),
+      Size);
   tpl->InstanceTemplate()->SetAccessor(
-      String::NewSymbol("name"),
-      AccessorGetter(Name));
+      NanNew<String>("name"),
+      Name);
 
   // Prototype
   tpl->PrototypeTemplate()->Set(
-      String::NewSymbol("toString"),
-      FunctionTemplate::New(ToString)->GetFunction());
+      NanNew<String>("toString"),
+      NanNew<FunctionTemplate>(ToString)->GetFunction());
 
-  constructor = Persistent<Function>::New(tpl->GetFunction());
+  NanAssignPersistent(constructor, tpl->GetFunction());
 }
 
 ASTNode::ASTNode(TSNode *node) : node_(node) {
@@ -46,50 +46,44 @@ ASTNode::~ASTNode() {
 }
 
 Handle<Value> ASTNode::NewInstance(TSNode *node) {
-  HandleScope scope;
-  Local<Object> instance = constructor->NewInstance(0, NULL);
-  ASTNode *ast_node = new ASTNode(node);
-  ast_node->Wrap(instance);
-  return scope.Close(instance);
+  Local<Object> instance = NanNew(constructor)->NewInstance(0, NULL);
+  (new ASTNode(node))->Wrap(instance);
+  return instance;
 }
 
-Handle<Value> ASTNode::New(const Arguments& args) {
-  HandleScope scope;
-  return scope.Close(Undefined());
+NAN_METHOD(ASTNode::New) {
+  NanScope();
+  NanReturnUndefined();
 }
 
-Handle<Value> ASTNode::ToString(const Arguments& args) {
-  HandleScope scope;
+NAN_METHOD(ASTNode::ToString) {
+  NanScope();
   ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
-  const char *result = ts_node_string(node->node_);
-  return scope.Close(String::New(result));
+  NanReturnValue(NanNew<String>(ts_node_string(node->node_)));
 }
 
-Handle<Value> ASTNode::Name(Local<String>, const AccessorInfo &info) {
-  HandleScope scope;
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(info.This());
-  const char *result = ts_node_name(node->node_);
-  return scope.Close(String::New(result));
+NAN_GETTER(ASTNode::Name) {
+  NanScope();
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
+  NanReturnValue(NanNew<String>(ts_node_name(node->node_)));
 }
 
-Handle<Value> ASTNode::Size(Local<String>, const AccessorInfo &info) {
-  HandleScope scope;
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(info.This());
-  size_t result = ts_node_size(node->node_);
-  return scope.Close(Integer::New(result));
+NAN_GETTER(ASTNode::Size) {
+  NanScope();
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
+  NanReturnValue(NanNew<Integer>(ts_node_size(node->node_)));
 }
 
-Handle<Value> ASTNode::Position(Local<String>, const AccessorInfo &info) {
-  HandleScope scope;
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(info.This());
-  size_t result = ts_node_pos(node->node_);
-  return scope.Close(Integer::New(result));
+NAN_GETTER(ASTNode::Position) {
+  NanScope();
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
+  NanReturnValue(NanNew<Integer>(ts_node_pos(node->node_)));
 }
 
-Handle<Value> ASTNode::Children(Local<String>, const AccessorInfo &info) {
-  HandleScope scope;
-  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(info.This());
-  return scope.Close(ASTNodeArray::NewInstance(node->node_));
+NAN_GETTER(ASTNode::Children) {
+  NanScope();
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This());
+  NanReturnValue(ASTNodeArray::NewInstance(node->node_));
 }
 
 }  // namespace node_tree_sitter
