@@ -9,6 +9,41 @@ namespace node_tree_sitter {
 
 using namespace v8;
 
+void IASTNode::SetUp(Local<FunctionTemplate> tpl) {
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  // Properties
+  tpl->InstanceTemplate()->SetAccessor(
+      NanNew<String>("children"),
+      Children);
+  tpl->InstanceTemplate()->SetAccessor(
+      NanNew<String>("position"),
+      Position);
+  tpl->InstanceTemplate()->SetAccessor(
+      NanNew<String>("size"),
+      Size);
+  tpl->InstanceTemplate()->SetAccessor(
+      NanNew<String>("name"),
+      Name);
+
+  // Prototype
+  tpl->PrototypeTemplate()->Set(
+      NanNew<String>("toString"),
+      NanNew<FunctionTemplate>(ToString)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("parent"),
+      NanNew<FunctionTemplate>(Parent)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("next"),
+      NanNew<FunctionTemplate>(Next)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("prev"),
+      NanNew<FunctionTemplate>(Prev)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("nodeAt"),
+      NanNew<FunctionTemplate>(NodeAt)->GetFunction());
+}
+
 static inline TSNode * unwrap(const Local<Object> &object) {
   return node::ObjectWrap::Unwrap<IASTNode>(object->ToObject())->node();
 }
@@ -114,41 +149,6 @@ NAN_GETTER(IASTNode::Children) {
     NanReturnValue(ASTNodeArray::NewInstance(node));
   }
   NanReturnNull();
-}
-
-void IASTNode::SetUp(Local<FunctionTemplate> tpl) {
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
-
-  // Properties
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew<String>("children"),
-      Children);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew<String>("position"),
-      Position);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew<String>("size"),
-      Size);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew<String>("name"),
-      Name);
-
-  // Prototype
-  tpl->PrototypeTemplate()->Set(
-      NanNew<String>("toString"),
-      NanNew<FunctionTemplate>(ToString)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
-      NanNew("parent"),
-      NanNew<FunctionTemplate>(Parent)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
-      NanNew("next"),
-      NanNew<FunctionTemplate>(Next)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
-      NanNew("prev"),
-      NanNew<FunctionTemplate>(Prev)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
-      NanNew("nodeAt"),
-      NanNew<FunctionTemplate>(NodeAt)->GetFunction());
 }
 
 }  // namespace node_tree_sitter
