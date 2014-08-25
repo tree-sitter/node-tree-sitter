@@ -32,9 +32,6 @@ void Document::Init(Handle<Object> exports) {
 
   // Prototype
   tpl->PrototypeTemplate()->Set(
-      NanNew("toString"),
-      NanNew<FunctionTemplate>(ToString)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
       NanNew("setInput"),
       NanNew<FunctionTemplate>(SetInput)->GetFunction());
   tpl->PrototypeTemplate()->Set(
@@ -43,6 +40,19 @@ void Document::Init(Handle<Object> exports) {
   tpl->PrototypeTemplate()->Set(
       NanNew("edit"),
       NanNew<FunctionTemplate>(Edit)->GetFunction());
+
+  tpl->PrototypeTemplate()->Set(
+      NanNew("toString"),
+      NanNew<FunctionTemplate>(ToString)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("parent"),
+      NanNew<FunctionTemplate>(Parent)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("next"),
+      NanNew<FunctionTemplate>(Next)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("prev"),
+      NanNew<FunctionTemplate>(Prev)->GetFunction());
 
   NanAssignPersistent(constructor, tpl->GetFunction());
   exports->Set(NanNew("Document"), NanNew(constructor));
@@ -114,6 +124,21 @@ NAN_METHOD(Document::Edit) {
 
   ts_document_edit(document->value_, edit);
   NanReturnValue(args.This());
+}
+
+NAN_METHOD(Document::Parent) {
+  NanScope();
+  NanReturnNull();
+}
+
+NAN_METHOD(Document::Next) {
+  NanScope();
+  NanReturnNull();
+}
+
+NAN_METHOD(Document::Prev) {
+  NanScope();
+  NanReturnNull();
 }
 
 NAN_GETTER(Document::Name) {

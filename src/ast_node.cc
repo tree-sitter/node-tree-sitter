@@ -33,6 +33,15 @@ void ASTNode::Init(Handle<Object> exports) {
   tpl->PrototypeTemplate()->Set(
       NanNew<String>("toString"),
       NanNew<FunctionTemplate>(ToString)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("parent"),
+      NanNew<FunctionTemplate>(Parent)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("next"),
+      NanNew<FunctionTemplate>(Next)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("prev"),
+      NanNew<FunctionTemplate>(Prev)->GetFunction());
 
   NanAssignPersistent(constructor, tpl->GetFunction());
 }
@@ -60,6 +69,36 @@ NAN_METHOD(ASTNode::ToString) {
   NanScope();
   ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This()->ToObject());
   NanReturnValue(NanNew<String>(ts_node_string(node->node_)));
+}
+
+NAN_METHOD(ASTNode::Parent) {
+  NanScope();
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This()->ToObject());
+  TSNode *parent = ts_node_parent(node->node_);
+  if (parent)
+    NanReturnValue(NewInstance(parent));
+  else
+    NanReturnNull();
+}
+
+NAN_METHOD(ASTNode::Next) {
+  NanScope();
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This()->ToObject());
+  TSNode *sibling = ts_node_next_sibling(node->node_);
+  if (sibling)
+    NanReturnValue(NewInstance(sibling));
+  else
+    NanReturnNull();
+}
+
+NAN_METHOD(ASTNode::Prev) {
+  NanScope();
+  ASTNode *node = ObjectWrap::Unwrap<ASTNode>(args.This()->ToObject());
+  TSNode *sibling = ts_node_prev_sibling(node->node_);
+  if (sibling)
+    NanReturnValue(NewInstance(sibling));
+  else
+    NanReturnNull();
 }
 
 NAN_GETTER(ASTNode::Name) {

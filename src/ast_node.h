@@ -20,6 +20,9 @@ class ASTNode : public node::ObjectWrap {
 
   static NAN_METHOD(New);
   static NAN_METHOD(ToString);
+  static NAN_METHOD(Parent);
+  static NAN_METHOD(Next);
+  static NAN_METHOD(Prev);
 
   static NAN_GETTER(Name);
   static NAN_GETTER(Position);
