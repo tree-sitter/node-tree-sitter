@@ -42,6 +42,9 @@ void ASTNode::Init(Handle<Object> exports) {
   tpl->PrototypeTemplate()->Set(
       NanNew("prev"),
       NanNew<FunctionTemplate>(Prev)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("nodeAt"),
+      NanNew<FunctionTemplate>(NodeAt)->GetFunction());
 
   NanAssignPersistent(constructor, tpl->GetFunction());
 }
@@ -99,6 +102,28 @@ NAN_METHOD(ASTNode::Prev) {
     NanReturnValue(NewInstance(sibling));
   else
     NanReturnNull();
+}
+
+NAN_METHOD(ASTNode::NodeAt) {
+  NanScope();
+  ASTNode *astNode = ObjectWrap::Unwrap<ASTNode>(args.This()->ToObject());
+  TSNode *node = astNode->node_;
+  switch (args.Length()) {
+    case 2: {
+      Handle<Integer> min = Handle<Integer>::Cast(args[0]);
+      Handle<Integer> max = Handle<Integer>::Cast(args[1]);
+      TSNode *result = ts_node_find_for_range(node, min->Int32Value(), max->Int32Value());
+      NanReturnValue(ASTNode::NewInstance(result));
+    }
+    case 1: {
+      Handle<Integer> pos = Handle<Integer>::Cast(args[0]);
+      TSNode *result = ts_node_find_for_pos(node, pos->Int32Value());
+      NanReturnValue(ASTNode::NewInstance(result));
+    }
+    default:
+      NanThrowTypeError("Must provide 1 or 2 numeric arguments");
+      NanReturnUndefined();
+  }
 }
 
 NAN_GETTER(ASTNode::Name) {

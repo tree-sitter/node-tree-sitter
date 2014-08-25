@@ -27,6 +27,7 @@ class Document : public node::ObjectWrap {
   static NAN_METHOD(Parent);
   static NAN_METHOD(Next);
   static NAN_METHOD(Prev);
+  static NAN_METHOD(NodeAt);
 
   static NAN_GETTER(Name);
   static NAN_GETTER(Position);

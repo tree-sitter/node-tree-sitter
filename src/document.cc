@@ -53,6 +53,9 @@ void Document::Init(Handle<Object> exports) {
   tpl->PrototypeTemplate()->Set(
       NanNew("prev"),
       NanNew<FunctionTemplate>(Prev)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("nodeAt"),
+      NanNew<FunctionTemplate>(NodeAt)->GetFunction());
 
   NanAssignPersistent(constructor, tpl->GetFunction());
   exports->Set(NanNew("Document"), NanNew(constructor));
@@ -144,6 +147,29 @@ NAN_METHOD(Document::Next) {
 NAN_METHOD(Document::Prev) {
   NanScope();
   NanReturnNull();
+}
+
+NAN_METHOD(Document::NodeAt) {
+  NanScope();
+  Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
+  TSNode *node = ts_document_root_node(document->value_);
+  switch (args.Length()) {
+    case 2: {
+      Handle<Integer> min = Handle<Integer>::Cast(args[0]);
+      Handle<Integer> max = Handle<Integer>::Cast(args[1]);
+      TSNode *result = ts_node_find_for_range(node, min->Int32Value(), max->Int32Value());
+      NanReturnValue(ASTNode::NewInstance(result));
+    }
+    case 1: {
+      Handle<Integer> pos = Handle<Integer>::Cast(args[0]);
+      TSNode *result = ts_node_find_for_pos(node, pos->Int32Value());
+      NanReturnValue(ASTNode::NewInstance(result));
+    }
+    default:
+      printf("GOT %d ARGS\n", args.Length());
+      NanThrowTypeError("Expected 1 or 2 numeric arguments");
+      NanReturnUndefined();
+  }
 }
 
 NAN_GETTER(Document::Name) {
