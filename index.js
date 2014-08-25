@@ -1,6 +1,9 @@
-var binding = require("./lib/binding");
+var binding = require("bindings")("tree_sitter_runtime_binding"),
+    Document = binding.Document,
+    StringInput = require("./lib/string_input");
 
-module.exports = {
-  Document: require("./lib/document"),
-  Parser: binding.Parser
+Document.prototype.setInputString = function(string) {
+  return this.setInput(new StringInput(string));
 };
+
+exports.Document = Document;

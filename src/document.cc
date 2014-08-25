@@ -85,7 +85,12 @@ NAN_METHOD(Document::ToString) {
 NAN_METHOD(Document::SetInput) {
   NanScope();
   Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
-  ts_document_set_input(document->value_, InputReaderMake(Local<Object>::Cast(args[0])));
+  Local<Object> input = Local<Object>::Cast(args[0]);
+  if (!input->Get(NanNew("seek"))->IsFunction())
+    NanThrowTypeError("Input must implement seek(n)");
+  if (!input->Get(NanNew("read"))->IsFunction())
+    NanThrowTypeError("Input must implement read(n)");
+  ts_document_set_input(document->value_, InputReaderMake(input));
   NanReturnValue(args.This());
 }
 
