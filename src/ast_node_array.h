@@ -1,11 +1,10 @@
 #ifndef NODE_TREE_SITTER_AST_NODE_ARRAY_H_
 #define NODE_TREE_SITTER_AST_NODE_ARRAY_H_
 
-#include <v8.h>
-#include <node.h>
+#include <nan.h>
 #include <node_object_wrap.h>
-#include "nan.h"
-#include "tree_sitter/runtime.h"
+#include <tree_sitter/runtime.h>
+#include <v8.h>
 
 namespace node_tree_sitter {
 
@@ -19,7 +18,6 @@ class ASTNodeArray : public node::ObjectWrap {
   ~ASTNodeArray();
 
   static NAN_METHOD(New);
-
   static NAN_GETTER(Length);
   static NAN_INDEX_GETTER(GetIndex);
 

@@ -1,5 +1,7 @@
 #include "./input_reader.h"
-#include "nan.h"
+#include <v8.h>
+#include <nan.h>
+#include <tree_sitter/runtime.h>
 
 namespace node_tree_sitter {
 

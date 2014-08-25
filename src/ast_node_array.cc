@@ -1,6 +1,7 @@
-#include <v8.h>
-#include <node.h>
 #include "./ast_node_array.h"
+#include <nan.h>
+#include <tree_sitter/runtime.h>
+#include <v8.h>
 #include "./ast_node.h"
 
 namespace node_tree_sitter {

@@ -1,3 +1,5 @@
+#include <node.h>
+#include <v8.h>
 #include "./ast_node.h"
 #include "./ast_node_array.h"
 #include "./document.h"
