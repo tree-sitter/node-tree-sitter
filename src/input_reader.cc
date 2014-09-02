@@ -36,12 +36,17 @@ static void Release(void *data) {
 static const char * Read(void *data, size_t *bytes_read) {
   InputReader *reader = (InputReader *)data;
   Handle<Function> read_fn = Handle<Function>::Cast(NanNew(reader->object)->Get(NanNew<String>("read")));
-  if (!read_fn->IsFunction())
+  if (!read_fn->IsFunction()) {
+    *bytes_read = 0;
     return "";
+  }
 
   Handle<String> result = Handle<String>::Cast(read_fn->Call(NanNew(reader->object), 0, NULL));
-  if (!result->IsString())
+  if (!result->IsString()) {
+    *bytes_read = 0;
     return "";
+  }
+
   *bytes_read = result->WriteUtf8(reader->buffer, 1024, NULL, 2);
   return reader->buffer;
 }
