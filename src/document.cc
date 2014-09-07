@@ -17,6 +17,10 @@ void Document::Init(Handle<Object> exports) {
   IASTNode::SetUp(tpl);
 
   tpl->PrototypeTemplate()->Set(
+      NanNew("setDebug"),
+      NanNew<FunctionTemplate>(SetDebug)->GetFunction());
+
+  tpl->PrototypeTemplate()->Set(
       NanNew("setInput"),
       NanNew<FunctionTemplate>(SetInput)->GetFunction());
   tpl->PrototypeTemplate()->Set(
@@ -103,6 +107,15 @@ NAN_METHOD(Document::Edit) {
     edit.bytes_inserted = bytes_inserted->Int32Value();
 
   ts_document_edit(document->document_, edit);
+  NanReturnValue(args.This());
+}
+
+NAN_METHOD(Document::SetDebug) {
+  NanScope();
+
+  Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
+  ts_document_set_debug(document->document_, (args[0]->IsTrue()));
+
   NanReturnValue(args.This());
 }
 

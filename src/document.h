@@ -21,6 +21,7 @@ class Document : public IASTNode {
   static NAN_METHOD(SetInput);
   static NAN_METHOD(SetLanguage);
   static NAN_METHOD(Edit);
+  static NAN_METHOD(SetDebug);
 
   TSDocument *document_;
   static v8::Persistent<v8::Function> constructor;
