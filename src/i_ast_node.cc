@@ -128,7 +128,7 @@ NAN_GETTER(IASTNode::Size) {
   NanScope();
   TSNode *node = unwrap(args.This());
   if (node) {
-    NanReturnValue(NanNew<Integer>(ts_node_size(node)));
+    NanReturnValue(NanNew<Integer>(ts_node_size(node).chars));
   }
   NanReturnNull();
 }
@@ -137,7 +137,7 @@ NAN_GETTER(IASTNode::Position) {
   NanScope();
   TSNode *node = unwrap(args.This());
   if (node) {
-    NanReturnValue(NanNew<Integer>(ts_node_pos(node)));
+    NanReturnValue(NanNew<Integer>(ts_node_pos(node).chars));
   }
   NanReturnNull();
 }

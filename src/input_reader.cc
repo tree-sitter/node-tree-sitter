@@ -17,13 +17,13 @@ struct InputReader {
     {}
 };
 
-static int Seek(void *data, size_t position) {
+static int Seek(void *data, TSLength position) {
   InputReader *reader = (InputReader *)data;
   Handle<Function> fn = Handle<Function>::Cast(NanNew(reader->object)->Get(NanNew<String>("seek")));
   if (!fn->IsFunction())
     return 0;
 
-  Handle<Value> argv[1] = { NanNew<Integer>(position) };
+  Handle<Value> argv[1] = { NanNew<Integer>(position.chars) };
   Handle<Number> result = Handle<Number>::Cast(fn->Call(NanNew(reader->object), 1, argv));
   return result->NumberValue();
 }
