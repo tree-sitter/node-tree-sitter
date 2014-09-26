@@ -114,7 +114,7 @@ NAN_METHOD(Document::SetDebug) {
   NanScope();
 
   Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
-  ts_document_set_debug(document->document_, (args[0]->IsTrue()));
+  ts_document_set_debug(document->document_, (args[0]->IntegerValue()));
 
   NanReturnValue(args.This());
 }
