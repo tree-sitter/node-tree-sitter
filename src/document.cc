@@ -98,13 +98,13 @@ NAN_METHOD(Document::Edit) {
   if (position->IsNumber())
     edit.position = position->Int32Value();
 
-  Handle<Number> bytes_removed = Handle<Number>::Cast(arg->Get(NanNew("bytesRemoved")));
-  if (bytes_removed->IsNumber())
-    edit.bytes_removed = bytes_removed->Int32Value();
+  Handle<Number> chars_removed = Handle<Number>::Cast(arg->Get(NanNew("charsRemoved")));
+  if (chars_removed->IsNumber())
+    edit.chars_removed = chars_removed->Int32Value();
 
-  Handle<Number> bytes_inserted = Handle<Number>::Cast(arg->Get(NanNew("bytesInserted")));
-  if (bytes_inserted->IsNumber())
-    edit.bytes_inserted = bytes_inserted->Int32Value();
+  Handle<Number> chars_inserted = Handle<Number>::Cast(arg->Get(NanNew("charsInserted")));
+  if (chars_inserted->IsNumber())
+    edit.chars_inserted = chars_inserted->Int32Value();
 
   ts_document_edit(document->document_, edit);
   NanReturnValue(args.This());
