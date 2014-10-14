@@ -125,7 +125,7 @@ NAN_METHOD(Document::DebugParse) {
   else if (func->IsNull() || func->IsFalse() || func->IsUndefined())
     ts_document_debug_parse(document->document_, { 0, 0, 0 });
   else
-    NanThrowTypeError("Argument must either be a function or a falsy value");
+    NanThrowTypeError("Debug callback must either be a function or a falsy value");
 
   NanReturnValue(args.This());
 }
@@ -141,7 +141,7 @@ NAN_METHOD(Document::DebugLex) {
   else if (func->IsNull() || func->IsFalse() || func->IsUndefined())
     ts_document_debug_lex(document->document_, { 0, 0, 0 });
   else
-    NanThrowTypeError("Argument must either be a function or a falsy value");
+    NanThrowTypeError("Debug callback must either be a function or a falsy value");
 
   NanReturnValue(args.This());
 }
