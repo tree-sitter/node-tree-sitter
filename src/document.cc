@@ -3,6 +3,7 @@
 #include "nan.h"
 #include "./i_ast_node.h"
 #include "./input_reader.h"
+#include "./debugger.h"
 
 namespace node_tree_sitter {
 
@@ -17,8 +18,11 @@ void Document::Init(Handle<Object> exports) {
   IASTNode::SetUp(tpl);
 
   tpl->PrototypeTemplate()->Set(
-      NanNew("setDebug"),
-      NanNew<FunctionTemplate>(SetDebug)->GetFunction());
+      NanNew("debugParse"),
+      NanNew<FunctionTemplate>(DebugParse)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("debugLex"),
+      NanNew<FunctionTemplate>(DebugLex)->GetFunction());
 
   tpl->PrototypeTemplate()->Set(
       NanNew("setInput"),
@@ -110,11 +114,34 @@ NAN_METHOD(Document::Edit) {
   NanReturnValue(args.This());
 }
 
-NAN_METHOD(Document::SetDebug) {
+NAN_METHOD(Document::DebugParse) {
   NanScope();
 
   Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
-  ts_document_set_debug(document->document_, (args[0]->IntegerValue()));
+  Handle<Function> func = Handle<Function>::Cast(args[0]);
+
+  if (func->IsFunction())
+    ts_document_debug_parse(document->document_, DebuggerMake(func));
+  else if (func->IsNull() || func->IsFalse() || func->IsUndefined())
+    ts_document_debug_parse(document->document_, { 0, 0, 0 });
+  else
+    NanThrowTypeError("Argument must either be a function or a falsy value");
+
+  NanReturnValue(args.This());
+}
+
+NAN_METHOD(Document::DebugLex) {
+  NanScope();
+
+  Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
+  Handle<Function> func = Handle<Function>::Cast(args[0]);
+
+  if (func->IsFunction())
+    ts_document_debug_lex(document->document_, DebuggerMake(func));
+  else if (func->IsNull() || func->IsFalse() || func->IsUndefined())
+    ts_document_debug_lex(document->document_, { 0, 0, 0 });
+  else
+    NanThrowTypeError("Argument must either be a function or a falsy value");
 
   NanReturnValue(args.This());
 }
