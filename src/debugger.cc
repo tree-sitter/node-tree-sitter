@@ -59,4 +59,3 @@ TSDebugger DebuggerMake(Handle<Function> func) {
 }
 
 }  // namespace node_tree_sitter
-

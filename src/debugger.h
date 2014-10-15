@@ -11,4 +11,3 @@ TSDebugger DebuggerMake(v8::Handle<v8::Function>);
 }  // namespace node_tree_sitter
 
 #endif  // NODE_TREE_SITTER_DEBUGGER_H_
-

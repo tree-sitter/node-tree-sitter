@@ -30,4 +30,3 @@ class IASTNode : public node::ObjectWrap {
 }  // namespace node_tree_sitter
 
 #endif  // NODE_TREE_SITTER_AST_NODE_H_
-
