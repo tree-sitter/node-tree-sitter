@@ -6,7 +6,7 @@
 
 namespace node_tree_sitter {
 
-TSInput InputReaderMake(v8::Local<v8::Object>);
+TSInput InputReaderMake(v8::Handle<v8::Object>);
 
 }  // namespace node_tree_sitter
 

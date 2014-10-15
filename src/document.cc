@@ -62,7 +62,7 @@ NAN_METHOD(Document::New) {
 NAN_METHOD(Document::SetInput) {
   NanScope();
   Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
-  Local<Object> input = Local<Object>::Cast(args[0]);
+  Handle<Object> input = Handle<Object>::Cast(args[0]);
 
   if (!input->Get(NanNew("seek"))->IsFunction())
     NanThrowTypeError("Input must implement seek(n)");

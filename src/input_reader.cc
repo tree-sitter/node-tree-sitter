@@ -51,7 +51,7 @@ static const char * Read(void *data, size_t *bytes_read) {
   return reader->buffer;
 }
 
-TSInput InputReaderMake(Local<Object> object) {
+TSInput InputReaderMake(Handle<Object> object) {
   TSInput result;
   InputReader *reader = new InputReader(new char[1024]);
   NanAssignPersistent(reader->object, object);

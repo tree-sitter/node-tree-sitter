@@ -6,7 +6,7 @@
 
 namespace node_tree_sitter {
 
-TSDebugger DebuggerMake(v8::Local<v8::Function>);
+TSDebugger DebuggerMake(v8::Handle<v8::Function>);
 
 }  // namespace node_tree_sitter
 

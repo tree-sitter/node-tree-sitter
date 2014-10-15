@@ -26,7 +26,7 @@ static void Debug(void *data, const char *message_str) {
   string message(message_str);
   size_t space_pos = message.find(" ", 0);
 
-  Local<String> name = NanNew(message.substr(0, space_pos));
+  Local<String> name = NanNew<String>(message.substr(0, space_pos));
   Local<Object> params = NanNew<Object>();
 
   while (space_pos != string::npos) {
@@ -45,10 +45,10 @@ static void Debug(void *data, const char *message_str) {
   }
 
   Handle<Value> argv[2] = { name, params };
-  fn->Call(NanUndefined(), 2, argv);
+  fn->Call(fn->CreationContext()->Global(), 2, argv);
 }
 
-TSDebugger DebuggerMake(Local<Function> func) {
+TSDebugger DebuggerMake(Handle<Function> func) {
   TSDebugger result;
   Debugger *debugger = new Debugger();
   NanAssignPersistent(debugger->func, func);
