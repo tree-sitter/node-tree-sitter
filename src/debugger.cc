@@ -17,7 +17,7 @@ static void Release(void *data) {
   delete (Debugger *)data;
 }
 
-static void Debug(void *data, const char *message_str) {
+static void Debug(void *data, TSDebugType type, const char *message_str) {
   Debugger *debugger = (Debugger *)data;
   Handle<Function> fn = NanNew(debugger->func);
   if (!fn->IsFunction())
@@ -44,8 +44,9 @@ static void Debug(void *data, const char *message_str) {
     params->Set(NanNew(key), NanNew(value));
   }
 
-  Handle<Value> argv[2] = { name, params };
-  fn->Call(fn->CreationContext()->Global(), 2, argv);
+  Local<String> type_name = NanNew((type == TSDebugTypeParse) ? "parse" : "lex");
+  Handle<Value> argv[3] = { name, params, type_name };
+  fn->Call(fn->CreationContext()->Global(), 3, argv);
 }
 
 TSDebugger DebuggerMake(Handle<Function> func) {

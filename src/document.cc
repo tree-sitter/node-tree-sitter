@@ -18,11 +18,8 @@ void Document::Init(Handle<Object> exports) {
   IASTNode::SetUp(tpl);
 
   tpl->PrototypeTemplate()->Set(
-      NanNew("debugParse"),
-      NanNew<FunctionTemplate>(DebugParse)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
-      NanNew("debugLex"),
-      NanNew<FunctionTemplate>(DebugLex)->GetFunction());
+      NanNew("setDebug"),
+      NanNew<FunctionTemplate>(SetDebug)->GetFunction());
 
   tpl->PrototypeTemplate()->Set(
       NanNew("setInput"),
@@ -114,32 +111,16 @@ NAN_METHOD(Document::Edit) {
   NanReturnValue(args.This());
 }
 
-NAN_METHOD(Document::DebugParse) {
+NAN_METHOD(Document::SetDebug) {
   NanScope();
 
   Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
   Handle<Function> func = Handle<Function>::Cast(args[0]);
 
   if (func->IsFunction())
-    ts_document_debug_parse(document->document_, DebuggerMake(func));
+    ts_document_set_debugger(document->document_, DebuggerMake(func));
   else if (func->IsNull() || func->IsFalse() || func->IsUndefined())
-    ts_document_debug_parse(document->document_, { 0, 0, 0 });
-  else
-    NanThrowTypeError("Debug callback must either be a function or a falsy value");
-
-  NanReturnValue(args.This());
-}
-
-NAN_METHOD(Document::DebugLex) {
-  NanScope();
-
-  Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
-  Handle<Function> func = Handle<Function>::Cast(args[0]);
-
-  if (func->IsFunction())
-    ts_document_debug_lex(document->document_, DebuggerMake(func));
-  else if (func->IsNull() || func->IsFalse() || func->IsUndefined())
-    ts_document_debug_lex(document->document_, { 0, 0, 0 });
+    ts_document_set_debugger(document->document_, { 0, 0, 0 });
   else
     NanThrowTypeError("Debug callback must either be a function or a falsy value");
 
