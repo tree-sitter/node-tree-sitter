@@ -26,6 +26,7 @@ static void Debug(void *data, TSDebugType type, const char *message_str) {
   string message(message_str);
   size_t space_pos = message.find(" ", 0);
 
+  Local<String> type_name = NanNew((type == TSDebugTypeParse) ? "parse" : "lex");
   Local<String> name = NanNew<String>(message.substr(0, space_pos));
   Local<Object> params = NanNew<Object>();
 
@@ -44,7 +45,6 @@ static void Debug(void *data, TSDebugType type, const char *message_str) {
     params->Set(NanNew(key), NanNew(value));
   }
 
-  Local<String> type_name = NanNew((type == TSDebugTypeParse) ? "parse" : "lex");
   Handle<Value> argv[3] = { name, params, type_name };
   fn->Call(fn->CreationContext()->Global(), 3, argv);
 }
