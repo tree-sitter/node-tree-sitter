@@ -24,24 +24,27 @@ static void Debug(void *data, TSDebugType type, const char *message_str) {
     return;
 
   string message(message_str);
-  size_t space_pos = message.find(" ", 0);
+  string param_sep = " ";
+  size_t param_sep_pos = message.find(param_sep, 0);
 
   Local<String> type_name = NanNew((type == TSDebugTypeParse) ? "parse" : "lex");
-  Local<String> name = NanNew<String>(message.substr(0, space_pos));
+  Local<String> name = NanNew<String>(message.substr(0, param_sep_pos));
   Local<Object> params = NanNew<Object>();
 
-  while (space_pos != string::npos) {
-    size_t key_pos = space_pos + 1;
-    size_t sep_pos = message.find(":", key_pos);
 
-    if (sep_pos == string::npos)
+  while (param_sep_pos != string::npos) {
+    size_t key_pos = param_sep_pos + param_sep.size();
+    size_t value_sep_pos = message.find(":", key_pos);
+
+    if (value_sep_pos == string::npos)
       break;
 
-    size_t val_pos = sep_pos + 1;
-    space_pos = message.find(" ", sep_pos);
+    size_t val_pos = value_sep_pos + 1;
+    param_sep = ", ";
+    param_sep_pos = message.find(param_sep, value_sep_pos);
 
-    string key = message.substr(key_pos, (sep_pos - key_pos));
-    string value = message.substr(val_pos, (space_pos - val_pos));
+    string key = message.substr(key_pos, (value_sep_pos - key_pos));
+    string value = message.substr(val_pos, (param_sep_pos - val_pos));
     params->Set(NanNew(key), NanNew(value));
   }
 
