@@ -73,9 +73,8 @@ NAN_METHOD(IASTNode::Next) {
   TSNode *node = unwrap(args.This());
   if (node) {
     TSNode *sibling = ts_node_next_sibling(node);
-    if (sibling) {
+    if (sibling)
       NanReturnValue(ASTNode::NewInstance(sibling));
-    }
   }
   NanReturnNull();
 }
@@ -109,7 +108,6 @@ NAN_METHOD(IASTNode::NodeAt) {
       }
       default:
         NanThrowTypeError("Must provide 1 or 2 numeric arguments");
-        NanReturnUndefined();
     }
   }
   NanReturnNull();
@@ -118,36 +116,32 @@ NAN_METHOD(IASTNode::NodeAt) {
 NAN_GETTER(IASTNode::Name) {
   NanScope();
   TSNode *node = unwrap(args.This());
-  if (node) {
+  if (node)
     NanReturnValue(NanNew<String>(ts_node_name(node)));
-  }
   NanReturnNull();
 }
 
 NAN_GETTER(IASTNode::Size) {
   NanScope();
   TSNode *node = unwrap(args.This());
-  if (node) {
+  if (node)
     NanReturnValue(NanNew<Integer>(ts_node_size(node).chars));
-  }
   NanReturnNull();
 }
 
 NAN_GETTER(IASTNode::Position) {
   NanScope();
   TSNode *node = unwrap(args.This());
-  if (node) {
+  if (node)
     NanReturnValue(NanNew<Integer>(ts_node_pos(node).chars));
-  }
   NanReturnNull();
 }
 
 NAN_GETTER(IASTNode::Children) {
   NanScope();
   TSNode *node = unwrap(args.This());
-  if (node) {
+  if (node)
     NanReturnValue(ASTNodeArray::NewInstance(node));
-  }
   NanReturnNull();
 }
 
