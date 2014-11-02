@@ -31,7 +31,6 @@ static void Debug(void *data, TSDebugType type, const char *message_str) {
   Local<String> name = NanNew<String>(message.substr(0, param_sep_pos));
   Local<Object> params = NanNew<Object>();
 
-
   while (param_sep_pos != string::npos) {
     size_t key_pos = param_sep_pos + param_sep.size();
     size_t value_sep_pos = message.find(":", key_pos);
@@ -49,7 +48,18 @@ static void Debug(void *data, TSDebugType type, const char *message_str) {
   }
 
   Handle<Value> argv[3] = { name, params, type_name };
+  TryCatch try_catch;
   fn->Call(fn->CreationContext()->Global(), 3, argv);
+  if (try_catch.HasCaught()) {
+    Handle<Value> log_argv[2] = {
+      NanNew("Error in debug callback:"),
+      try_catch.Exception()
+    };
+
+    Handle<Object> console = Handle<Object>::Cast(fn->CreationContext()->Global()->Get(NanNew("console")));
+    Handle<Function> error_fn = Handle<Function>::Cast(console->Get(NanNew("error")));
+    error_fn->Call(console, 2, log_argv);
+  }
 }
 
 TSDebugger DebuggerMake(Handle<Function> func) {
