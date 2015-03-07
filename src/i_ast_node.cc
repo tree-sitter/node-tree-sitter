@@ -14,21 +14,21 @@ void IASTNode::SetUp(Local<FunctionTemplate> tpl) {
 
   // Properties
   tpl->InstanceTemplate()->SetAccessor(
-      NanNew<String>("children"),
+      NanNew("children"),
       Children);
   tpl->InstanceTemplate()->SetAccessor(
-      NanNew<String>("position"),
+      NanNew("position"),
       Position);
   tpl->InstanceTemplate()->SetAccessor(
-      NanNew<String>("size"),
+      NanNew("size"),
       Size);
   tpl->InstanceTemplate()->SetAccessor(
-      NanNew<String>("name"),
+      NanNew("name"),
       Name);
 
   // Prototype
   tpl->PrototypeTemplate()->Set(
-      NanNew<String>("toString"),
+      NanNew("toString"),
       NanNew<FunctionTemplate>(ToString)->GetFunction());
   tpl->PrototypeTemplate()->Set(
       NanNew("parent"),
@@ -52,9 +52,9 @@ NAN_METHOD(IASTNode::ToString) {
   NanScope();
   TSNode *node = unwrap(args.This());
   if (node) {
-    NanReturnValue(NanNew<String>(ts_node_string(node)));
+    NanReturnValue(NanNew(ts_node_string(node)));
   }
-  NanReturnValue(NanNew<String>("(NULL)"));
+  NanReturnValue(NanNew("(NULL)"));
 }
 
 NAN_METHOD(IASTNode::Parent) {
@@ -117,7 +117,7 @@ NAN_GETTER(IASTNode::Name) {
   NanScope();
   TSNode *node = unwrap(args.This());
   if (node)
-    NanReturnValue(NanNew<String>(ts_node_name(node)));
+    NanReturnValue(NanNew(ts_node_name(node)));
   NanReturnNull();
 }
 
@@ -125,7 +125,7 @@ NAN_GETTER(IASTNode::Size) {
   NanScope();
   TSNode *node = unwrap(args.This());
   if (node)
-    NanReturnValue(NanNew<Integer>(ts_node_size(node).chars));
+    NanReturnValue(NanNew<Number>(ts_node_size(node).chars));
   NanReturnNull();
 }
 
@@ -133,7 +133,7 @@ NAN_GETTER(IASTNode::Position) {
   NanScope();
   TSNode *node = unwrap(args.This());
   if (node)
-    NanReturnValue(NanNew<Integer>(ts_node_pos(node).chars));
+    NanReturnValue(NanNew<Number>(ts_node_pos(node).chars));
   NanReturnNull();
 }
 

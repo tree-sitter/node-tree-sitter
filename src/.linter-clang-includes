@@ -1,0 +1,5 @@
+%p/src
+%p/include
+~/.nvm/current/include/node
+%p/vendor/tree-sitter/include
+%p/node_modules/nan

@@ -11,7 +11,7 @@ Persistent<Function> ASTNode::constructor;
 
 void ASTNode::Init(Handle<Object> exports) {
   Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
-  tpl->SetClassName(NanNew<String>("ASTNode"));
+  tpl->SetClassName(NanNew("ASTNode"));
   IASTNode::SetUp(tpl);
   NanAssignPersistent(constructor, tpl->GetFunction());
 }

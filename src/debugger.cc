@@ -28,7 +28,7 @@ static void Debug(void *data, TSDebugType type, const char *message_str) {
   size_t param_sep_pos = message.find(param_sep, 0);
 
   Local<String> type_name = NanNew((type == TSDebugTypeParse) ? "parse" : "lex");
-  Local<String> name = NanNew<String>(message.substr(0, param_sep_pos));
+  Local<String> name = NanNew(message.substr(0, param_sep_pos));
   Local<Object> params = NanNew<Object>();
 
   while (param_sep_pos != string::npos) {

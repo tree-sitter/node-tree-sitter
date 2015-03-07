@@ -19,11 +19,11 @@ struct InputReader {
 
 static int Seek(void *data, TSLength position) {
   InputReader *reader = (InputReader *)data;
-  Handle<Function> fn = Handle<Function>::Cast(NanNew(reader->object)->Get(NanNew<String>("seek")));
+  Handle<Function> fn = Handle<Function>::Cast(NanNew(reader->object)->Get(NanNew("seek")));
   if (!fn->IsFunction())
     return 0;
 
-  Handle<Value> argv[1] = { NanNew<Integer>(position.chars) };
+  Handle<Value> argv[1] = { NanNew<Number>(position.chars) };
   Handle<Number> result = Handle<Number>::Cast(fn->Call(NanNew(reader->object), 1, argv));
   return result->NumberValue();
 }
@@ -35,7 +35,7 @@ static void Release(void *data) {
 
 static const char * Read(void *data, size_t *bytes_read) {
   InputReader *reader = (InputReader *)data;
-  Handle<Function> read_fn = Handle<Function>::Cast(NanNew(reader->object)->Get(NanNew<String>("read")));
+  Handle<Function> read_fn = Handle<Function>::Cast(NanNew(reader->object)->Get(NanNew("read")));
   if (!read_fn->IsFunction()) {
     *bytes_read = 0;
     return "";

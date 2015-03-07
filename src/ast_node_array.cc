@@ -60,7 +60,7 @@ NAN_INDEX_GETTER(ASTNodeArray::GetIndex) {
 NAN_GETTER(ASTNodeArray::Length) {
   NanScope();
   ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(args.This()->ToObject());
-  NanReturnValue(NanNew<Integer>(ts_node_child_count(array->parent_node_)));
+  NanReturnValue(NanNew<Number>(ts_node_child_count(array->parent_node_)));
 }
 
 }  // namespace node_tree_sitter

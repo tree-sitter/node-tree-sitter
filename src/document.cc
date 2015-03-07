@@ -13,7 +13,7 @@ Persistent<Function> Document::constructor;
 
 void Document::Init(Handle<Object> exports) {
   Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
-  tpl->SetClassName(NanNew<String>("Document"));
+  tpl->SetClassName(NanNew("Document"));
 
   IASTNode::SetUp(tpl);
 
