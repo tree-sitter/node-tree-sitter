@@ -28,17 +28,12 @@ void ASTNodeArray::Init(Handle<Object> exports) {
   NanAssignPersistent(constructor, tpl->GetFunction());
 }
 
-ASTNodeArray::ASTNodeArray(TSNode *node) : parent_node_(node) {
-  ts_node_retain(node);
-}
+ASTNodeArray::ASTNodeArray(TSNode node, TSDocument *document) :
+  document_(document), parent_node_(node) {}
 
-ASTNodeArray::~ASTNodeArray() {
-  ts_node_release(parent_node_);
-}
-
-Handle<Value> ASTNodeArray::NewInstance(TSNode *node) {
+Handle<Value> ASTNodeArray::NewInstance(TSNode node, TSDocument *document) {
   Local<Object> instance = NanNew(constructor)->NewInstance(0, NULL);
-  (new ASTNodeArray(node))->Wrap(instance);
+  (new ASTNodeArray(node, document))->Wrap(instance);
   return instance;
 }
 
@@ -50,9 +45,9 @@ NAN_METHOD(ASTNodeArray::New) {
 NAN_INDEX_GETTER(ASTNodeArray::GetIndex) {
   NanScope();
   ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(args.This()->ToObject());
-  TSNode *child = ts_node_child(array->parent_node_, index);
-  if (child)
-    NanReturnValue(ASTNode::NewInstance(child));
+  TSNode child = ts_node_child(array->parent_node_, index);
+  if (child.data)
+    NanReturnValue(ASTNode::NewInstance(child, array->document_));
   else
     NanReturnUndefined();
 }

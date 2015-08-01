@@ -11,16 +11,15 @@ namespace node_tree_sitter {
 class ASTNode : public IASTNode {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Handle<v8::Value> NewInstance(TSNode *);
-  TSNode * node();
+  static v8::Handle<v8::Value> NewInstance(TSNode, TSDocument *);
+  TSNode node();
 
  private:
-  explicit ASTNode(TSNode *);
-  ~ASTNode();
+  explicit ASTNode(TSNode, TSDocument *);
 
   static NAN_METHOD(New);
 
-  TSNode *node_;
+  TSNode node_;
   static v8::Persistent<v8::Function> constructor;
 };
 

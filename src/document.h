@@ -11,7 +11,7 @@ namespace node_tree_sitter {
 class Document : public IASTNode {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  TSNode * node();
+  TSNode node();
 
  private:
   explicit Document();
@@ -23,7 +23,6 @@ class Document : public IASTNode {
   static NAN_METHOD(Edit);
   static NAN_METHOD(SetDebug);
 
-  TSDocument *document_;
   static v8::Persistent<v8::Function> constructor;
 };
 

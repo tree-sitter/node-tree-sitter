@@ -11,7 +11,12 @@ namespace node_tree_sitter {
 class IASTNode : public node::ObjectWrap {
  public:
   static void SetUp(v8::Local<v8::FunctionTemplate>);
-  virtual TSNode * node() = 0;
+
+  explicit IASTNode(TSDocument *);
+  virtual TSNode node() = 0;
+
+ protected:
+  TSDocument *document_;
 
  private:
   static NAN_METHOD(ToString);

@@ -16,21 +16,16 @@ void ASTNode::Init(Handle<Object> exports) {
   NanAssignPersistent(constructor, tpl->GetFunction());
 }
 
-ASTNode::ASTNode(TSNode *node) : node_(node) {
-  ts_node_retain(node_);
-}
+ASTNode::ASTNode(TSNode node, TSDocument *document) :
+  IASTNode(document), node_(node) {}
 
-ASTNode::~ASTNode() {
-  ts_node_release(node_);
-}
-
-TSNode * ASTNode::node() {
+TSNode ASTNode::node() {
   return node_;
 }
 
-Handle<Value> ASTNode::NewInstance(TSNode *node) {
+Handle<Value> ASTNode::NewInstance(TSNode node, TSDocument *document) {
   Local<Object> instance = NanNew(constructor)->NewInstance(0, NULL);
-  (new ASTNode(node))->Wrap(instance);
+  (new ASTNode(node, document))->Wrap(instance);
   return instance;
 }
 

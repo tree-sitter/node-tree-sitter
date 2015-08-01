@@ -44,67 +44,73 @@ void IASTNode::SetUp(Local<FunctionTemplate> tpl) {
       NanNew<FunctionTemplate>(NodeAt)->GetFunction());
 }
 
-static inline TSNode * unwrap(const Local<Object> &object) {
-  return node::ObjectWrap::Unwrap<IASTNode>(object->ToObject())->node();
+static inline IASTNode *unwrap(const Local<Object> &object) {
+  IASTNode *node = node::ObjectWrap::Unwrap<IASTNode>(object->ToObject());
+  if (node && node->node().data)
+    return node;
+  else
+    return NULL;
 }
+
+IASTNode::IASTNode(TSDocument *document) : document_(document) {}
 
 NAN_METHOD(IASTNode::ToString) {
   NanScope();
-  TSNode *node = unwrap(args.This());
+  IASTNode *node = unwrap(args.This());
   if (node) {
-    NanReturnValue(NanNew(ts_node_string(node)));
+    NanReturnValue(NanNew(ts_node_string(node->node(), node->document_)));
   }
   NanReturnValue(NanNew("(NULL)"));
 }
 
 NAN_METHOD(IASTNode::Parent) {
   NanScope();
-  TSNode *node = unwrap(args.This());
+  IASTNode *node = unwrap(args.This());
   if (node) {
-    TSNode *parent = ts_node_parent(node);
-    if (parent)
-      NanReturnValue(ASTNode::NewInstance(parent));
+    TSNode parent = ts_node_parent(node->node());
+    if (parent.data)
+      NanReturnValue(ASTNode::NewInstance(parent, node->document_));
   }
   NanReturnNull();
 }
 
 NAN_METHOD(IASTNode::Next) {
   NanScope();
-  TSNode *node = unwrap(args.This());
+  IASTNode *node = unwrap(args.This());
   if (node) {
-    TSNode *sibling = ts_node_next_sibling(node);
-    if (sibling)
-      NanReturnValue(ASTNode::NewInstance(sibling));
+    TSNode sibling = ts_node_next_sibling(node->node());
+    if (sibling.data)
+      NanReturnValue(ASTNode::NewInstance(sibling, node->document_));
   }
   NanReturnNull();
 }
 
 NAN_METHOD(IASTNode::Prev) {
   NanScope();
-  TSNode *node = unwrap(args.This());
+  IASTNode *node = unwrap(args.This());
   if (node) {
-    TSNode *sibling = ts_node_prev_sibling(node);
-    if (sibling)
-      NanReturnValue(ASTNode::NewInstance(sibling));
+    TSNode sibling = ts_node_prev_sibling(node->node());
+    if (sibling.data)
+      NanReturnValue(ASTNode::NewInstance(sibling, node->document_));
   }
   NanReturnNull();
 }
 
 NAN_METHOD(IASTNode::NodeAt) {
   NanScope();
-  TSNode *node = unwrap(args.This());
+  IASTNode *node = unwrap(args.This());
   if (node) {
     switch (args.Length()) {
       case 2: {
         Handle<Integer> min = Handle<Integer>::Cast(args[0]);
         Handle<Integer> max = Handle<Integer>::Cast(args[1]);
-        TSNode *result = ts_node_find_for_range(node, min->Int32Value(), max->Int32Value());
-        NanReturnValue(ASTNode::NewInstance(result));
+        TSNode result = ts_node_find_for_range(node->node(), min->Int32Value(), max->Int32Value());
+        NanReturnValue(ASTNode::NewInstance(result, node->document_));
       }
       case 1: {
         Handle<Integer> pos = Handle<Integer>::Cast(args[0]);
-        TSNode *result = ts_node_find_for_pos(node, pos->Int32Value());
-        NanReturnValue(ASTNode::NewInstance(result));
+        TSNode result = ts_node_find_for_pos(node->node(), pos->Int32Value());
+        NanReturnValue(ASTNode::NewInstance(result, node->document_));
       }
       default:
         NanThrowTypeError("Must provide 1 or 2 numeric arguments");
@@ -115,33 +121,33 @@ NAN_METHOD(IASTNode::NodeAt) {
 
 NAN_GETTER(IASTNode::Name) {
   NanScope();
-  TSNode *node = unwrap(args.This());
+  IASTNode *node = unwrap(args.This());
   if (node)
-    NanReturnValue(NanNew(ts_node_name(node)));
+    NanReturnValue(NanNew(ts_node_name(node->node(), node->document_)));
   NanReturnNull();
 }
 
 NAN_GETTER(IASTNode::Size) {
   NanScope();
-  TSNode *node = unwrap(args.This());
+  IASTNode *node = unwrap(args.This());
   if (node)
-    NanReturnValue(NanNew<Number>(ts_node_size(node).chars));
+    NanReturnValue(NanNew<Number>(ts_node_size(node->node()).chars));
   NanReturnNull();
 }
 
 NAN_GETTER(IASTNode::Position) {
   NanScope();
-  TSNode *node = unwrap(args.This());
+  IASTNode *node = unwrap(args.This());
   if (node)
-    NanReturnValue(NanNew<Number>(ts_node_pos(node).chars));
+    NanReturnValue(NanNew<Number>(ts_node_pos(node->node()).chars));
   NanReturnNull();
 }
 
 NAN_GETTER(IASTNode::Children) {
   NanScope();
-  TSNode *node = unwrap(args.This());
+  IASTNode *node = unwrap(args.This());
   if (node)
-    NanReturnValue(ASTNodeArray::NewInstance(node));
+    NanReturnValue(ASTNodeArray::NewInstance(node->node(), node->document_));
   NanReturnNull();
 }
 

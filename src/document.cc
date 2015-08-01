@@ -35,13 +35,13 @@ void Document::Init(Handle<Object> exports) {
   exports->Set(NanNew("Document"), NanNew(constructor));
 }
 
-Document::Document() : document_(ts_document_make()) {}
+Document::Document() : IASTNode(ts_document_make()) {}
 
 Document::~Document() {
   ts_document_free(document_);
 }
 
-TSNode * Document::node() {
+TSNode Document::node() {
   return ts_document_root_node(document_);
 }
 
