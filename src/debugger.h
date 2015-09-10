@@ -6,6 +6,10 @@
 
 namespace node_tree_sitter {
 
+struct Debugger {
+  v8::Persistent<v8::Function> func;
+};
+
 TSDebugger DebuggerMake(v8::Handle<v8::Function>);
 
 }  // namespace node_tree_sitter

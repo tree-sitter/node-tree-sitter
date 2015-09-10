@@ -7,18 +7,8 @@ namespace node_tree_sitter {
 
 using namespace v8;
 
-struct InputReader {
-  v8::Persistent<v8::Object> object;
-  char *buffer;
-
- public:
-  InputReader(char *buffer) :
-    buffer(buffer)
-    {}
-};
-
-static int Seek(void *data, TSLength position) {
-  InputReader *reader = (InputReader *)data;
+static int Seek(void *payload, TSLength position) {
+  InputReader *reader = (InputReader *)payload;
   Handle<Function> fn = Handle<Function>::Cast(NanNew(reader->object)->Get(NanNew("seek")));
   if (!fn->IsFunction())
     return 0;
@@ -28,13 +18,8 @@ static int Seek(void *data, TSLength position) {
   return result->NumberValue();
 }
 
-static void Release(void *data) {
-  InputReader *reader = (InputReader *)data;
-  delete reader->buffer;
-}
-
-static const char * Read(void *data, size_t *bytes_read) {
-  InputReader *reader = (InputReader *)data;
+static const char * Read(void *payload, size_t *bytes_read) {
+  InputReader *reader = (InputReader *)payload;
   Handle<Function> read_fn = Handle<Function>::Cast(NanNew(reader->object)->Get(NanNew("read")));
   if (!read_fn->IsFunction()) {
     *bytes_read = 0;
@@ -55,10 +40,9 @@ TSInput InputReaderMake(Handle<Object> object) {
   TSInput result;
   InputReader *reader = new InputReader(new char[1024]);
   NanAssignPersistent(reader->object, object);
-  result.data = (void *)reader;
+  result.payload = (void *)reader;
   result.seek_fn = Seek;
   result.read_fn = Read;
-  result.release_fn = Release;
   return result;
 }
 

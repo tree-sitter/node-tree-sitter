@@ -11,17 +11,19 @@ namespace node_tree_sitter {
 class ASTNodeArray : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Handle<v8::Value> NewInstance(TSNode, TSDocument *);
+  static v8::Handle<v8::Value> NewInstance(TSNode, TSDocument *, size_t, bool);
 
  private:
-  explicit ASTNodeArray(TSNode, TSDocument *);
+  explicit ASTNodeArray(TSNode, TSDocument *, size_t, bool);
 
   static NAN_METHOD(New);
   static NAN_GETTER(Length);
   static NAN_INDEX_GETTER(GetIndex);
 
-  TSDocument *document_;
   TSNode parent_node_;
+  TSDocument *document_;
+  size_t parse_count_;
+  bool is_named_;
   static v8::Persistent<v8::Function> constructor;
 };
 

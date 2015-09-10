@@ -11,7 +11,6 @@
         "src/binding.cc",
         "src/debugger.cc",
         "src/document.cc",
-        "src/i_ast_node.cc",
         "src/input_reader.cc",
       ],
       "include_dirs": [

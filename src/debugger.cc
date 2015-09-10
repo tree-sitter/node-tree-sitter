@@ -1,3 +1,4 @@
+#include "./debugger.h"
 #include "./input_reader.h"
 #include <string>
 #include <v8.h>
@@ -9,16 +10,8 @@ namespace node_tree_sitter {
 using namespace v8;
 using std::string;
 
-struct Debugger {
-  Persistent<Function> func;
-};
-
-static void Release(void *data) {
-  delete (Debugger *)data;
-}
-
-static void Debug(void *data, TSDebugType type, const char *message_str) {
-  Debugger *debugger = (Debugger *)data;
+static void Debug(void *payload, TSDebugType type, const char *message_str) {
+  Debugger *debugger = (Debugger *)payload;
   Handle<Function> fn = NanNew(debugger->func);
   if (!fn->IsFunction())
     return;
@@ -66,9 +59,8 @@ TSDebugger DebuggerMake(Handle<Function> func) {
   TSDebugger result;
   Debugger *debugger = new Debugger();
   NanAssignPersistent(debugger->func, func);
-  result.data = (void *)debugger;
+  result.payload = (void *)debugger;
   result.debug_fn = Debug;
-  result.release_fn = Release;
   return result;
 }
 

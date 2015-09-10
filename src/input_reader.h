@@ -6,6 +6,17 @@
 
 namespace node_tree_sitter {
 
+struct InputReader {
+  v8::Persistent<v8::Object> object;
+  char *buffer;
+
+ public:
+  InputReader(char *buffer) :
+    buffer(buffer)
+    {}
+};
+
+
 TSInput InputReaderMake(v8::Handle<v8::Object>);
 
 }  // namespace node_tree_sitter

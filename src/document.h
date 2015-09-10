@@ -3,26 +3,27 @@
 
 #include <v8.h>
 #include <nan.h>
+#include <node_object_wrap.h>
 #include <tree_sitter/runtime.h>
-#include "./i_ast_node.h"
 
 namespace node_tree_sitter {
 
-class Document : public IASTNode {
+class Document : public node::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  TSNode node();
 
  private:
   explicit Document();
   ~Document();
 
+  static NAN_GETTER(RootNode);
   static NAN_METHOD(New);
   static NAN_METHOD(SetInput);
   static NAN_METHOD(SetLanguage);
   static NAN_METHOD(Edit);
-  static NAN_METHOD(SetDebug);
+  static NAN_METHOD(SetDebugger);
 
+  TSDocument *document_;
   static v8::Persistent<v8::Function> constructor;
 };
 
