@@ -22,7 +22,7 @@ class ASTNode : public node::ObjectWrap {
   static NAN_METHOD(NamedDescendantForRange);
   static NAN_METHOD(IsValid);
 
-  static NAN_GETTER(Name);
+  static NAN_GETTER(Type);
   static NAN_GETTER(Position);
   static NAN_GETTER(Size);
   static NAN_GETTER(Parent);

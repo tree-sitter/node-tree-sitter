@@ -40,8 +40,8 @@ void ASTNode::Init(Handle<Object> exports) {
       NanNew("size"),
       Size);
   tpl->InstanceTemplate()->SetAccessor(
-      NanNew("name"),
-      Name);
+      NanNew("type"),
+      Type);
 
   tpl->InstanceTemplate()->SetAccessor(
       NanNew("children"),
@@ -165,7 +165,7 @@ NAN_METHOD(ASTNode::DescendantForRange) {
   NanReturnNull();
 }
 
-NAN_GETTER(ASTNode::Name) {
+NAN_GETTER(ASTNode::Type) {
   NanScope();
   ASTNode *node = UnwrapValid(args.This());
   if (node)
