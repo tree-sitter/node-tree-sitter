@@ -1,18 +1,18 @@
 {
   "name": "tree-sitter",
+  "version": "0.0.26",
+  "description": "Incremental parsers for node",
   "author": "Max Brunsfeld",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "http://github.com/maxbrunsfeld/node-tree-sitter.git"
   },
-  "description": "Incremental parsers for node",
   "keywords": [
     "parser",
     "lexer"
   ],
   "main": "index.js",
-  "version": "0.0.25",
   "dependencies": {
     "bindings": "1.2.x",
     "nan": "1.7.x"
