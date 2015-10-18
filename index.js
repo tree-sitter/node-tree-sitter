@@ -3,7 +3,9 @@ var binding = require("bindings")("tree_sitter_runtime_binding"),
     StringInput = require("./lib/string_input");
 
 Document.prototype.setInputString = function(string) {
-  return this.setInput(new StringInput(string));
+  this.invalidate()
+  this.setInput(new StringInput(string));
+  return this;
 };
 
 exports.Document = Document;

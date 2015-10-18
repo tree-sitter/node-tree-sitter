@@ -34,6 +34,13 @@ void Document::Init(Handle<Object> exports) {
   tpl->PrototypeTemplate()->Set(
       NanNew("edit"),
       NanNew<FunctionTemplate>(Edit)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("parse"),
+      NanNew<FunctionTemplate>(Parse)->GetFunction());
+  tpl->PrototypeTemplate()->Set(
+      NanNew("invalidate"),
+      NanNew<FunctionTemplate>(Invalidate)->GetFunction());
+
   NanAssignPersistent(constructor, tpl->GetFunction());
   exports->Set(NanNew("Document"), NanNew(constructor));
 }
@@ -122,6 +129,20 @@ NAN_METHOD(Document::Edit) {
     edit.chars_inserted = chars_inserted->Int32Value();
 
   ts_document_edit(document->document_, edit);
+  NanReturnValue(args.This());
+}
+
+NAN_METHOD(Document::Parse) {
+  NanScope();
+  Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
+  ts_document_parse(document->document_);
+  NanReturnValue(args.This());
+}
+
+NAN_METHOD(Document::Invalidate) {
+  NanScope();
+  Document *document = ObjectWrap::Unwrap<Document>(args.This()->ToObject());
+  ts_document_invalidate(document->document_);
   NanReturnValue(args.This());
 }
 

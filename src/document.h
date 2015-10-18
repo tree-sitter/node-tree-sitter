@@ -21,6 +21,8 @@ class Document : public node::ObjectWrap {
   static NAN_METHOD(SetInput);
   static NAN_METHOD(SetLanguage);
   static NAN_METHOD(Edit);
+  static NAN_METHOD(Parse);
+  static NAN_METHOD(Invalidate);
   static NAN_METHOD(SetDebugger);
 
   TSDocument *document_;
