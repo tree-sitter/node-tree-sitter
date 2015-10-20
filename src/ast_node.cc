@@ -11,7 +11,7 @@ using namespace v8;
 
 Nan::Persistent<Function> ASTNode::constructor;
 
-void ASTNode::Init(Handle<Object> exports) {
+void ASTNode::Init(Local<Object> exports) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("ASTNode").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -50,7 +50,7 @@ void ASTNode::Init(Handle<Object> exports) {
       tpl->InstanceTemplate(),
       Nan::New(non_enum_getters[i].name).ToLocalChecked(),
       non_enum_getters[i].callback,
-      0, Handle<Value>(), DEFAULT, DontEnum);
+      0, Local<Value>(), DEFAULT, DontEnum);
 
   for (size_t i = 0; i < sizeof(methods) / sizeof(methods[0]); i++)
     Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);

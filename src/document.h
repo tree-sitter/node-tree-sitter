@@ -10,7 +10,7 @@ namespace node_tree_sitter {
 
 class Document : public Nan::ObjectWrap {
  public:
-  static void Init(v8::Handle<v8::Object> exports);
+  static void Init(v8::Local<v8::Object> exports);
 
  private:
   explicit Document();

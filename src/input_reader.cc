@@ -10,31 +10,31 @@ using namespace v8;
 Nan::Persistent<v8::String> InputReader::read_key;
 Nan::Persistent<v8::String> InputReader::seek_key;
 
-void InputReader::Init(v8::Handle<v8::Object> exports) {
+void InputReader::Init(v8::Local<v8::Object> exports) {
   read_key.Reset(Nan::Persistent<String>(Nan::New("read").ToLocalChecked()));
   seek_key.Reset(Nan::Persistent<String>(Nan::New("seek").ToLocalChecked()));
 }
 
 int InputReader::Seek(void *payload, TSLength position) {
   InputReader *reader = (InputReader *)payload;
-  Handle<Function> fn = Handle<Function>::Cast(Nan::New(reader->object)->Get(Nan::New(seek_key)));
+  Local<Function> fn = Local<Function>::Cast(Nan::New(reader->object)->Get(Nan::New(seek_key)));
   if (!fn->IsFunction())
     return 0;
 
-  Handle<Value> argv[1] = { Nan::New<Number>(position.chars) };
-  Handle<Value> result = fn->Call(Nan::New(reader->object), 1, argv);
+  Local<Value> argv[1] = { Nan::New<Number>(position.chars) };
+  Local<Value> result = fn->Call(Nan::New(reader->object), 1, argv);
   return result->NumberValue();
 }
 
 const char * InputReader::Read(void *payload, size_t *bytes_read) {
   InputReader *reader = (InputReader *)payload;
-  Handle<Function> read_fn = Handle<Function>::Cast(Nan::New(reader->object)->Get(Nan::New(read_key)));
+  Local<Function> read_fn = Local<Function>::Cast(Nan::New(reader->object)->Get(Nan::New(read_key)));
   if (!read_fn->IsFunction()) {
     *bytes_read = 0;
     return "";
   }
 
-  Handle<String> result = Handle<String>::Cast(read_fn->Call(Nan::New(reader->object), 0, NULL));
+  Local<String> result = Local<String>::Cast(read_fn->Call(Nan::New(reader->object), 0, NULL));
   if (!result->IsString()) {
     *bytes_read = 0;
     return "";
@@ -44,7 +44,7 @@ const char * InputReader::Read(void *payload, size_t *bytes_read) {
   return reader->buffer;
 }
 
-TSInput InputReader::Make(Handle<Object> object) {
+TSInput InputReader::Make(Local<Object> object) {
   TSInput result;
   InputReader *reader = new InputReader(new char[1024]);
   reader->object.Reset(object);

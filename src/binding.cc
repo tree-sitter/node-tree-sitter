@@ -9,7 +9,7 @@ namespace node_tree_sitter {
 
 using namespace v8;
 
-void InitAll(Handle<Object> exports) {
+void InitAll(Local<Object> exports) {
   ASTNode::Init(exports);
   ASTNodeArray::Init(exports);
   InputReader::Init(exports);

@@ -12,7 +12,7 @@ using std::string;
 
 void Debugger::Debug(void *payload, TSDebugType type, const char *message_str) {
   Debugger *debugger = (Debugger *)payload;
-  Handle<Function> fn = Nan::New(debugger->func);
+  Local<Function> fn = Nan::New(debugger->func);
   if (!fn->IsFunction())
     return;
 
@@ -40,22 +40,22 @@ void Debugger::Debug(void *payload, TSDebugType type, const char *message_str) {
     params->Set(Nan::New(key).ToLocalChecked(), Nan::New(value).ToLocalChecked());
   }
 
-  Handle<Value> argv[3] = { name, params, type_name };
+  Local<Value> argv[3] = { name, params, type_name };
   TryCatch try_catch;
   fn->Call(fn->CreationContext()->Global(), 3, argv);
   if (try_catch.HasCaught()) {
-    Handle<Value> log_argv[2] = {
+    Local<Value> log_argv[2] = {
       Nan::New("Error in debug callback:").ToLocalChecked(),
       try_catch.Exception()
     };
 
-    Handle<Object> console = Handle<Object>::Cast(fn->CreationContext()->Global()->Get(Nan::New("console").ToLocalChecked()));
-    Handle<Function> error_fn = Handle<Function>::Cast(console->Get(Nan::New("error").ToLocalChecked()));
+    Local<Object> console = Local<Object>::Cast(fn->CreationContext()->Global()->Get(Nan::New("console").ToLocalChecked()));
+    Local<Function> error_fn = Local<Function>::Cast(console->Get(Nan::New("error").ToLocalChecked()));
     error_fn->Call(console, 2, log_argv);
   }
 }
 
-TSDebugger Debugger::Make(Handle<Function> func) {
+TSDebugger Debugger::Make(Local<Function> func) {
   TSDebugger result;
   Debugger *debugger = new Debugger();
   debugger->func.Reset(Nan::Persistent<Function>(func));

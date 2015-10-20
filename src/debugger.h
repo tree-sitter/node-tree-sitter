@@ -9,7 +9,7 @@ namespace node_tree_sitter {
 
 class Debugger {
  public:
-  static TSDebugger Make(v8::Handle<v8::Function>);
+  static TSDebugger Make(v8::Local<v8::Function>);
 
  private:
   static void Debug(void *, TSDebugType, const char *);

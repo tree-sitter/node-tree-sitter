@@ -9,8 +9,8 @@ namespace node_tree_sitter {
 
 class InputReader {
  public:
-  static void Init(v8::Handle<v8::Object>);
-  static TSInput Make(v8::Handle<v8::Object>);
+  static void Init(v8::Local<v8::Object>);
+  static TSInput Make(v8::Local<v8::Object>);
 
  private:
   InputReader(char *buffer) :

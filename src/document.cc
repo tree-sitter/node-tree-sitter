@@ -12,7 +12,7 @@ using namespace v8;
 
 Nan::Persistent<Function> Document::constructor;
 
-void Document::Init(Handle<Object> exports) {
+void Document::Init(Local<Object> exports) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   Local<String> class_name = Nan::New("Document").ToLocalChecked();
@@ -67,7 +67,7 @@ NAN_GETTER(Document::RootNode) {
 
 NAN_METHOD(Document::SetInput) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
-  Handle<Object> input = Handle<Object>::Cast(info[0]);
+  Local<Object> input = Local<Object>::Cast(info[0]);
 
   if (!input->Get(Nan::New("seek").ToLocalChecked())->IsFunction()) {
     Nan::ThrowTypeError("Input must implement seek(n)");
@@ -88,7 +88,7 @@ NAN_METHOD(Document::SetInput) {
 }
 
 NAN_METHOD(Document::SetLanguage) {
-  Handle<Object> arg = Handle<Object>::Cast(info[0]);
+  Local<Object> arg = Local<Object>::Cast(info[0]);
 
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   if (arg->InternalFieldCount() != 1) {
@@ -108,20 +108,20 @@ NAN_METHOD(Document::SetLanguage) {
 }
 
 NAN_METHOD(Document::Edit) {
-  Handle<Object> arg = Handle<Object>::Cast(info[0]);
+  Local<Object> arg = Local<Object>::Cast(info[0]);
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
 
   TSInputEdit edit = { 0, 0, 0 };
 
-  Handle<Number> position = Handle<Number>::Cast(arg->Get(Nan::New("position").ToLocalChecked()));
+  Local<Number> position = Local<Number>::Cast(arg->Get(Nan::New("position").ToLocalChecked()));
   if (position->IsNumber())
     edit.position = position->Int32Value();
 
-  Handle<Number> chars_removed = Handle<Number>::Cast(arg->Get(Nan::New("charsRemoved").ToLocalChecked()));
+  Local<Number> chars_removed = Local<Number>::Cast(arg->Get(Nan::New("charsRemoved").ToLocalChecked()));
   if (chars_removed->IsNumber())
     edit.chars_removed = chars_removed->Int32Value();
 
-  Handle<Number> chars_inserted = Handle<Number>::Cast(arg->Get(Nan::New("charsInserted").ToLocalChecked()));
+  Local<Number> chars_inserted = Local<Number>::Cast(arg->Get(Nan::New("charsInserted").ToLocalChecked()));
   if (chars_inserted->IsNumber())
     edit.chars_inserted = chars_inserted->Int32Value();
 
@@ -143,7 +143,7 @@ NAN_METHOD(Document::Invalidate) {
 
 NAN_METHOD(Document::SetDebugger) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
-  Handle<Function> func = Handle<Function>::Cast(info[0]);
+  Local<Function> func = Local<Function>::Cast(info[0]);
 
   TSDebugger current_debugger = ts_document_debugger(document->document_);
   if (current_debugger.payload)
