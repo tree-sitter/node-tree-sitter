@@ -3,15 +3,63 @@
 #include <tree_sitter/runtime.h>
 #include <v8.h>
 #include "./ast_node_array.h"
+#include "./util.h"
 
 namespace node_tree_sitter {
 
 using namespace v8;
 
-Persistent<Function> ASTNode::constructor;
+Nan::Persistent<Function> ASTNode::constructor;
+
+void ASTNode::Init(Handle<Object> exports) {
+  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+  tpl->SetClassName(Nan::New("ASTNode").ToLocalChecked());
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  GetterPair enum_getters[3] = {
+    {"position", Position},
+    {"size", Size},
+    {"type", Type},
+  };
+
+  GetterPair non_enum_getters[7] = {
+    {"parent", Parent},
+    {"children", Children},
+    {"namedChildren", NamedChildren},
+    {"nextSibling", NextSibling},
+    {"nextNamedSibling", NextNamedSibling},
+    {"previousSibling", PreviousSibling},
+    {"previousNamedSibling", PreviousNamedSibling},
+  };
+
+  FunctionPair methods[4] = {
+    {"isValid", IsValid},
+    {"toString", ToString},
+    {"descendantForRange", DescendantForRange},
+    {"namedDescendantForRange", NamedDescendantForRange},
+  };
+
+  for (size_t i = 0; i < sizeof(enum_getters) / sizeof(enum_getters[0]); i++)
+    Nan::SetAccessor(
+      tpl->InstanceTemplate(),
+      Nan::New(enum_getters[i].name).ToLocalChecked(),
+      enum_getters[i].callback);
+
+  for (size_t i = 0; i < sizeof(non_enum_getters) / sizeof(non_enum_getters[0]); i++)
+    Nan::SetAccessor(
+      tpl->InstanceTemplate(),
+      Nan::New(non_enum_getters[i].name).ToLocalChecked(),
+      non_enum_getters[i].callback,
+      0, Handle<Value>(), DEFAULT, DontEnum);
+
+  for (size_t i = 0; i < sizeof(methods) / sizeof(methods[0]); i++)
+    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
+
+  constructor.Reset(Nan::Persistent<Function>(tpl->GetFunction()));
+}
 
 ASTNode *ASTNode::Unwrap(const Local<Object> &object) {
-  ASTNode *node = node::ObjectWrap::Unwrap<ASTNode>(object->ToObject());
+  ASTNode *node = Nan::ObjectWrap::Unwrap<ASTNode>(object);
   if (node && node->node_.data)
     return node;
   else
@@ -26,238 +74,188 @@ ASTNode *ASTNode::UnwrapValid(const Local<Object> &object) {
     return NULL;
 }
 
-void ASTNode::Init(Handle<Object> exports) {
-  Local<FunctionTemplate> tpl = NanNew<FunctionTemplate>(New);
-  tpl->SetClassName(NanNew("ASTNode"));
-
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
-
-  // Properties
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew("position"),
-      Position);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew("size"),
-      Size);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew("type"),
-      Type);
-
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew("children"),
-      Children,
-      0, Handle<Value>(), DEFAULT, DontEnum);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew("namedChildren"),
-      NamedChildren,
-      0, Handle<Value>(), DEFAULT, DontEnum);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew("parent"),
-      Parent,
-      0, Handle<Value>(), DEFAULT, DontEnum);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew("nextSibling"),
-      NextSibling,
-      0, Handle<Value>(), DEFAULT, DontEnum);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew("nextNamedSibling"),
-      NextNamedSibling,
-      0, Handle<Value>(), DEFAULT, DontEnum);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew("previousSibling"),
-      PreviousSibling,
-      0, Handle<Value>(), DEFAULT, DontEnum);
-  tpl->InstanceTemplate()->SetAccessor(
-      NanNew("previousNamedSibling"),
-      PreviousNamedSibling,
-      0, Handle<Value>(), DEFAULT, DontEnum);
-
-  // Prototype
-  tpl->PrototypeTemplate()->Set(
-      NanNew("toString"),
-      NanNew<FunctionTemplate>(ToString)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
-      NanNew("descendantForRange"),
-      NanNew<FunctionTemplate>(DescendantForRange)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
-      NanNew("namedDescendantForRange"),
-      NanNew<FunctionTemplate>(NamedDescendantForRange)->GetFunction());
-  tpl->PrototypeTemplate()->Set(
-      NanNew("isValid"),
-      NanNew<FunctionTemplate>(IsValid)->GetFunction());
-
-  NanAssignPersistent(constructor, tpl->GetFunction());
-}
-
 ASTNode::ASTNode(TSNode node, TSDocument *document, size_t parse_count) :
   node_(node), document_(document), parse_count_(parse_count) {}
 
-Handle<Value> ASTNode::NewInstance(TSNode node, TSDocument *document, size_t parse_count) {
-  Local<Object> instance = NanNew(constructor)->NewInstance(0, NULL);
+Local<Value> ASTNode::NewInstance(TSNode node, TSDocument *document, size_t parse_count) {
+  Local<Object> instance = Nan::New(constructor)->NewInstance(0, NULL);
   (new ASTNode(node, document, parse_count))->Wrap(instance);
   return instance;
 }
 
 NAN_METHOD(ASTNode::New) {
-  NanScope();
-  NanReturnUndefined();
+  info.GetReturnValue().Set(Nan::Null());
 }
 
 NAN_METHOD(ASTNode::ToString) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
-  if (node)
-    NanReturnValue(NanNew(ts_node_string(node->node_, node->document_)));
-  NanReturnNull();
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    const char *string = ts_node_string(node->node_, node->document_);
+    info.GetReturnValue().Set(Nan::New(string).ToLocalChecked());
+    free((char *)string);
+  }
 }
 
 NAN_METHOD(ASTNode::IsValid) {
-  NanScope();
-  ASTNode *node = Unwrap(args.This());
-  if (node)
-    NanReturnValue(NanNew<Boolean>(node->parse_count_ == ts_document_parse_count(node->document_)));
-  NanReturnNull();
+  ASTNode *node = Unwrap(info.This());
+  if (node) {
+    bool result = node->parse_count_ == ts_document_parse_count(node->document_);
+    info.GetReturnValue().Set(Nan::New<Boolean>(result));
+  }
 }
 
 NAN_METHOD(ASTNode::NamedDescendantForRange) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
+  ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    switch (args.Length()) {
-      case 2: {
-        Handle<Integer> min = Handle<Integer>::Cast(args[0]);
-        Handle<Integer> max = Handle<Integer>::Cast(args[1]);
-        TSNode result = ts_node_named_descendent_for_range(node->node_, min->Int32Value(), max->Int32Value());
-        NanReturnValue(ASTNode::NewInstance(result, node->document_, node->parse_count_));
-      }
+    int min, max;
+    switch (info.Length()) {
       case 1: {
-        Handle<Integer> pos = Handle<Integer>::Cast(args[0]);
-        TSNode result = ts_node_named_descendent_for_range(node->node_, pos->Int32Value(), pos->Int32Value());
-        NanReturnValue(ASTNode::NewInstance(result, node->document_, node->parse_count_));
+        min = max = info[0]->Int32Value();
+        break;
+      }
+      case 2: {
+        min = info[0]->Int32Value();
+        max = info[1]->Int32Value();
+        break;
       }
       default:
-        NanThrowTypeError("Must provide 1 or 2 numeric arguments");
+        Nan::ThrowTypeError("Must provide 1 or 2 numeric arguments");
+        return;
     }
+
+    TSNode result = ts_node_named_descendent_for_range(node->node_, min, max);
+    info.GetReturnValue().Set(ASTNode::NewInstance(result, node->document_, node->parse_count_));
   }
-  NanReturnNull();
 }
 
 NAN_METHOD(ASTNode::DescendantForRange) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
+  ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    switch (args.Length()) {
-      case 2: {
-        Handle<Integer> min = Handle<Integer>::Cast(args[0]);
-        Handle<Integer> max = Handle<Integer>::Cast(args[1]);
-        TSNode result = ts_node_descendent_for_range(node->node_, min->Int32Value(), max->Int32Value());
-        NanReturnValue(ASTNode::NewInstance(result, node->document_, node->parse_count_));
-      }
+    int min, max;
+    switch (info.Length()) {
       case 1: {
-        Handle<Integer> pos = Handle<Integer>::Cast(args[0]);
-        TSNode result = ts_node_descendent_for_range(node->node_, pos->Int32Value(), pos->Int32Value());
-        NanReturnValue(ASTNode::NewInstance(result, node->document_, node->parse_count_));
+        min = max = info[0]->Int32Value();
+        break;
+      }
+      case 2: {
+        min = info[0]->Int32Value();
+        max = info[1]->Int32Value();
+        break;
       }
       default:
-        NanThrowTypeError("Must provide 1 or 2 numeric arguments");
+        Nan::ThrowTypeError("Must provide 1 or 2 numeric arguments");
+        return;
     }
+
+    TSNode result = ts_node_descendent_for_range(node->node_, min, max);
+    info.GetReturnValue().Set(ASTNode::NewInstance(result, node->document_, node->parse_count_));
   }
-  NanReturnNull();
 }
 
 NAN_GETTER(ASTNode::Type) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
-  if (node)
-    NanReturnValue(NanNew(ts_node_name(node->node_, node->document_)));
-  NanReturnNull();
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    const char *result = ts_node_name(node->node_, node->document_);
+    info.GetReturnValue().Set(Nan::New(result).ToLocalChecked());
+  } else {
+    info.GetReturnValue().Set(Nan::Null());
+  }
 }
 
 NAN_GETTER(ASTNode::Size) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
-  if (node)
-    NanReturnValue(NanNew<Number>(ts_node_size(node->node_).chars));
-  NanReturnNull();
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    size_t result = ts_node_size(node->node_).chars;
+    info.GetReturnValue().Set(Nan::New<Number>(result));
+  } else {
+    info.GetReturnValue().Set(Nan::Null());
+  }
 }
 
 NAN_GETTER(ASTNode::Position) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
-  if (node)
-    NanReturnValue(NanNew<Number>(ts_node_pos(node->node_).chars));
-  NanReturnNull();
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    size_t result = ts_node_pos(node->node_).chars;
+    info.GetReturnValue().Set(Nan::New<Number>(result));
+  } else {
+    info.GetReturnValue().Set(Nan::Null());
+  }
 }
 
 NAN_GETTER(ASTNode::Children) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
+  ASTNode *node = UnwrapValid(info.This());
   if (node)
-    NanReturnValue(ASTNodeArray::NewInstance(node->node_, node->document_, node->parse_count_, false));
-  NanReturnNull();
+    info.GetReturnValue().Set(ASTNodeArray::NewInstance(node->node_, node->document_, node->parse_count_, false));
+  else
+    info.GetReturnValue().Set(Nan::Null());
 }
 
 NAN_GETTER(ASTNode::NamedChildren) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
+  ASTNode *node = UnwrapValid(info.This());
   if (node)
-    NanReturnValue(ASTNodeArray::NewInstance(node->node_, node->document_, node->parse_count_, true));
-  NanReturnNull();
+    info.GetReturnValue().Set(ASTNodeArray::NewInstance(node->node_, node->document_, node->parse_count_, true));
+  else
+    info.GetReturnValue().Set(Nan::Null());
 }
 
 NAN_GETTER(ASTNode::Parent) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
+  ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode parent = ts_node_parent(node->node_);
-    if (parent.data)
-      NanReturnValue(ASTNode::NewInstance(parent, node->document_, node->parse_count_));
+    if (parent.data) {
+      info.GetReturnValue().Set(ASTNode::NewInstance(parent, node->document_, node->parse_count_));
+      return;
+    }
   }
-  NanReturnNull();
+  info.GetReturnValue().Set(Nan::Null());
 }
 
 NAN_GETTER(ASTNode::NextSibling) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
+  ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode sibling = ts_node_next_sibling(node->node_);
-    if (sibling.data)
-      NanReturnValue(ASTNode::NewInstance(sibling, node->document_, node->parse_count_));
+    if (sibling.data) {
+      info.GetReturnValue().Set(ASTNode::NewInstance(sibling, node->document_, node->parse_count_));
+      return;
+    }
   }
-  NanReturnNull();
+  info.GetReturnValue().Set(Nan::Null());
 }
 
 NAN_GETTER(ASTNode::NextNamedSibling) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
+  ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode sibling = ts_node_next_named_sibling(node->node_);
-    if (sibling.data)
-      NanReturnValue(ASTNode::NewInstance(sibling, node->document_, node->parse_count_));
+    if (sibling.data) {
+      info.GetReturnValue().Set(ASTNode::NewInstance(sibling, node->document_, node->parse_count_));
+      return;
+    }
   }
-  NanReturnNull();
+  info.GetReturnValue().Set(Nan::Null());
 }
 
 NAN_GETTER(ASTNode::PreviousSibling) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
+  ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode sibling = ts_node_prev_sibling(node->node_);
-    if (sibling.data)
-      NanReturnValue(ASTNode::NewInstance(sibling, node->document_, node->parse_count_));
+    if (sibling.data) {
+      info.GetReturnValue().Set(ASTNode::NewInstance(sibling, node->document_, node->parse_count_));
+      return;
+    }
   }
-  NanReturnNull();
+  info.GetReturnValue().Set(Nan::Null());
 }
 
 NAN_GETTER(ASTNode::PreviousNamedSibling) {
-  NanScope();
-  ASTNode *node = UnwrapValid(args.This());
+  ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode sibling = ts_node_prev_named_sibling(node->node_);
-    if (sibling.data)
-      NanReturnValue(ASTNode::NewInstance(sibling, node->document_, node->parse_count_));
+    if (sibling.data) {
+      info.GetReturnValue().Set(ASTNode::NewInstance(sibling, node->document_, node->parse_count_));
+      return;
+    }
   }
-  NanReturnNull();
+  info.GetReturnValue().Set(Nan::Null());
 }
 
 }  // namespace node_tree_sitter

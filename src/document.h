@@ -8,7 +8,7 @@
 
 namespace node_tree_sitter {
 
-class Document : public node::ObjectWrap {
+class Document : public Nan::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
 
@@ -26,7 +26,7 @@ class Document : public node::ObjectWrap {
   static NAN_METHOD(SetDebugger);
 
   TSDocument *document_;
-  static v8::Persistent<v8::Function> constructor;
+  static Nan::Persistent<v8::Function> constructor;
 };
 
 }  // namespace node_tree_sitter

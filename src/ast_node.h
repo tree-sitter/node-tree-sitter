@@ -8,10 +8,10 @@
 
 namespace node_tree_sitter {
 
-class ASTNode : public node::ObjectWrap {
+class ASTNode : public Nan::ObjectWrap {
  public:
   static void Init(v8::Handle<v8::Object> exports);
-  static v8::Handle<v8::Value> NewInstance(TSNode, TSDocument *, size_t);
+  static v8::Local<v8::Value> NewInstance(TSNode, TSDocument *, size_t);
 
  private:
   explicit ASTNode(TSNode, TSDocument *, size_t);
@@ -39,7 +39,8 @@ class ASTNode : public node::ObjectWrap {
   TSNode node_;
   TSDocument *document_;
   size_t parse_count_;
-  static v8::Persistent<v8::Function> constructor;
+
+  static Nan::Persistent<v8::Function> constructor;
 };
 
 }  // namespace node_tree_sitter

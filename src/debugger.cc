@@ -10,9 +10,9 @@ namespace node_tree_sitter {
 using namespace v8;
 using std::string;
 
-static void Debug(void *payload, TSDebugType type, const char *message_str) {
+void Debugger::Debug(void *payload, TSDebugType type, const char *message_str) {
   Debugger *debugger = (Debugger *)payload;
-  Handle<Function> fn = NanNew(debugger->func);
+  Handle<Function> fn = Nan::New(debugger->func);
   if (!fn->IsFunction())
     return;
 
@@ -20,9 +20,9 @@ static void Debug(void *payload, TSDebugType type, const char *message_str) {
   string param_sep = " ";
   size_t param_sep_pos = message.find(param_sep, 0);
 
-  Local<String> type_name = NanNew((type == TSDebugTypeParse) ? "parse" : "lex");
-  Local<String> name = NanNew(message.substr(0, param_sep_pos));
-  Local<Object> params = NanNew<Object>();
+  Local<String> type_name = Nan::New((type == TSDebugTypeParse) ? "parse" : "lex").ToLocalChecked();
+  Local<String> name = Nan::New(message.substr(0, param_sep_pos)).ToLocalChecked();
+  Local<Object> params = Nan::New<Object>();
 
   while (param_sep_pos != string::npos) {
     size_t key_pos = param_sep_pos + param_sep.size();
@@ -37,7 +37,7 @@ static void Debug(void *payload, TSDebugType type, const char *message_str) {
 
     string key = message.substr(key_pos, (value_sep_pos - key_pos));
     string value = message.substr(val_pos, (param_sep_pos - val_pos));
-    params->Set(NanNew(key), NanNew(value));
+    params->Set(Nan::New(key).ToLocalChecked(), Nan::New(value).ToLocalChecked());
   }
 
   Handle<Value> argv[3] = { name, params, type_name };
@@ -45,20 +45,20 @@ static void Debug(void *payload, TSDebugType type, const char *message_str) {
   fn->Call(fn->CreationContext()->Global(), 3, argv);
   if (try_catch.HasCaught()) {
     Handle<Value> log_argv[2] = {
-      NanNew("Error in debug callback:"),
+      Nan::New("Error in debug callback:").ToLocalChecked(),
       try_catch.Exception()
     };
 
-    Handle<Object> console = Handle<Object>::Cast(fn->CreationContext()->Global()->Get(NanNew("console")));
-    Handle<Function> error_fn = Handle<Function>::Cast(console->Get(NanNew("error")));
+    Handle<Object> console = Handle<Object>::Cast(fn->CreationContext()->Global()->Get(Nan::New("console").ToLocalChecked()));
+    Handle<Function> error_fn = Handle<Function>::Cast(console->Get(Nan::New("error").ToLocalChecked()));
     error_fn->Call(console, 2, log_argv);
   }
 }
 
-TSDebugger DebuggerMake(Handle<Function> func) {
+TSDebugger Debugger::Make(Handle<Function> func) {
   TSDebugger result;
   Debugger *debugger = new Debugger();
-  NanAssignPersistent(debugger->func, func);
+  debugger->func.Reset(Nan::Persistent<Function>(func));
   result.payload = (void *)debugger;
   result.debug_fn = Debug;
   return result;
