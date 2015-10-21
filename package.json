@@ -14,7 +14,6 @@
   ],
   "main": "index.js",
   "dependencies": {
-    "bindings": "1.2.x",
     "nan": "^2.0.0"
   }
 }
