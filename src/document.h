@@ -18,11 +18,13 @@ class Document : public Nan::ObjectWrap {
 
   static NAN_GETTER(RootNode);
   static NAN_METHOD(New);
+  static NAN_METHOD(GetInput);
   static NAN_METHOD(SetInput);
   static NAN_METHOD(SetLanguage);
   static NAN_METHOD(Edit);
   static NAN_METHOD(Parse);
   static NAN_METHOD(Invalidate);
+  static NAN_METHOD(GetDebugger);
   static NAN_METHOD(SetDebugger);
 
   TSDocument *document_;

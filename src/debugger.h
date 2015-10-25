@@ -10,11 +10,8 @@ namespace node_tree_sitter {
 class Debugger {
  public:
   static TSDebugger Make(v8::Local<v8::Function>);
-
- private:
-  static void Debug(void *, TSDebugType, const char *);
-
   Nan::Persistent<v8::Function> func;
+  static void Debug(void *, TSDebugType, const char *);
 };
 
 

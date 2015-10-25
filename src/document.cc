@@ -24,7 +24,9 @@ void Document::Init(Local<Object> exports) {
     RootNode);
 
   FunctionPair methods[] = {
+    {"getDebugger", GetDebugger},
     {"setDebugger", SetDebugger},
+    {"getInput", GetInput},
     {"setInput", SetInput},
     {"setLanguage", SetLanguage},
     {"edit", Edit},
@@ -65,9 +67,32 @@ NAN_GETTER(Document::RootNode) {
     info.GetReturnValue().Set(Nan::Null());
 }
 
+NAN_METHOD(Document::GetInput) {
+  Document *document = ObjectWrap::Unwrap<Document>(info.This());
+
+  TSInput current_input = ts_document_input(document->document_);
+  if (current_input.payload && current_input.seek_fn == InputReader::Seek) {
+    InputReader *input = (InputReader *)current_input.payload;
+    info.GetReturnValue().Set(Nan::New(input->object));
+  } else {
+    info.GetReturnValue().Set(Nan::Null());
+  }
+}
+
 NAN_METHOD(Document::SetInput) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   Local<Object> input = Local<Object>::Cast(info[0]);
+  info.GetReturnValue().Set(info.This());
+
+  if (input->IsNull() || input->IsFalse() || input->IsUndefined()) {
+    ts_document_set_input(document->document_, {0, 0, 0});
+    return;
+  }
+
+  if (!input->IsObject()) {
+    Nan::ThrowTypeError("Input must be an object");
+    return;
+  }
 
   if (!input->Get(Nan::New("seek").ToLocalChecked())->IsFunction()) {
     Nan::ThrowTypeError("Input must implement seek(n)");
@@ -139,6 +164,18 @@ NAN_METHOD(Document::Invalidate) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   ts_document_invalidate(document->document_);
   info.GetReturnValue().Set(info.This());
+}
+
+NAN_METHOD(Document::GetDebugger) {
+  Document *document = ObjectWrap::Unwrap<Document>(info.This());
+
+  TSDebugger current_debugger = ts_document_debugger(document->document_);
+  if (current_debugger.payload && current_debugger.debug_fn == Debugger::Debug) {
+    Debugger *debugger = (Debugger *)current_debugger.payload;
+    info.GetReturnValue().Set(Nan::New(debugger->func));
+  } else {
+    info.GetReturnValue().Set(Nan::Null());
+  }
 }
 
 NAN_METHOD(Document::SetDebugger) {
