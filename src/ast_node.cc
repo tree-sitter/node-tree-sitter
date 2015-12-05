@@ -17,8 +17,8 @@ void ASTNode::Init(Local<Object> exports) {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   GetterPair enum_getters[3] = {
-    {"position", Position},
-    {"size", Size},
+    {"start", Start},
+    {"end", End},
     {"type", Type},
   };
 
@@ -123,7 +123,7 @@ NAN_METHOD(ASTNode::NamedDescendantForRange) {
         return;
     }
 
-    TSNode result = ts_node_named_descendent_for_range(node->node_, min, max);
+    TSNode result = ts_node_named_descendant_for_range(node->node_, min, max);
     info.GetReturnValue().Set(ASTNode::NewInstance(result, node->document_, node->parse_count_));
   }
 }
@@ -147,7 +147,7 @@ NAN_METHOD(ASTNode::DescendantForRange) {
         return;
     }
 
-    TSNode result = ts_node_descendent_for_range(node->node_, min, max);
+    TSNode result = ts_node_descendant_for_range(node->node_, min, max);
     info.GetReturnValue().Set(ASTNode::NewInstance(result, node->document_, node->parse_count_));
   }
 }
@@ -162,25 +162,26 @@ NAN_GETTER(ASTNode::Type) {
   }
 }
 
-NAN_GETTER(ASTNode::Size) {
+NAN_GETTER(ASTNode::Start) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    size_t result = ts_node_size(node->node_).chars;
+    size_t result = ts_node_start_char(node->node_);
     info.GetReturnValue().Set(Nan::New<Number>(result));
   } else {
     info.GetReturnValue().Set(Nan::Null());
   }
 }
 
-NAN_GETTER(ASTNode::Position) {
+NAN_GETTER(ASTNode::End) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    size_t result = ts_node_pos(node->node_).chars;
+    size_t result = ts_node_end_char(node->node_);
     info.GetReturnValue().Set(Nan::New<Number>(result));
   } else {
     info.GetReturnValue().Set(Nan::Null());
   }
 }
+
 
 NAN_GETTER(ASTNode::Children) {
   ASTNode *node = UnwrapValid(info.This());

@@ -12,7 +12,7 @@ class InputReader {
   static void Init(v8::Local<v8::Object>);
   static TSInput Make(v8::Local<v8::Object>);
 
-  static int Seek(void *, TSLength);
+  static int Seek(void *, size_t *);
   static const char * Read(void *, size_t *);
 
   Nan::Persistent<v8::Object> object;
