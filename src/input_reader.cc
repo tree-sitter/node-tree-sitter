@@ -21,7 +21,7 @@ int InputReader::Seek(void *payload, size_t character, size_t byte) {
   if (!fn->IsFunction())
     return 0;
 
-  Local<Value> argv[1] = { Nan::New<Number>(byte) };
+  Local<Value> argv[1] = { Nan::New<Number>(character) };
   Local<Value> result = fn->Call(Nan::New(reader->object), 1, argv);
   return result->NumberValue();
 }
