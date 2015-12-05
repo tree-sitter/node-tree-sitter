@@ -54,8 +54,10 @@ program.children[0];
 
 /*
  *  { name: 'var_declaration',
- *    size: 40,
- *    position: 0,
+ *    row: 0,
+ *    column: 0,
+ *    start: 0,
+ *    end: 40,
  *    children: { length: 2 } }
  */
 ```
