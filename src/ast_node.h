@@ -23,10 +23,10 @@ class ASTNode : public Nan::ObjectWrap {
   static NAN_METHOD(IsValid);
 
   static NAN_GETTER(Type);
-  static NAN_GETTER(Start);
-  static NAN_GETTER(End);
-  static NAN_GETTER(Row);
-  static NAN_GETTER(Column);
+  static NAN_GETTER(StartIndex);
+  static NAN_GETTER(EndIndex);
+  static NAN_GETTER(StartPosition);
+  static NAN_GETTER(EndPosition);
 
   static NAN_GETTER(Parent);
   static NAN_GETTER(Children);
@@ -38,12 +38,15 @@ class ASTNode : public Nan::ObjectWrap {
 
   static ASTNode *Unwrap(const v8::Local<v8::Object> &);
   static ASTNode *UnwrapValid(const v8::Local<v8::Object> &);
+  static v8::Local<v8::Object> PointToJS(const TSPoint &);
 
   TSNode node_;
   TSDocument *document_;
   size_t parse_count_;
 
   static Nan::Persistent<v8::Function> constructor;
+  static Nan::Persistent<v8::String> row_key;
+  static Nan::Persistent<v8::String> column_key;
 };
 
 }  // namespace node_tree_sitter

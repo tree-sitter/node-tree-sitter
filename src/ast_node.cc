@@ -10,6 +10,8 @@ namespace node_tree_sitter {
 using namespace v8;
 
 Nan::Persistent<Function> ASTNode::constructor;
+Nan::Persistent<String> ASTNode::row_key;
+Nan::Persistent<String> ASTNode::column_key;
 
 void ASTNode::Init(Local<Object> exports) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
@@ -17,10 +19,10 @@ void ASTNode::Init(Local<Object> exports) {
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   GetterPair enum_getters[5] = {
-    {"end", End},
-    {"start", Start},
-    {"column", Column},
-    {"row", Row},
+    {"startIndex", StartIndex},
+    {"startPosition", StartPosition},
+    {"endIndex", EndIndex},
+    {"endPosition", EndPosition},
     {"type", Type},
   };
 
@@ -58,6 +60,8 @@ void ASTNode::Init(Local<Object> exports) {
     Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
 
   constructor.Reset(Nan::Persistent<Function>(tpl->GetFunction()));
+  row_key.Reset(Nan::Persistent<String>(Nan::New("row").ToLocalChecked()));
+  column_key.Reset(Nan::Persistent<String>(Nan::New("column").ToLocalChecked()));
 }
 
 ASTNode *ASTNode::Unwrap(const Local<Object> &object) {
@@ -164,7 +168,7 @@ NAN_GETTER(ASTNode::Type) {
   }
 }
 
-NAN_GETTER(ASTNode::Start) {
+NAN_GETTER(ASTNode::StartIndex) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     size_t result = ts_node_start_char(node->node_);
@@ -174,7 +178,7 @@ NAN_GETTER(ASTNode::Start) {
   }
 }
 
-NAN_GETTER(ASTNode::End) {
+NAN_GETTER(ASTNode::EndIndex) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     size_t result = ts_node_end_char(node->node_);
@@ -184,21 +188,28 @@ NAN_GETTER(ASTNode::End) {
   }
 }
 
-NAN_GETTER(ASTNode::Row) {
+Local<Object> ASTNode::PointToJS(const TSPoint &point) {
+  Local<Object> result = Nan::New<Object>();
+  result->Set(Nan::New(row_key), Nan::New<Number>(point.row));
+  result->Set(Nan::New(column_key), Nan::New<Number>(point.column));
+  return result;
+}
+
+NAN_GETTER(ASTNode::StartPosition) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    size_t result = ts_node_start_point(node->node_).row;
-    info.GetReturnValue().Set(Nan::New<Number>(result));
+    TSPoint result = ts_node_start_point(node->node_);
+    info.GetReturnValue().Set(PointToJS(result));
   } else {
     info.GetReturnValue().Set(Nan::Null());
   }
 }
 
-NAN_GETTER(ASTNode::Column) {
+NAN_GETTER(ASTNode::EndPosition) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    size_t result = ts_node_start_point(node->node_).column;
-    info.GetReturnValue().Set(Nan::New<Number>(result));
+    TSPoint result = ts_node_end_point(node->node_);
+    info.GetReturnValue().Set(PointToJS(result));
   } else {
     info.GetReturnValue().Set(Nan::Null());
   }
