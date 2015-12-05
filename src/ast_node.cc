@@ -19,9 +19,9 @@ void ASTNode::Init(Local<Object> exports) {
   GetterPair enum_getters[5] = {
     {"end", End},
     {"start", Start},
-    {"type", Type},
-    {"row", Row},
     {"column", Column},
+    {"row", Row},
+    {"type", Type},
   };
 
   GetterPair non_enum_getters[7] = {
