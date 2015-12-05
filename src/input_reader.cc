@@ -15,13 +15,13 @@ void InputReader::Init(v8::Local<v8::Object> exports) {
   seek_key.Reset(Nan::Persistent<String>(Nan::New("seek").ToLocalChecked()));
 }
 
-int InputReader::Seek(void *payload, TSLength position) {
+int InputReader::Seek(void *payload, size_t character, size_t byte) {
   InputReader *reader = (InputReader *)payload;
   Local<Function> fn = Local<Function>::Cast(Nan::New(reader->object)->Get(Nan::New(seek_key)));
   if (!fn->IsFunction())
     return 0;
 
-  Local<Value> argv[1] = { Nan::New<Number>(position.chars) };
+  Local<Value> argv[1] = { Nan::New<Number>(byte) };
   Local<Value> result = fn->Call(Nan::New(reader->object), 1, argv);
   return result->NumberValue();
 }

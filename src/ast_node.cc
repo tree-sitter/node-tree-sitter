@@ -16,10 +16,12 @@ void ASTNode::Init(Local<Object> exports) {
   tpl->SetClassName(Nan::New("ASTNode").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  GetterPair enum_getters[3] = {
-    {"start", Start},
+  GetterPair enum_getters[5] = {
     {"end", End},
+    {"start", Start},
     {"type", Type},
+    {"row", Row},
+    {"column", Column},
   };
 
   GetterPair non_enum_getters[7] = {
@@ -182,6 +184,25 @@ NAN_GETTER(ASTNode::End) {
   }
 }
 
+NAN_GETTER(ASTNode::Row) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    size_t result = ts_node_start_point(node->node_).row;
+    info.GetReturnValue().Set(Nan::New<Number>(result));
+  } else {
+    info.GetReturnValue().Set(Nan::Null());
+  }
+}
+
+NAN_GETTER(ASTNode::Column) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    size_t result = ts_node_start_point(node->node_).column;
+    info.GetReturnValue().Set(Nan::New<Number>(result));
+  } else {
+    info.GetReturnValue().Set(Nan::Null());
+  }
+}
 
 NAN_GETTER(ASTNode::Children) {
   ASTNode *node = UnwrapValid(info.This());

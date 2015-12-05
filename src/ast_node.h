@@ -25,6 +25,9 @@ class ASTNode : public Nan::ObjectWrap {
   static NAN_GETTER(Type);
   static NAN_GETTER(Start);
   static NAN_GETTER(End);
+  static NAN_GETTER(Row);
+  static NAN_GETTER(Column);
+
   static NAN_GETTER(Parent);
   static NAN_GETTER(Children);
   static NAN_GETTER(NamedChildren);
