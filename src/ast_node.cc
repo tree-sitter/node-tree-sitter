@@ -171,8 +171,8 @@ NAN_GETTER(ASTNode::Type) {
 NAN_GETTER(ASTNode::StartIndex) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    size_t result = ts_node_start_char(node->node_);
-    info.GetReturnValue().Set(Nan::New<Number>(result));
+    int32_t result = ts_node_start_byte(node->node_) / 2;
+    info.GetReturnValue().Set(Nan::New<Integer>(result));
   } else {
     info.GetReturnValue().Set(Nan::Null());
   }
@@ -181,8 +181,8 @@ NAN_GETTER(ASTNode::StartIndex) {
 NAN_GETTER(ASTNode::EndIndex) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    size_t result = ts_node_end_char(node->node_);
-    info.GetReturnValue().Set(Nan::New<Number>(result));
+    int32_t result = ts_node_end_byte(node->node_) / 2;
+    info.GetReturnValue().Set(Nan::New<Integer>(result));
   } else {
     info.GetReturnValue().Set(Nan::Null());
   }

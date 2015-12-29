@@ -44,6 +44,9 @@ void Document::Init(Local<Object> exports) {
 Document::Document() : document_(ts_document_make()) {}
 
 Document::~Document() {
+  TSInput input = ts_document_input(document_);
+  if (input.payload)
+    delete (InputReader *)input.payload;
   ts_document_free(document_);
 }
 
@@ -85,7 +88,7 @@ NAN_METHOD(Document::SetInput) {
   info.GetReturnValue().Set(info.This());
 
   if (input->IsNull() || input->IsFalse() || input->IsUndefined()) {
-    ts_document_set_input(document->document_, {0, 0, 0});
+    ts_document_set_input(document->document_, {0, 0, 0, TSInputEncodingUTF16});
     return;
   }
 
@@ -105,7 +108,9 @@ NAN_METHOD(Document::SetInput) {
   }
 
   TSInput current_input = ts_document_input(document->document_);
-  ts_document_set_input(document->document_, InputReader::Make(input));
+  InputReader *input_reader = new InputReader(input);
+  ts_document_set_input(document->document_, input_reader->Input());
+
   if (current_input.payload)
     delete (InputReader *)current_input.payload;
 
