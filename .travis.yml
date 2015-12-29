@@ -3,8 +3,11 @@ language: node_js
 node_js:
   - "node"
 compiler: clang-3.6
+before_install:
+  - git submodule update --init --recursive
 env:
   - CXX=clang-3.6
+
 addons:
   apt:
     sources:
