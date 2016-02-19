@@ -1,7 +1,7 @@
 tree-sitter
 ===========
 
-[![Build Status](https://travis-ci.org/maxbrunsfeld/node-tree-sitter.svg?branch=master)](https://travis-ci.org/maxbrunsfeld/node-tree-sitter)
+[![Build Status](https://travis-ci.org/tree-sitter/node-tree-sitter.svg?branch=master)](https://travis-ci.org/tree-sitter/node-tree-sitter)
 
 Incremental parsers for node
 
@@ -20,7 +20,7 @@ var treeSitter = require("tree-sitter");
 var document = new treeSitter.Document();
 ```
 
-Create a language module using [tree-sitter-compiler](http://github.com/maxbrunsfeld/node-tree-sitter-compiler). See [the javascript module](http://github.com/maxbrunsfeld/node-tree-sitter-javascript) for an example.
+Create a language module using [tree-sitter-compiler](http://github.com/tree-sitter/node-tree-sitter-compiler). See [the javascript module](http://github.com/tree-sitter/node-tree-sitter-javascript) for an example.
 
 Set the document's language:
 

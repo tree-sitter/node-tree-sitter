@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "http://github.com/maxbrunsfeld/node-tree-sitter.git"
+    "url": "http://github.com/tree-sitter/node-tree-sitter.git"
   },
   "keywords": [
     "parser",
