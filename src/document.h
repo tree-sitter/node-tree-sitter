@@ -26,6 +26,7 @@ class Document : public Nan::ObjectWrap {
   static NAN_METHOD(Invalidate);
   static NAN_METHOD(GetDebugger);
   static NAN_METHOD(SetDebugger);
+  static NAN_METHOD(PrintDebuggingGraphs);
 
   TSDocument *document_;
   static Nan::Persistent<v8::Function> constructor;

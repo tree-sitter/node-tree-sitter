@@ -32,6 +32,7 @@ void Document::Init(Local<Object> exports) {
     {"edit", Edit},
     {"parse", Parse},
     {"invalidate", Invalidate},
+    {"_printDebuggingGraphs", PrintDebuggingGraphs},
   };
 
   for (size_t i = 0; i < sizeof(methods) / sizeof(methods[0]); i++)
@@ -199,6 +200,17 @@ NAN_METHOD(Document::SetDebugger) {
       Nan::ThrowTypeError("Debug callback must either be a function or a falsy value");
       return;
     }
+  }
+
+  info.GetReturnValue().Set(info.This());
+}
+
+NAN_METHOD(Document::PrintDebuggingGraphs) {
+  Document *document = ObjectWrap::Unwrap<Document>(info.This());
+  Local<Boolean> value = Local<Boolean>::Cast(info[0]);
+
+  if (value->IsBoolean()) {
+    ts_document_print_debugging_graphs(document->document_, value->BooleanValue());
   }
 
   info.GetReturnValue().Set(info.This());
