@@ -38,13 +38,16 @@ void ASTNodeArray::Init(Local<Object> exports) {
     "some",
   };
 
-  Local<Array> array = Nan::New<Array>();
-  for (size_t i = 0; i < (sizeof(array_methods) / sizeof(array_methods[0])); i++)
-    tpl->PrototypeTemplate()->Set(
-      Nan::New(array_methods[i]).ToLocalChecked(),
-      array->Get(Nan::New(array_methods[i]).ToLocalChecked()));
+  Local<Function> constructor_local = tpl->GetFunction();
+  Local<Object> prototype = Local<Object>::Cast(constructor_local->Get(Nan::New("prototype").ToLocalChecked()));
 
-  constructor.Reset(Nan::Persistent<Function>(tpl->GetFunction()));
+  Local<Array> array = Nan::New<Array>();
+  for (size_t i = 0; i < (sizeof(array_methods) / sizeof(array_methods[0])); i++) {
+    Local<String> method_name = Nan::New(array_methods[i]).ToLocalChecked();
+    prototype->Set(method_name, array->Get(method_name));
+  }
+
+  constructor.Reset(Nan::Persistent<Function>(constructor_local));
 }
 
 ASTNodeArray::ASTNodeArray(TSNode node, TSDocument *document, size_t parse_count, bool is_named) :
