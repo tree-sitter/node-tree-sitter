@@ -35,6 +35,7 @@ void ASTNodeArray::Init(Local<Object> exports) {
     "map",
     "reduce",
     "reduceRight",
+    "slice",
     "some",
   };
 
