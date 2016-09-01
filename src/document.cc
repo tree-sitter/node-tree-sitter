@@ -30,9 +30,9 @@ void Document::Init(Local<Object> exports) {
     {"setInput", SetInput},
     {"setLanguage", SetLanguage},
     {"edit", Edit},
-    {"parse", Parse},
     {"invalidate", Invalidate},
     {"_printDebuggingGraphs", PrintDebuggingGraphs},
+    {"parse", Parse},
   };
 
   for (size_t i = 0; i < sizeof(methods) / sizeof(methods[0]); i++)
