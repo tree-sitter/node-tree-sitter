@@ -18,15 +18,16 @@ void ASTNode::Init(Local<Object> exports) {
   tpl->SetClassName(Nan::New("ASTNode").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  GetterPair enum_getters[5] = {
+  GetterPair enum_getters[] = {
     {"startIndex", StartIndex},
     {"startPosition", StartPosition},
     {"endIndex", EndIndex},
     {"endPosition", EndPosition},
     {"type", Type},
+    {"isNamed", IsNamed},
   };
 
-  GetterPair non_enum_getters[7] = {
+  GetterPair non_enum_getters[] = {
     {"parent", Parent},
     {"children", Children},
     {"namedChildren", NamedChildren},
@@ -36,7 +37,7 @@ void ASTNode::Init(Local<Object> exports) {
     {"previousNamedSibling", PreviousNamedSibling},
   };
 
-  FunctionPair methods[4] = {
+  FunctionPair methods[] = {
     {"isValid", IsValid},
     {"toString", ToString},
     {"descendantForRange", DescendantForRange},
@@ -163,6 +164,16 @@ NAN_GETTER(ASTNode::Type) {
   if (node) {
     const char *result = ts_node_name(node->node_, node->document_);
     info.GetReturnValue().Set(Nan::New(result).ToLocalChecked());
+  } else {
+    info.GetReturnValue().Set(Nan::Null());
+  }
+}
+
+NAN_GETTER(ASTNode::IsNamed) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    bool result = ts_node_is_named(node->node_);
+    info.GetReturnValue().Set(Nan::New(result));
   } else {
     info.GetReturnValue().Set(Nan::Null());
   }
