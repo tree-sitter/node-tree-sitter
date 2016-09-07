@@ -18,8 +18,10 @@ class ASTNode : public Nan::ObjectWrap {
 
   static NAN_METHOD(New);
   static NAN_METHOD(ToString);
-  static NAN_METHOD(DescendantForRange);
-  static NAN_METHOD(NamedDescendantForRange);
+  static NAN_METHOD(DescendantForIndex);
+  static NAN_METHOD(NamedDescendantForIndex);
+  static NAN_METHOD(DescendantForPosition);
+  static NAN_METHOD(NamedDescendantForPosition);
   static NAN_METHOD(IsValid);
 
   static NAN_GETTER(Type);
@@ -40,6 +42,7 @@ class ASTNode : public Nan::ObjectWrap {
   static ASTNode *Unwrap(const v8::Local<v8::Object> &);
   static ASTNode *UnwrapValid(const v8::Local<v8::Object> &);
   static v8::Local<v8::Object> PointToJS(const TSPoint &);
+  static Nan::Maybe<TSPoint> PointFromJS(const v8::Local<v8::Value> &);
 
   TSNode node_;
   TSDocument *document_;

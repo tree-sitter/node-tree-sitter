@@ -40,8 +40,10 @@ void ASTNode::Init(Local<Object> exports) {
   FunctionPair methods[] = {
     {"isValid", IsValid},
     {"toString", ToString},
-    {"descendantForRange", DescendantForRange},
-    {"namedDescendantForRange", NamedDescendantForRange},
+    {"descendantForIndex", DescendantForIndex},
+    {"namedDescendantForIndex", NamedDescendantForIndex},
+    {"descendantForPosition", DescendantForPosition},
+    {"namedDescendantForPosition", NamedDescendantForPosition},
   };
 
   for (size_t i = 0; i < sizeof(enum_getters) / sizeof(enum_getters[0]); i++)
@@ -63,6 +65,38 @@ void ASTNode::Init(Local<Object> exports) {
   constructor.Reset(Nan::Persistent<Function>(tpl->GetFunction()));
   row_key.Reset(Nan::Persistent<String>(Nan::New("row").ToLocalChecked()));
   column_key.Reset(Nan::Persistent<String>(Nan::New("column").ToLocalChecked()));
+}
+
+Local<Object> ASTNode::PointToJS(const TSPoint &point) {
+  Local<Object> result = Nan::New<Object>();
+  result->Set(Nan::New(row_key), Nan::New<Number>(point.row));
+  result->Set(Nan::New(column_key), Nan::New<Number>(point.column));
+  return result;
+}
+
+Nan::Maybe<TSPoint> ASTNode::PointFromJS(const Local<Value> &arg) {
+  if (!arg->IsObject()) {
+    Nan::ThrowTypeError("Point must be a {row, column} object");
+    return Nan::Nothing<TSPoint>();
+  }
+
+  Local<Object> js_point = Local<Object>::Cast(arg);
+  Local<Value> js_row = js_point->Get(Nan::New(row_key));
+  Local<Value> js_column = js_point->Get(Nan::New(column_key));
+  if (!js_row->IsNumber() || !js_column->IsNumber())
+    return Nan::Nothing<TSPoint>();
+
+  int row = js_row->Int32Value();
+  int column = js_column->Int32Value();
+  return Nan::Just<TSPoint>({(size_t)row, (size_t)column});
+}
+
+static Nan::Maybe<size_t> ByteIndexFromJSStringIndex(const Local<Value> &input) {
+  if (!input->IsNumber()) {
+    Nan::ThrowTypeError("Character index must be a number");
+    return Nan::Nothing<size_t>();
+  }
+  return Nan::Just<size_t>(input->Int32Value() * 2);
 }
 
 ASTNode *ASTNode::Unwrap(const Local<Object> &object) {
@@ -111,50 +145,122 @@ NAN_METHOD(ASTNode::IsValid) {
   }
 }
 
-NAN_METHOD(ASTNode::NamedDescendantForRange) {
+NAN_METHOD(ASTNode::NamedDescendantForIndex) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    int min, max;
+    size_t min, max;
     switch (info.Length()) {
       case 1: {
-        min = max = info[0]->Int32Value();
+        Nan::Maybe<size_t> maybe_value = ByteIndexFromJSStringIndex(info[0]);
+        if (maybe_value.IsNothing()) return;
+        min = max = maybe_value.FromJust();
         break;
       }
       case 2: {
-        min = info[0]->Int32Value();
-        max = info[1]->Int32Value();
+        Nan::Maybe<size_t> maybe_min = ByteIndexFromJSStringIndex(info[0]);
+        Nan::Maybe<size_t> maybe_max = ByteIndexFromJSStringIndex(info[1]);
+        if (maybe_min.IsNothing()) return;
+        if (maybe_max.IsNothing()) return;
+        min = maybe_min.FromJust();
+        max = maybe_max.FromJust();
         break;
       }
       default:
-        Nan::ThrowTypeError("Must provide 1 or 2 numeric arguments");
+        Nan::ThrowTypeError("Must provide 1 or 2 character indices");
         return;
     }
 
-    TSNode result = ts_node_named_descendant_for_range(node->node_, min, max);
+    TSNode result = ts_node_named_descendant_for_byte_range(node->node_, min, max);
     info.GetReturnValue().Set(ASTNode::NewInstance(result, node->document_, node->parse_count_));
   }
 }
 
-NAN_METHOD(ASTNode::DescendantForRange) {
+NAN_METHOD(ASTNode::DescendantForIndex) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    int min, max;
+    size_t min, max;
     switch (info.Length()) {
       case 1: {
-        min = max = info[0]->Int32Value();
+        Nan::Maybe<size_t> maybe_value = ByteIndexFromJSStringIndex(info[0]);
+        if (maybe_value.IsNothing()) return;
+        min = max = maybe_value.FromJust();
         break;
       }
       case 2: {
-        min = info[0]->Int32Value();
-        max = info[1]->Int32Value();
+        Nan::Maybe<size_t> maybe_min = ByteIndexFromJSStringIndex(info[0]);
+        Nan::Maybe<size_t> maybe_max = ByteIndexFromJSStringIndex(info[1]);
+        if (maybe_min.IsNothing()) return;
+        if (maybe_max.IsNothing()) return;
+        min = maybe_min.FromJust();
+        max = maybe_max.FromJust();
         break;
       }
       default:
-        Nan::ThrowTypeError("Must provide 1 or 2 numeric arguments");
+        Nan::ThrowTypeError("Must provide 1 or 2 character indices");
         return;
     }
 
-    TSNode result = ts_node_descendant_for_range(node->node_, min, max);
+    TSNode result = ts_node_descendant_for_byte_range(node->node_, min, max);
+    info.GetReturnValue().Set(ASTNode::NewInstance(result, node->document_, node->parse_count_));
+  }
+}
+
+NAN_METHOD(ASTNode::NamedDescendantForPosition) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    TSPoint min, max;
+    switch (info.Length()) {
+      case 1: {
+        Nan::Maybe<TSPoint> value = PointFromJS(info[0]);
+        if (value.IsNothing()) return;
+        min = max = value.FromJust();
+        break;
+      }
+      case 2: {
+        Nan::Maybe<TSPoint> maybe_min = PointFromJS(info[0]);
+        Nan::Maybe<TSPoint> maybe_max = PointFromJS(info[1]);
+        if (maybe_min.IsNothing()) return;
+        if (maybe_max.IsNothing()) return;
+        min = maybe_min.FromJust();
+        max = maybe_max.FromJust();
+        break;
+      }
+      default:
+        Nan::ThrowTypeError("Must provide 1 or 2 points");
+        return;
+    }
+
+    TSNode result = ts_node_named_descendant_for_point_range(node->node_, min, max);
+    info.GetReturnValue().Set(ASTNode::NewInstance(result, node->document_, node->parse_count_));
+  }
+}
+
+NAN_METHOD(ASTNode::DescendantForPosition) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    TSPoint min, max;
+    switch (info.Length()) {
+      case 1: {
+        Nan::Maybe<TSPoint> value = PointFromJS(info[0]);
+        if (value.IsNothing()) return;
+        min = max = value.FromJust();
+        break;
+      }
+      case 2: {
+        Nan::Maybe<TSPoint> maybe_min = PointFromJS(info[0]);
+        Nan::Maybe<TSPoint> maybe_max = PointFromJS(info[1]);
+        if (maybe_min.IsNothing()) return;
+        if (maybe_max.IsNothing()) return;
+        min = maybe_min.FromJust();
+        max = maybe_max.FromJust();
+        break;
+      }
+      default:
+        Nan::ThrowTypeError("Must provide 1 or 2 points");
+        return;
+    }
+
+    TSNode result = ts_node_descendant_for_point_range(node->node_, min, max);
     info.GetReturnValue().Set(ASTNode::NewInstance(result, node->document_, node->parse_count_));
   }
 }
@@ -162,7 +268,7 @@ NAN_METHOD(ASTNode::DescendantForRange) {
 NAN_GETTER(ASTNode::Type) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    const char *result = ts_node_name(node->node_, node->document_);
+    const char *result = ts_node_type(node->node_, node->document_);
     info.GetReturnValue().Set(Nan::New(result).ToLocalChecked());
   } else {
     info.GetReturnValue().Set(Nan::Null());
@@ -197,13 +303,6 @@ NAN_GETTER(ASTNode::EndIndex) {
   } else {
     info.GetReturnValue().Set(Nan::Null());
   }
-}
-
-Local<Object> ASTNode::PointToJS(const TSPoint &point) {
-  Local<Object> result = Nan::New<Object>();
-  result->Set(Nan::New(row_key), Nan::New<Number>(point.row));
-  result->Set(Nan::New(column_key), Nan::New<Number>(point.column));
-  return result;
 }
 
 NAN_GETTER(ASTNode::StartPosition) {

@@ -83,8 +83,8 @@ TSInput InputReader::Input() {
   TSInput result;
   result.payload = (void *)this;
   result.encoding = TSInputEncodingUTF16;
-  result.seek_fn = Seek;
-  result.read_fn = Read;
+  result.seek = Seek;
+  result.read = Read;
   return result;
 }
 

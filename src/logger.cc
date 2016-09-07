@@ -1,4 +1,4 @@
-#include "./debugger.h"
+#include "./logger.h"
 #include "./input_reader.h"
 #include <string>
 #include <v8.h>
@@ -10,8 +10,8 @@ namespace node_tree_sitter {
 using namespace v8;
 using std::string;
 
-void Debugger::Debug(void *payload, TSDebugType type, const char *message_str) {
-  Debugger *debugger = (Debugger *)payload;
+void Logger::Log(void *payload, TSLogType type, const char *message_str) {
+  Logger *debugger = (Logger *)payload;
   Local<Function> fn = Nan::New(debugger->func);
   if (!fn->IsFunction())
     return;
@@ -20,7 +20,7 @@ void Debugger::Debug(void *payload, TSDebugType type, const char *message_str) {
   string param_sep = " ";
   size_t param_sep_pos = message.find(param_sep, 0);
 
-  Local<String> type_name = Nan::New((type == TSDebugTypeParse) ? "parse" : "lex").ToLocalChecked();
+  Local<String> type_name = Nan::New((type == TSLogTypeParse) ? "parse" : "lex").ToLocalChecked();
   Local<String> name = Nan::New(message.substr(0, param_sep_pos)).ToLocalChecked();
   Local<Object> params = Nan::New<Object>();
 
@@ -55,12 +55,12 @@ void Debugger::Debug(void *payload, TSDebugType type, const char *message_str) {
   }
 }
 
-TSDebugger Debugger::Make(Local<Function> func) {
-  TSDebugger result;
-  Debugger *debugger = new Debugger();
-  debugger->func.Reset(Nan::Persistent<Function>(func));
-  result.payload = (void *)debugger;
-  result.debug_fn = Debug;
+TSLogger Logger::Make(Local<Function> func) {
+  TSLogger result;
+  Logger *logger = new Logger();
+  logger->func.Reset(Nan::Persistent<Function>(func));
+  result.payload = (void *)logger;
+  result.log = Log;
   return result;
 }
 

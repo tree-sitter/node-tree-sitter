@@ -9,7 +9,7 @@
         "src/ast_node.cc",
         "src/ast_node_array.cc",
         "src/binding.cc",
-        "src/debugger.cc",
+        "src/logger.cc",
         "src/document.cc",
         "src/input_reader.cc",
       ],

@@ -3,7 +3,7 @@
 #include <nan.h>
 #include "./input_reader.h"
 #include "./ast_node.h"
-#include "./debugger.h"
+#include "./logger.h"
 #include "./util.h"
 
 namespace node_tree_sitter {
@@ -24,8 +24,8 @@ void Document::Init(Local<Object> exports) {
     RootNode);
 
   FunctionPair methods[] = {
-    {"getDebugger", GetDebugger},
-    {"setDebugger", SetDebugger},
+    {"getLogger", GetLogger},
+    {"setLogger", SetLogger},
     {"getInput", GetInput},
     {"setInput", SetInput},
     {"setLanguage", SetLanguage},
@@ -42,7 +42,7 @@ void Document::Init(Local<Object> exports) {
   exports->Set(class_name, Nan::New(constructor));
 }
 
-Document::Document() : document_(ts_document_make()) {}
+Document::Document() : document_(ts_document_new()) {}
 
 Document::~Document() {
   TSInput input = ts_document_input(document_);
@@ -75,7 +75,7 @@ NAN_METHOD(Document::GetInput) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
 
   TSInput current_input = ts_document_input(document->document_);
-  if (current_input.payload && current_input.seek_fn == InputReader::Seek) {
+  if (current_input.payload && current_input.seek == InputReader::Seek) {
     InputReader *input = (InputReader *)current_input.payload;
     info.GetReturnValue().Set(Nan::New(input->object));
   } else {
@@ -172,30 +172,30 @@ NAN_METHOD(Document::Invalidate) {
   info.GetReturnValue().Set(info.This());
 }
 
-NAN_METHOD(Document::GetDebugger) {
+NAN_METHOD(Document::GetLogger) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
 
-  TSDebugger current_debugger = ts_document_debugger(document->document_);
-  if (current_debugger.payload && current_debugger.debug_fn == Debugger::Debug) {
-    Debugger *debugger = (Debugger *)current_debugger.payload;
-    info.GetReturnValue().Set(Nan::New(debugger->func));
+  TSLogger current_logger = ts_document_logger(document->document_);
+  if (current_logger.payload && current_logger.log == Logger::Log) {
+    Logger *logger = (Logger *)current_logger.payload;
+    info.GetReturnValue().Set(Nan::New(logger->func));
   } else {
     info.GetReturnValue().Set(Nan::Null());
   }
 }
 
-NAN_METHOD(Document::SetDebugger) {
+NAN_METHOD(Document::SetLogger) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   Local<Function> func = Local<Function>::Cast(info[0]);
 
-  TSDebugger current_debugger = ts_document_debugger(document->document_);
-  if (current_debugger.payload)
-    delete (Debugger *)current_debugger.payload;
+  TSLogger current_logger = ts_document_logger(document->document_);
+  if (current_logger.payload)
+    delete (Logger *)current_logger.payload;
 
   if (func->IsFunction()) {
-    ts_document_set_debugger(document->document_, Debugger::Make(func));
+    ts_document_set_logger(document->document_, Logger::Make(func));
   } else {
-    ts_document_set_debugger(document->document_, { 0, 0 });
+    ts_document_set_logger(document->document_, { 0, 0 });
     if (!(func->IsNull() || func->IsFalse() || func->IsUndefined())) {
       Nan::ThrowTypeError("Debug callback must either be a function or a falsy value");
       return;
