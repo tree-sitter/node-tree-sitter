@@ -41,16 +41,12 @@ class ASTNode : public Nan::ObjectWrap {
 
   static ASTNode *Unwrap(const v8::Local<v8::Object> &);
   static ASTNode *UnwrapValid(const v8::Local<v8::Object> &);
-  static v8::Local<v8::Object> PointToJS(const TSPoint &);
-  static Nan::Maybe<TSPoint> PointFromJS(const v8::Local<v8::Value> &);
 
   TSNode node_;
   TSDocument *document_;
   size_t parse_count_;
 
   static Nan::Persistent<v8::Function> constructor;
-  static Nan::Persistent<v8::String> row_key;
-  static Nan::Persistent<v8::String> column_key;
 };
 
 }  // namespace node_tree_sitter

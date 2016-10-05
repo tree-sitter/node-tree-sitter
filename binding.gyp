@@ -12,6 +12,7 @@
         "src/logger.cc",
         "src/document.cc",
         "src/input_reader.cc",
+        "src/conversions.cc",
       ],
       "include_dirs": [
         "include",

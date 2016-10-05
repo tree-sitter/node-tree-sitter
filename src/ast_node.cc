@@ -4,14 +4,13 @@
 #include <v8.h>
 #include "./ast_node_array.h"
 #include "./util.h"
+#include "./conversions.h"
 
 namespace node_tree_sitter {
 
 using namespace v8;
 
 Nan::Persistent<Function> ASTNode::constructor;
-Nan::Persistent<String> ASTNode::row_key;
-Nan::Persistent<String> ASTNode::column_key;
 
 void ASTNode::Init(Local<Object> exports) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
@@ -63,40 +62,6 @@ void ASTNode::Init(Local<Object> exports) {
     Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
 
   constructor.Reset(Nan::Persistent<Function>(tpl->GetFunction()));
-  row_key.Reset(Nan::Persistent<String>(Nan::New("row").ToLocalChecked()));
-  column_key.Reset(Nan::Persistent<String>(Nan::New("column").ToLocalChecked()));
-}
-
-Local<Object> ASTNode::PointToJS(const TSPoint &point) {
-  Local<Object> result = Nan::New<Object>();
-  result->Set(Nan::New(row_key), Nan::New<Number>(point.row));
-  result->Set(Nan::New(column_key), Nan::New<Number>(point.column));
-  return result;
-}
-
-Nan::Maybe<TSPoint> ASTNode::PointFromJS(const Local<Value> &arg) {
-  if (!arg->IsObject()) {
-    Nan::ThrowTypeError("Point must be a {row, column} object");
-    return Nan::Nothing<TSPoint>();
-  }
-
-  Local<Object> js_point = Local<Object>::Cast(arg);
-  Local<Value> js_row = js_point->Get(Nan::New(row_key));
-  Local<Value> js_column = js_point->Get(Nan::New(column_key));
-  if (!js_row->IsNumber() || !js_column->IsNumber())
-    return Nan::Nothing<TSPoint>();
-
-  int row = js_row->Int32Value();
-  int column = js_column->Int32Value();
-  return Nan::Just<TSPoint>({(size_t)row, (size_t)column});
-}
-
-static Nan::Maybe<size_t> ByteIndexFromJSStringIndex(const Local<Value> &input) {
-  if (!input->IsNumber()) {
-    Nan::ThrowTypeError("Character index must be a number");
-    return Nan::Nothing<size_t>();
-  }
-  return Nan::Just<size_t>(input->Int32Value() * 2);
 }
 
 ASTNode *ASTNode::Unwrap(const Local<Object> &object) {
@@ -151,14 +116,14 @@ NAN_METHOD(ASTNode::NamedDescendantForIndex) {
     size_t min, max;
     switch (info.Length()) {
       case 1: {
-        Nan::Maybe<size_t> maybe_value = ByteIndexFromJSStringIndex(info[0]);
+        Nan::Maybe<size_t> maybe_value = ByteCountFromJS(info[0]);
         if (maybe_value.IsNothing()) return;
         min = max = maybe_value.FromJust();
         break;
       }
       case 2: {
-        Nan::Maybe<size_t> maybe_min = ByteIndexFromJSStringIndex(info[0]);
-        Nan::Maybe<size_t> maybe_max = ByteIndexFromJSStringIndex(info[1]);
+        Nan::Maybe<size_t> maybe_min = ByteCountFromJS(info[0]);
+        Nan::Maybe<size_t> maybe_max = ByteCountFromJS(info[1]);
         if (maybe_min.IsNothing()) return;
         if (maybe_max.IsNothing()) return;
         min = maybe_min.FromJust();
@@ -181,14 +146,14 @@ NAN_METHOD(ASTNode::DescendantForIndex) {
     size_t min, max;
     switch (info.Length()) {
       case 1: {
-        Nan::Maybe<size_t> maybe_value = ByteIndexFromJSStringIndex(info[0]);
+        Nan::Maybe<size_t> maybe_value = ByteCountFromJS(info[0]);
         if (maybe_value.IsNothing()) return;
         min = max = maybe_value.FromJust();
         break;
       }
       case 2: {
-        Nan::Maybe<size_t> maybe_min = ByteIndexFromJSStringIndex(info[0]);
-        Nan::Maybe<size_t> maybe_max = ByteIndexFromJSStringIndex(info[1]);
+        Nan::Maybe<size_t> maybe_min = ByteCountFromJS(info[0]);
+        Nan::Maybe<size_t> maybe_max = ByteCountFromJS(info[1]);
         if (maybe_min.IsNothing()) return;
         if (maybe_max.IsNothing()) return;
         min = maybe_min.FromJust();
