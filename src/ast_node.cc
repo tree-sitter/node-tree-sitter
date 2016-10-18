@@ -84,9 +84,14 @@ ASTNode::ASTNode(TSNode node, TSDocument *document, size_t parse_count) :
   node_(node), document_(document), parse_count_(parse_count) {}
 
 Local<Value> ASTNode::NewInstance(TSNode node, TSDocument *document, size_t parse_count) {
-  Local<Object> instance = Nan::New(constructor)->NewInstance(0, NULL);
-  (new ASTNode(node, document, parse_count))->Wrap(instance);
-  return instance;
+  Local<Object> self;
+  MaybeLocal<Object> maybe_self = Nan::New(constructor)->NewInstance(Nan::GetCurrentContext());
+  if (maybe_self.ToLocal(&self)) {
+    (new ASTNode(node, document, parse_count))->Wrap(self);
+    return self;
+  } else {
+    return Nan::Null();
+  }
 }
 
 NAN_METHOD(ASTNode::New) {

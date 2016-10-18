@@ -41,7 +41,7 @@ void Logger::Log(void *payload, TSLogType type, const char *message_str) {
   }
 
   Local<Value> argv[3] = { name, params, type_name };
-  TryCatch try_catch;
+  TryCatch try_catch(Isolate::GetCurrent());
   fn->Call(fn->CreationContext()->Global(), 3, argv);
   if (try_catch.HasCaught()) {
     Local<Value> log_argv[2] = {

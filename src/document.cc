@@ -58,7 +58,13 @@ NAN_METHOD(Document::New) {
     document->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } else {
-    info.GetReturnValue().Set(Nan::New(constructor)->NewInstance(0, NULL));
+    Local<Object> self;
+    MaybeLocal<Object> maybe_self = Nan::New(constructor)->NewInstance(Nan::GetCurrentContext());
+    if (maybe_self.ToLocal(&self)) {
+      info.GetReturnValue().Set(self);
+    } else {
+      info.GetReturnValue().Set(Nan::Null());
+    }
   }
 }
 

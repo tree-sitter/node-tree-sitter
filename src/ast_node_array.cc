@@ -55,9 +55,14 @@ ASTNodeArray::ASTNodeArray(TSNode node, TSDocument *document, size_t parse_count
   parent_node_(node), document_(document), parse_count_(parse_count), is_named_(is_named)  {}
 
 Local<Value> ASTNodeArray::NewInstance(TSNode node, TSDocument *document, size_t parse_count, bool is_named) {
-  Local<Object> instance = Nan::New(constructor)->NewInstance(0, NULL);
-  (new ASTNodeArray(node, document, parse_count, is_named))->Wrap(instance);
-  return instance;
+  MaybeLocal<Object> maybe_self = Nan::New(constructor)->NewInstance(Nan::GetCurrentContext());
+  Local<Object> self;
+  if (maybe_self.ToLocal(&self)) {
+    (new ASTNodeArray(node, document, parse_count, is_named))->Wrap(self);
+    return self;
+  } else {
+    return Nan::Null();
+  }
 }
 
 NAN_METHOD(ASTNodeArray::New) {
