@@ -10,10 +10,21 @@ using namespace v8;
 
 Nan::Persistent<String> row_key;
 Nan::Persistent<String> column_key;
+Nan::Persistent<String> start_key;
+Nan::Persistent<String> end_key;
 
 void InitConversions() {
   row_key.Reset(Nan::Persistent<String>(Nan::New("row").ToLocalChecked()));
   column_key.Reset(Nan::Persistent<String>(Nan::New("column").ToLocalChecked()));
+  start_key.Reset(Nan::Persistent<String>(Nan::New("start").ToLocalChecked()));
+  end_key.Reset(Nan::Persistent<String>(Nan::New("end").ToLocalChecked()));
+}
+
+Local<Object> RangeToJS(const TSRange &range) {
+  Local<Object> result = Nan::New<Object>();
+  result->Set(Nan::New(start_key), PointToJS(range.start));
+  result->Set(Nan::New(end_key), PointToJS(range.end));
+  return result;
 }
 
 Local<Object> PointToJS(const TSPoint &point) {

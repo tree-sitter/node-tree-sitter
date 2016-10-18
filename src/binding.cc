@@ -11,6 +11,7 @@ namespace node_tree_sitter {
 using namespace v8;
 
 void InitAll(Local<Object> exports) {
+  InitConversions();
   ASTNode::Init(exports);
   ASTNodeArray::Init(exports);
   InputReader::Init(exports);

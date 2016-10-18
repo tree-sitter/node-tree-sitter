@@ -5,6 +5,7 @@
 #include "./ast_node.h"
 #include "./logger.h"
 #include "./util.h"
+#include "./conversions.h"
 
 namespace node_tree_sitter {
 
@@ -142,28 +143,46 @@ NAN_METHOD(Document::Edit) {
   Local<Object> arg = Local<Object>::Cast(info[0]);
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
 
-  TSInputEdit edit = { 0, 0, 0 };
+  auto start_byte = ByteCountFromJS(arg->Get(Nan::New("startIndex").ToLocalChecked()));
+  if (start_byte.IsNothing()) return;
 
-  Local<Number> position = Local<Number>::Cast(arg->Get(Nan::New("position").ToLocalChecked()));
-  if (position->IsNumber())
-    edit.position = position->Int32Value();
+  auto bytes_removed = ByteCountFromJS(arg->Get(Nan::New("lengthRemoved").ToLocalChecked()));
+  if (bytes_removed.IsNothing()) return;
 
-  Local<Number> chars_removed = Local<Number>::Cast(arg->Get(Nan::New("charsRemoved").ToLocalChecked()));
-  if (chars_removed->IsNumber())
-    edit.chars_removed = chars_removed->Int32Value();
+  auto bytes_added = ByteCountFromJS(arg->Get(Nan::New("lengthAdded").ToLocalChecked()));
+  if (bytes_added.IsNothing()) return;
 
-  Local<Number> chars_inserted = Local<Number>::Cast(arg->Get(Nan::New("charsInserted").ToLocalChecked()));
-  if (chars_inserted->IsNumber())
-    edit.chars_inserted = chars_inserted->Int32Value();
+  auto start_position = PointFromJS(arg->Get(Nan::New("startPosition").ToLocalChecked()));
+  if (start_position.IsNothing()) return;
 
+  auto extent_removed = PointFromJS(arg->Get(Nan::New("extentRemoved").ToLocalChecked()));
+  if (extent_removed.IsNothing()) return;
+
+  auto extent_added = PointFromJS(arg->Get(Nan::New("extentAdded").ToLocalChecked()));
+  if (extent_added.IsNothing()) return;
+
+  TSInputEdit edit;
+  edit.start_byte = start_byte.FromJust();
+  edit.bytes_removed = bytes_removed.FromJust();
+  edit.bytes_added = bytes_added.FromJust();
+  edit.start_point = start_position.FromJust();
+  edit.extent_removed = extent_removed.FromJust();
+  edit.extent_added = extent_added.FromJust();
   ts_document_edit(document->document_, edit);
   info.GetReturnValue().Set(info.This());
 }
 
 NAN_METHOD(Document::Parse) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
-  ts_document_parse(document->document_);
-  info.GetReturnValue().Set(info.This());
+  TSRange *ranges;
+  size_t range_count;
+  ts_document_parse_and_get_changed_ranges(document->document_, &ranges, &range_count);
+
+  Local<Array> result = Nan::New<Array>();
+  for (size_t i = 0; i < range_count; i++)
+    result->Set(i, RangeToJS(ranges[i]));
+
+  info.GetReturnValue().Set(result);
 }
 
 NAN_METHOD(Document::Invalidate) {
