@@ -4,6 +4,7 @@
 #include <v8.h>
 #include <vector>
 #include <string>
+#include "./util.h"
 #include "./ast_node.h"
 
 namespace node_tree_sitter {
@@ -43,7 +44,7 @@ void ASTNodeArray::Init(Local<Object> exports) {
   Local<Object> prototype = Local<Object>::Cast(constructor_local->Get(Nan::New("prototype").ToLocalChecked()));
 
   Local<Array> array = Nan::New<Array>();
-  for (size_t i = 0; i < (sizeof(array_methods) / sizeof(array_methods[0])); i++) {
+  for (size_t i = 0; i < length_of_array(array_methods); i++) {
     Local<String> method_name = Nan::New(array_methods[i]).ToLocalChecked();
     prototype->Set(method_name, array->Get(method_name));
   }

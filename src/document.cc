@@ -36,7 +36,7 @@ void Document::Init(Local<Object> exports) {
     {"parse", Parse},
   };
 
-  for (size_t i = 0; i < sizeof(methods) / sizeof(methods[0]); i++)
+  for (size_t i = 0; i < length_of_array(methods); i++)
     Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
 
   constructor.Reset(Nan::Persistent<Function>(tpl->GetFunction()));

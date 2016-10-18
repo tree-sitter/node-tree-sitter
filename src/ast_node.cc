@@ -45,20 +45,20 @@ void ASTNode::Init(Local<Object> exports) {
     {"namedDescendantForPosition", NamedDescendantForPosition},
   };
 
-  for (size_t i = 0; i < sizeof(enum_getters) / sizeof(enum_getters[0]); i++)
+  for (size_t i = 0; i < length_of_array(enum_getters); i++)
     Nan::SetAccessor(
       tpl->InstanceTemplate(),
       Nan::New(enum_getters[i].name).ToLocalChecked(),
       enum_getters[i].callback);
 
-  for (size_t i = 0; i < sizeof(non_enum_getters) / sizeof(non_enum_getters[0]); i++)
+  for (size_t i = 0; i < length_of_array(non_enum_getters); i++)
     Nan::SetAccessor(
       tpl->InstanceTemplate(),
       Nan::New(non_enum_getters[i].name).ToLocalChecked(),
       non_enum_getters[i].callback,
       0, Local<Value>(), DEFAULT, DontEnum);
 
-  for (size_t i = 0; i < sizeof(methods) / sizeof(methods[0]); i++)
+  for (size_t i = 0; i < length_of_array(methods); i++)
     Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
 
   constructor.Reset(Nan::Persistent<Function>(tpl->GetFunction()));
