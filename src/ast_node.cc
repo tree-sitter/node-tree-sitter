@@ -118,17 +118,17 @@ NAN_METHOD(ASTNode::IsValid) {
 NAN_METHOD(ASTNode::NamedDescendantForIndex) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    size_t min, max;
+    uint32_t min, max;
     switch (info.Length()) {
       case 1: {
-        Nan::Maybe<size_t> maybe_value = ByteCountFromJS(info[0]);
+        Nan::Maybe<uint32_t> maybe_value = ByteCountFromJS(info[0]);
         if (maybe_value.IsNothing()) return;
         min = max = maybe_value.FromJust();
         break;
       }
       case 2: {
-        Nan::Maybe<size_t> maybe_min = ByteCountFromJS(info[0]);
-        Nan::Maybe<size_t> maybe_max = ByteCountFromJS(info[1]);
+        Nan::Maybe<uint32_t> maybe_min = ByteCountFromJS(info[0]);
+        Nan::Maybe<uint32_t> maybe_max = ByteCountFromJS(info[1]);
         if (maybe_min.IsNothing()) return;
         if (maybe_max.IsNothing()) return;
         min = maybe_min.FromJust();
@@ -148,17 +148,17 @@ NAN_METHOD(ASTNode::NamedDescendantForIndex) {
 NAN_METHOD(ASTNode::DescendantForIndex) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
-    size_t min, max;
+    uint32_t min, max;
     switch (info.Length()) {
       case 1: {
-        Nan::Maybe<size_t> maybe_value = ByteCountFromJS(info[0]);
+        Nan::Maybe<uint32_t> maybe_value = ByteCountFromJS(info[0]);
         if (maybe_value.IsNothing()) return;
         min = max = maybe_value.FromJust();
         break;
       }
       case 2: {
-        Nan::Maybe<size_t> maybe_min = ByteCountFromJS(info[0]);
-        Nan::Maybe<size_t> maybe_max = ByteCountFromJS(info[1]);
+        Nan::Maybe<uint32_t> maybe_min = ByteCountFromJS(info[0]);
+        Nan::Maybe<uint32_t> maybe_max = ByteCountFromJS(info[1]);
         if (maybe_min.IsNothing()) return;
         if (maybe_max.IsNothing()) return;
         min = maybe_min.FromJust();

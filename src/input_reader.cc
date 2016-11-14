@@ -27,13 +27,13 @@ InputReader::InputReader(Local<Object> object) : object(object), partial_string_
   buffer.resize(buffer_size);
 }
 
-int InputReader::Seek(void *payload, size_t character, size_t byte) {
+int InputReader::Seek(void *payload, uint32_t character, uint32_t byte) {
   InputReader *reader = (InputReader *)payload;
   Local<Function> fn = Local<Function>::Cast(Nan::New(reader->object)->Get(Nan::New(seek_key)));
   if (!fn->IsFunction())
     return 0;
 
-  size_t utf16_unit = byte / 2;
+  uint32_t utf16_unit = byte / 2;
   Local<Value> argv[1] = { Nan::New<Number>(utf16_unit) };
   Local<Value> result = fn->Call(Nan::New(reader->object), 1, argv);
   reader->partial_string_offset = 0;
@@ -41,11 +41,11 @@ int InputReader::Seek(void *payload, size_t character, size_t byte) {
   return result->NumberValue();
 }
 
-const char * InputReader::Read(void *payload, size_t *bytes_read) {
+const char * InputReader::Read(void *payload, uint32_t *bytes_read) {
   InputReader *reader = (InputReader *)payload;
 
   Local<String> result;
-  size_t start;
+  uint32_t start;
   if (reader->partial_string_offset) {
     result = Nan::New(reader->partial_string);
     start = reader->partial_string_offset;

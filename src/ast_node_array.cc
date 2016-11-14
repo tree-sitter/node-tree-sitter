@@ -83,7 +83,7 @@ NAN_INDEX_GETTER(ASTNodeArray::GetIndex) {
 
 NAN_GETTER(ASTNodeArray::Length) {
   ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(info.This());
-  size_t length = array->is_named_ ?
+  uint32_t length = array->is_named_ ?
     ts_node_named_child_count(array->parent_node_) :
     ts_node_child_count(array->parent_node_);
   info.GetReturnValue().Set(Nan::New<Number>(length));

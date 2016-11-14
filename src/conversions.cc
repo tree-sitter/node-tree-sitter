@@ -53,22 +53,22 @@ Nan::Maybe<TSPoint> PointFromJS(const Local<Value> &arg) {
     return Nan::Nothing<TSPoint>();
   }
 
-  int row = js_row->Int32Value();
-  int column = js_column->Int32Value();
-  return Nan::Just<TSPoint>({(size_t)row, (size_t)column});
+  uint32_t row = static_cast<uint32_t>(js_row->Int32Value());
+  uint32_t column = static_cast<uint32_t>(js_column->Int32Value());
+  return Nan::Just<TSPoint>({row, column});
 }
 
-Local<Number> ByteCountToJS(size_t byte_count) {
+Local<Number> ByteCountToJS(uint32_t byte_count) {
   return Nan::New<Number>(byte_count / 2);
 }
 
-Nan::Maybe<size_t> ByteCountFromJS(const v8::Local<v8::Value> &arg) {
+Nan::Maybe<uint32_t> ByteCountFromJS(const v8::Local<v8::Value> &arg) {
   if (!arg->IsNumber()) {
     Nan::ThrowTypeError("Character index must be a number");
-    return Nan::Nothing<size_t>();
+    return Nan::Nothing<uint32_t>();
   }
 
-  return Nan::Just<size_t>(arg->Int32Value() * 2);
+  return Nan::Just<uint32_t>(arg->Int32Value() * 2);
 }
 
 }  // namespace node_tree_sitter

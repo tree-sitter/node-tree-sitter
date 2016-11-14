@@ -181,7 +181,7 @@ NAN_METHOD(Document::Edit) {
 NAN_METHOD(Document::Parse) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   TSRange *ranges;
-  size_t range_count;
+  uint32_t range_count;
   ts_document_parse_and_get_changed_ranges(document->document_, &ranges, &range_count);
 
   Local<Array> result = Nan::New<Array>();
