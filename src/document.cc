@@ -1,4 +1,5 @@
 #include "./document.h"
+#include <string>
 #include <v8.h>
 #include <nan.h>
 #include "./input_reader.h"
@@ -134,13 +135,21 @@ NAN_METHOD(Document::SetLanguage) {
     return;
   }
 
-  TSLanguage *lang = (TSLanguage *)Nan::GetInternalFieldPointer(arg, 0);
-  if (!lang) {
-    Nan::ThrowTypeError("Invalid language object (null)");
+  TSLanguage *language = (TSLanguage *)Nan::GetInternalFieldPointer(arg, 0);
+  if (!language) {
+    Nan::ThrowTypeError("Invalid language object");
     return;
   }
 
-  ts_document_set_language(document->document_, lang);
+  if (ts_language_version(language) != TREE_SITTER_LANGUAGE_VERSION) {
+    std::string message = "Incompatible language version. Expected " +
+      std::to_string(TREE_SITTER_LANGUAGE_VERSION) + ". Got " +
+      std::to_string(ts_language_version(language));
+    Nan::ThrowError(Nan::RangeError(message.c_str()));
+    return;
+  }
+
+  ts_document_set_language(document->document_, language);
 
   info.GetReturnValue().Set(info.This());
 }
