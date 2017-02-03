@@ -30,6 +30,10 @@ void ASTNode::Init(Local<Object> exports) {
     {"parent", Parent},
     {"children", Children},
     {"namedChildren", NamedChildren},
+    {"firstChild", FirstChild},
+    {"lastChild", LastChild},
+    {"firstNamedChild", FirstNamedChild},
+    {"lastNamedChild", LastNamedChild},
     {"nextSibling", NextSibling},
     {"nextNamedSibling", NextNamedSibling},
     {"previousSibling", PreviousSibling},
@@ -320,6 +324,56 @@ NAN_GETTER(ASTNode::NamedChildren) {
     info.GetReturnValue().Set(ASTNodeArray::NewInstance(node->node_, node->document_, node->parse_count_, true));
   else
     info.GetReturnValue().Set(Nan::Null());
+}
+
+NAN_GETTER(ASTNode::FirstChild) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    TSNode child = ts_node_child(node->node_, 0);
+    if (child.data) {
+      info.GetReturnValue().Set(ASTNode::NewInstance(child, node->document_, node->parse_count_));
+      return;
+    }
+  }
+  info.GetReturnValue().Set(Nan::Null());
+}
+
+NAN_GETTER(ASTNode::FirstNamedChild) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    TSNode child = ts_node_named_child(node->node_, 0);
+    if (child.data) {
+      info.GetReturnValue().Set(ASTNode::NewInstance(child, node->document_, node->parse_count_));
+      return;
+    }
+  }
+  info.GetReturnValue().Set(Nan::Null());
+}
+
+NAN_GETTER(ASTNode::LastChild) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    uint32_t child_count = ts_node_child_count(node->node_);
+    if (child_count > 0) {
+      TSNode child = ts_node_child(node->node_, child_count - 1);
+      info.GetReturnValue().Set(ASTNode::NewInstance(child, node->document_, node->parse_count_));
+      return;
+    }
+  }
+  info.GetReturnValue().Set(Nan::Null());
+}
+
+NAN_GETTER(ASTNode::LastNamedChild) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    uint32_t child_count = ts_node_named_child_count(node->node_);
+    if (child_count > 0) {
+      TSNode child = ts_node_named_child(node->node_, child_count - 1);
+      info.GetReturnValue().Set(ASTNode::NewInstance(child, node->document_, node->parse_count_));
+      return;
+    }
+  }
+  info.GetReturnValue().Set(Nan::Null());
 }
 
 NAN_GETTER(ASTNode::Parent) {

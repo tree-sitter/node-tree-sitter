@@ -35,6 +35,10 @@ class ASTNode : public Nan::ObjectWrap {
   static NAN_GETTER(Parent);
   static NAN_GETTER(Children);
   static NAN_GETTER(NamedChildren);
+  static NAN_GETTER(FirstChild);
+  static NAN_GETTER(FirstNamedChild);
+  static NAN_GETTER(LastChild);
+  static NAN_GETTER(LastNamedChild);
   static NAN_GETTER(NextSibling);
   static NAN_GETTER(NextNamedSibling);
   static NAN_GETTER(PreviousSibling);
