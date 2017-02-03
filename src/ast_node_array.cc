@@ -31,6 +31,8 @@ void ASTNodeArray::Init(Local<Object> exports) {
   const char * array_methods[] = {
     "every",
     "filter",
+    "find",
+    "findIndex",
     "forEach",
     "indexOf",
     "map",
