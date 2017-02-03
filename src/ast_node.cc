@@ -34,6 +34,7 @@ void ASTNode::Init(Local<Object> exports) {
     {"nextNamedSibling", NextNamedSibling},
     {"previousSibling", PreviousSibling},
     {"previousNamedSibling", PreviousNamedSibling},
+    {"id", Id},
   };
 
   FunctionPair methods[] = {
@@ -250,6 +251,16 @@ NAN_GETTER(ASTNode::IsNamed) {
   if (node) {
     bool result = ts_node_is_named(node->node_);
     info.GetReturnValue().Set(Nan::New(result));
+  } else {
+    info.GetReturnValue().Set(Nan::Null());
+  }
+}
+
+NAN_GETTER(ASTNode::Id) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    uint64_t result = reinterpret_cast<uint64_t>(node->node_.data);
+    info.GetReturnValue().Set(Nan::New<Number>(result));
   } else {
     info.GetReturnValue().Set(Nan::Null());
   }
