@@ -20,7 +20,7 @@ var treeSitter = require("tree-sitter");
 var document = new treeSitter.Document();
 ```
 
-Create a language module using [tree-sitter-compiler](http://github.com/tree-sitter/node-tree-sitter-compiler). See [the javascript module](http://github.com/tree-sitter/tree-sitter-javascript) for an example.
+Create a grammar using [tree-sitter-cli](http://github.com/tree-sitter/tree-sitter-cli). See [the JavaScript grammar](http://github.com/tree-sitter/tree-sitter-javascript) for an example.
 
 Set the document's language:
 
