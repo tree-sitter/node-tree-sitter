@@ -37,7 +37,8 @@ document.setInputString('var inc = function(n) { return n + 1; }; inc(5);');
 Access the document's AST:
 
 ```javascript
-document.rootNode.toString()
+document.parse();
+document.rootNode.toString();
 
 /*
  *  (program
@@ -49,7 +50,7 @@ document.rootNode.toString()
  *      (identifier) (number))))
  */
 
-var program = document.children[0];
+const program = document.children[0];
 program.children[0];
 
 /*
