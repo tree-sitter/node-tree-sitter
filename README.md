@@ -16,8 +16,8 @@ npm install tree-sitter
 Make a document:
 
 ```javascript
-var treeSitter = require("tree-sitter");
-var document = new treeSitter.Document();
+const {Document} = require('tree-sitter');
+const document = new Document();
 ```
 
 Create a grammar using [tree-sitter-cli](http://github.com/tree-sitter/tree-sitter-cli). See [the JavaScript grammar](http://github.com/tree-sitter/tree-sitter-javascript) for an example.
@@ -25,13 +25,13 @@ Create a grammar using [tree-sitter-cli](http://github.com/tree-sitter/tree-sitt
 Set the document's language:
 
 ```javascript
-document.setLanguage(require("tree-sitter-javascript"));
+document.setLanguage(require('tree-sitter-javascript'));
 ```
 
 Set the document's text:
 
 ```javascript
-document.setInputString("var inc = function(n) { return n + 1; }; inc(5);");
+document.setInputString('var inc = function(n) { return n + 1; }; inc(5);');
 ```
 
 Access the document's AST:
@@ -40,13 +40,13 @@ Access the document's AST:
 document.rootNode.toString()
 
 /*
- *    (program
- *      (var_declaration
- *        (identifier)
- *        (function (formal_parameters (identifier)) (statement_block
- *          (return_statement (math_op (identifier) (number))))))
- *      (expression_statement (function_call
- *        (identifier) (number))))
+ *  (program
+ *    (var_declaration
+ *      (identifier)
+ *      (function (formal_parameters (identifier)) (statement_block
+ *        (return_statement (math_op (identifier) (number))))))
+ *    (expression_statement (function_call
+ *      (identifier) (number))))
  */
 
 var program = document.children[0];
@@ -54,10 +54,10 @@ program.children[0];
 
 /*
  *  { name: 'var_declaration',
- *    row: 0,
- *    column: 0,
- *    start: 0,
- *    end: 40,
+ *    startPosition: {row: 0, column: 0},
+ *    endPosition: {row: 0, column: 40},
+ *    startIndex: 0,
+ *    endIndex: 40,
  *    children: { length: 2 } }
  */
 ```
