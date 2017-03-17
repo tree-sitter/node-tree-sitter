@@ -13,7 +13,7 @@ Nan::Persistent<v8::String> InputReader::read_key;
 Nan::Persistent<v8::String> InputReader::seek_key;
 Nan::Persistent<v8::String> InputReader::buffer_size_key;
 
-void InputReader::Init(v8::Local<v8::Object> exports) {
+void InputReader::Init() {
   read_key.Reset(Nan::Persistent<String>(Nan::New("read").ToLocalChecked()));
   seek_key.Reset(Nan::Persistent<String>(Nan::New("seek").ToLocalChecked()));
   buffer_size_key.Reset(Nan::Persistent<String>(Nan::New("bufferSize").ToLocalChecked()));

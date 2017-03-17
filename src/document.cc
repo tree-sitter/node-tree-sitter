@@ -42,6 +42,7 @@ void Document::Init(Local<Object> exports) {
 
   constructor.Reset(Nan::Persistent<Function>(tpl->GetFunction()));
   exports->Set(class_name, Nan::New(constructor));
+  exports->Set(Nan::New("LANGUAGE_VERSION").ToLocalChecked(), Nan::New<Number>(TREE_SITTER_LANGUAGE_VERSION));
 }
 
 Document::Document() : document_(ts_document_new()) {}

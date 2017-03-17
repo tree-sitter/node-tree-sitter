@@ -10,7 +10,7 @@ namespace node_tree_sitter {
 
 class ASTNodeArray : public Nan::ObjectWrap {
  public:
-  static void Init(v8::Local<v8::Object> exports);
+  static void Init();
   static v8::Local<v8::Value> NewInstance(TSNode, TSDocument *, size_t, bool);
 
  private:

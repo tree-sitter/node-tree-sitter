@@ -12,7 +12,7 @@ using namespace v8;
 
 Nan::Persistent<Function> ASTNode::constructor;
 
-void ASTNode::Init(Local<Object> exports) {
+void ASTNode::Init() {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("ASTNode").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
