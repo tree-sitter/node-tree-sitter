@@ -98,7 +98,7 @@ NAN_METHOD(Document::SetInput) {
   info.GetReturnValue().Set(info.This());
 
   if (input->IsNull() || input->IsFalse() || input->IsUndefined()) {
-    ts_document_set_input(document->document_, {0, 0, 0, TSInputEncodingUTF16});
+    ts_document_set_input(document->document_, {0, 0, 0, TSInputEncodingUTF16, true});
     return;
   }
 

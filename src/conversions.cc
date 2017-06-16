@@ -13,6 +13,8 @@ Nan::Persistent<String> column_key;
 Nan::Persistent<String> start_key;
 Nan::Persistent<String> end_key;
 
+static unsigned BYTES_PER_CHARACTER = 2;
+
 void InitConversions() {
   row_key.Reset(Nan::Persistent<String>(Nan::New("row").ToLocalChecked()));
   column_key.Reset(Nan::Persistent<String>(Nan::New("column").ToLocalChecked()));
@@ -30,7 +32,7 @@ Local<Object> RangeToJS(const TSRange &range) {
 Local<Object> PointToJS(const TSPoint &point) {
   Local<Object> result = Nan::New<Object>();
   result->Set(Nan::New(row_key), Nan::New<Number>(point.row));
-  result->Set(Nan::New(column_key), Nan::New<Number>(point.column));
+  result->Set(Nan::New(column_key), ByteCountToJS(point.column));
   return result;
 }
 
@@ -54,12 +56,12 @@ Nan::Maybe<TSPoint> PointFromJS(const Local<Value> &arg) {
   }
 
   uint32_t row = static_cast<uint32_t>(js_row->Int32Value());
-  uint32_t column = static_cast<uint32_t>(js_column->Int32Value());
+  uint32_t column = static_cast<uint32_t>(js_column->Int32Value() * BYTES_PER_CHARACTER);
   return Nan::Just<TSPoint>({row, column});
 }
 
 Local<Number> ByteCountToJS(uint32_t byte_count) {
-  return Nan::New<Number>(byte_count / 2);
+  return Nan::New<Number>(byte_count / BYTES_PER_CHARACTER);
 }
 
 Nan::Maybe<uint32_t> ByteCountFromJS(const v8::Local<v8::Value> &arg) {
@@ -68,7 +70,7 @@ Nan::Maybe<uint32_t> ByteCountFromJS(const v8::Local<v8::Value> &arg) {
     return Nan::Nothing<uint32_t>();
   }
 
-  return Nan::Just<uint32_t>(arg->Int32Value() * 2);
+  return Nan::Just<uint32_t>(arg->Int32Value() * BYTES_PER_CHARACTER);
 }
 
 }  // namespace node_tree_sitter

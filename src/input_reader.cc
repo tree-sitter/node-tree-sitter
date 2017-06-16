@@ -85,6 +85,7 @@ TSInput InputReader::Input() {
   result.encoding = TSInputEncodingUTF16;
   result.seek = Seek;
   result.read = Read;
+  result.measure_columns_in_bytes = true;
   return result;
 }
 
