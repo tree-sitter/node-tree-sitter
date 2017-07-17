@@ -1,6 +1,6 @@
 {
   "name": "tree-sitter",
-  "version": "0.5.3",
+  "version": "0.5.4-1",
   "description": "Incremental parsers for node",
   "author": "Max Brunsfeld",
   "license": "MIT",
