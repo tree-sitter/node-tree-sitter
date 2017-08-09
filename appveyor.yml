@@ -1,0 +1,13 @@
+environment:
+  nodejs_version: "6"
+
+platform:
+  - x64
+  - x86
+
+install:
+  - ps: Install-Product node $env:nodejs_version
+  - git submodule update --init --recursive
+  - npm install
+
+build: off
