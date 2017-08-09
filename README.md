@@ -1,5 +1,5 @@
-tree-sitter
-===========
+node tree-sitter
+================
 
 [![Build Status](https://travis-ci.org/tree-sitter/node-tree-sitter.svg?branch=master)](https://travis-ci.org/tree-sitter/node-tree-sitter)
 [![Build status](https://ci.appveyor.com/api/projects/status/vtmbd6i92e97l55w/branch/master?svg=true)](https://ci.appveyor.com/project/maxbrunsfeld/tree-sitter/branch/master)
@@ -8,58 +8,47 @@ Incremental parsers for node
 
 ### Installation
 
-```
+```sh
 npm install tree-sitter
 ```
 
 ### Usage
 
-Make a document:
+Create a grammar using [tree-sitter-cli](http://github.com/tree-sitter/tree-sitter-cli). See [the JavaScript grammar](http://github.com/tree-sitter/tree-sitter-javascript) and the [Go grammar](http://github.com/tree-sitter/tree-sitter-go) for some examples.
+
+Make a document using your grammar:
 
 ```javascript
 const {Document} = require('tree-sitter');
+
 const document = new Document();
-```
-
-Create a grammar using [tree-sitter-cli](http://github.com/tree-sitter/tree-sitter-cli). See [the JavaScript grammar](http://github.com/tree-sitter/tree-sitter-javascript) for an example.
-
-Set the document's language:
-
-```javascript
 document.setLanguage(require('tree-sitter-javascript'));
-```
-
-Set the document's text:
-
-```javascript
-document.setInputString('var inc = function(n) { return n + 1; }; inc(5);');
+document.setInputString('let x = 1; x++; console.log(x);');
+document.parse();
 ```
 
 Access the document's AST:
 
 ```javascript
-document.parse();
-document.rootNode.toString();
+console.log(document.rootNode.toString());
 
-/*
- *  (program
- *    (var_declaration
- *      (identifier)
- *      (function (formal_parameters (identifier)) (statement_block
- *        (return_statement (math_op (identifier) (number))))))
- *    (expression_statement (function_call
- *      (identifier) (number))))
- */
+// (program
+//   (lexical_declaration
+//     (variable_declarator (identifier) (number)))
+//   (expression_statement
+//     (update_expression (identifier)))
+//   (expression_statement
+//     (call_expression
+//       (member_expression (identifier) (property_identifier))
+//       (arguments (identifier)))))
 
-const program = document.children[0];
-program.children[0];
+const callExpression = document.rootNode.children[2].children[0];
+console.log(callExpression);
 
-/*
- *  { name: 'var_declaration',
- *    startPosition: {row: 0, column: 0},
- *    endPosition: {row: 0, column: 40},
- *    startIndex: 0,
- *    endIndex: 40,
- *    children: { length: 2 } }
- */
+// { type: 'call_expression',
+//   startPosition: {row: 0, column: 16},
+//   endPosition: {row: 0, column: 30},
+//   startIndex: 0,
+//   endIndex: 30,
+//   children: { length: 2 } }
 ```
