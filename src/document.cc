@@ -195,8 +195,9 @@ NAN_METHOD(Document::Parse) {
   ts_document_parse_and_get_changed_ranges(document->document_, &ranges, &range_count);
 
   Local<Array> result = Nan::New<Array>();
-  for (size_t i = 0; i < range_count; i++)
+  for (size_t i = 0; i < range_count; i++) {
     result->Set(i, RangeToJS(ranges[i]));
+  }
 
   info.GetReturnValue().Set(result);
 }

@@ -20,10 +20,11 @@ void InputReader::Init() {
 }
 
 InputReader::InputReader(Local<Object> object) : object(object), partial_string_offset(0) {
-  Local<Integer> js_buffer_size = Local<Integer>::Cast(object->Get(Nan::New(buffer_size_key)));
   size_t buffer_size = DEFAULT_BUFFER_SIZE;
-  if (js_buffer_size->IsNumber())
-    buffer_size = js_buffer_size->Int32Value();
+  Local<Value> js_buffer_size = object->Get(Nan::New(buffer_size_key));
+  if (js_buffer_size->IsNumber()) {
+    buffer_size = Local<Integer>::Cast(js_buffer_size)->Int32Value();
+  }
   buffer.resize(buffer_size);
 }
 
