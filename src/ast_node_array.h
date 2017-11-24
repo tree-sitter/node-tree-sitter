@@ -16,9 +16,9 @@ class ASTNodeArray : public Nan::ObjectWrap {
  private:
   explicit ASTNodeArray(TSNode, TSDocument *, size_t, bool);
 
-  static NAN_METHOD(New);
-  static NAN_GETTER(Length);
-  static NAN_INDEX_GETTER(GetIndex);
+  static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Length(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void GetIndex(uint32_t, const Nan::PropertyCallbackInfo<v8::Value> &);
 
   TSNode parent_node_;
   TSDocument *document_;

@@ -99,11 +99,11 @@ Local<Value> ASTNode::NewInstance(TSNode node, TSDocument *document, size_t pars
   }
 }
 
-NAN_METHOD(ASTNode::New) {
+void ASTNode::New(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_METHOD(ASTNode::ToString) {
+void ASTNode::ToString(const Nan::FunctionCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     const char *string = ts_node_string(node->node_, node->document_);
@@ -112,7 +112,7 @@ NAN_METHOD(ASTNode::ToString) {
   }
 }
 
-NAN_METHOD(ASTNode::IsValid) {
+void ASTNode::IsValid(const Nan::FunctionCallbackInfo<Value> &info) {
   ASTNode *node = Unwrap(info.This());
   if (node) {
     bool result = node->parse_count_ == ts_document_parse_count(node->document_);
@@ -120,7 +120,7 @@ NAN_METHOD(ASTNode::IsValid) {
   }
 }
 
-NAN_METHOD(ASTNode::NamedDescendantForIndex) {
+void ASTNode::NamedDescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     uint32_t min, max;
@@ -150,7 +150,7 @@ NAN_METHOD(ASTNode::NamedDescendantForIndex) {
   }
 }
 
-NAN_METHOD(ASTNode::DescendantForIndex) {
+void ASTNode::DescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     uint32_t min, max;
@@ -180,7 +180,7 @@ NAN_METHOD(ASTNode::DescendantForIndex) {
   }
 }
 
-NAN_METHOD(ASTNode::NamedDescendantForPosition) {
+void ASTNode::NamedDescendantForPosition(const Nan::FunctionCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSPoint min, max;
@@ -210,7 +210,7 @@ NAN_METHOD(ASTNode::NamedDescendantForPosition) {
   }
 }
 
-NAN_METHOD(ASTNode::DescendantForPosition) {
+void ASTNode::DescendantForPosition(const Nan::FunctionCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSPoint min, max;
@@ -240,7 +240,7 @@ NAN_METHOD(ASTNode::DescendantForPosition) {
   }
 }
 
-NAN_GETTER(ASTNode::Type) {
+void ASTNode::Type(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     const char *result = ts_node_type(node->node_, node->document_);
@@ -250,7 +250,7 @@ NAN_GETTER(ASTNode::Type) {
   }
 }
 
-NAN_GETTER(ASTNode::IsNamed) {
+void ASTNode::IsNamed(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     bool result = ts_node_is_named(node->node_);
@@ -260,7 +260,7 @@ NAN_GETTER(ASTNode::IsNamed) {
   }
 }
 
-NAN_GETTER(ASTNode::Id) {
+void ASTNode::Id(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     uint64_t result = reinterpret_cast<uint64_t>(node->node_.data);
@@ -270,7 +270,7 @@ NAN_GETTER(ASTNode::Id) {
   }
 }
 
-NAN_GETTER(ASTNode::StartIndex) {
+void ASTNode::StartIndex(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     int32_t result = ts_node_start_byte(node->node_) / 2;
@@ -280,7 +280,7 @@ NAN_GETTER(ASTNode::StartIndex) {
   }
 }
 
-NAN_GETTER(ASTNode::EndIndex) {
+void ASTNode::EndIndex(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     int32_t result = ts_node_end_byte(node->node_) / 2;
@@ -290,7 +290,7 @@ NAN_GETTER(ASTNode::EndIndex) {
   }
 }
 
-NAN_GETTER(ASTNode::StartPosition) {
+void ASTNode::StartPosition(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSPoint result = ts_node_start_point(node->node_);
@@ -300,7 +300,7 @@ NAN_GETTER(ASTNode::StartPosition) {
   }
 }
 
-NAN_GETTER(ASTNode::EndPosition) {
+void ASTNode::EndPosition(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSPoint result = ts_node_end_point(node->node_);
@@ -310,7 +310,7 @@ NAN_GETTER(ASTNode::EndPosition) {
   }
 }
 
-NAN_GETTER(ASTNode::Children) {
+void ASTNode::Children(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node)
     info.GetReturnValue().Set(ASTNodeArray::NewInstance(node->node_, node->document_, node->parse_count_, false));
@@ -318,7 +318,7 @@ NAN_GETTER(ASTNode::Children) {
     info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_GETTER(ASTNode::NamedChildren) {
+void ASTNode::NamedChildren(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node)
     info.GetReturnValue().Set(ASTNodeArray::NewInstance(node->node_, node->document_, node->parse_count_, true));
@@ -326,7 +326,7 @@ NAN_GETTER(ASTNode::NamedChildren) {
     info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_GETTER(ASTNode::FirstChild) {
+void ASTNode::FirstChild(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode child = ts_node_child(node->node_, 0);
@@ -338,7 +338,7 @@ NAN_GETTER(ASTNode::FirstChild) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_GETTER(ASTNode::FirstNamedChild) {
+void ASTNode::FirstNamedChild(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode child = ts_node_named_child(node->node_, 0);
@@ -350,7 +350,7 @@ NAN_GETTER(ASTNode::FirstNamedChild) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_GETTER(ASTNode::LastChild) {
+void ASTNode::LastChild(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     uint32_t child_count = ts_node_child_count(node->node_);
@@ -363,7 +363,7 @@ NAN_GETTER(ASTNode::LastChild) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_GETTER(ASTNode::LastNamedChild) {
+void ASTNode::LastNamedChild(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     uint32_t child_count = ts_node_named_child_count(node->node_);
@@ -376,7 +376,7 @@ NAN_GETTER(ASTNode::LastNamedChild) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_GETTER(ASTNode::Parent) {
+void ASTNode::Parent(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode parent = ts_node_parent(node->node_);
@@ -388,7 +388,7 @@ NAN_GETTER(ASTNode::Parent) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_GETTER(ASTNode::NextSibling) {
+void ASTNode::NextSibling(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode sibling = ts_node_next_sibling(node->node_);
@@ -400,7 +400,7 @@ NAN_GETTER(ASTNode::NextSibling) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_GETTER(ASTNode::NextNamedSibling) {
+void ASTNode::NextNamedSibling(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode sibling = ts_node_next_named_sibling(node->node_);
@@ -412,7 +412,7 @@ NAN_GETTER(ASTNode::NextNamedSibling) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_GETTER(ASTNode::PreviousSibling) {
+void ASTNode::PreviousSibling(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode sibling = ts_node_prev_sibling(node->node_);
@@ -424,7 +424,7 @@ NAN_GETTER(ASTNode::PreviousSibling) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_GETTER(ASTNode::PreviousNamedSibling) {
+void ASTNode::PreviousNamedSibling(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSNode sibling = ts_node_prev_named_sibling(node->node_);

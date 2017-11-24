@@ -68,11 +68,11 @@ Local<Value> ASTNodeArray::NewInstance(TSNode node, TSDocument *document, size_t
   }
 }
 
-NAN_METHOD(ASTNodeArray::New) {
+void ASTNodeArray::New(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_INDEX_GETTER(ASTNodeArray::GetIndex) {
+void ASTNodeArray::GetIndex(uint32_t index, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(info.This());
   TSNode child = array->is_named_ ?
     ts_node_named_child(array->parent_node_, index) :
@@ -83,7 +83,7 @@ NAN_INDEX_GETTER(ASTNodeArray::GetIndex) {
     info.GetReturnValue().Set(Nan::Undefined());
 }
 
-NAN_GETTER(ASTNodeArray::Length) {
+void ASTNodeArray::Length(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(info.This());
   uint32_t length = array->is_named_ ?
     ts_node_named_child_count(array->parent_node_) :

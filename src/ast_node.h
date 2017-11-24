@@ -16,33 +16,33 @@ class ASTNode : public Nan::ObjectWrap {
  private:
   explicit ASTNode(TSNode, TSDocument *, size_t);
 
-  static NAN_METHOD(New);
-  static NAN_METHOD(ToString);
-  static NAN_METHOD(DescendantForIndex);
-  static NAN_METHOD(NamedDescendantForIndex);
-  static NAN_METHOD(DescendantForPosition);
-  static NAN_METHOD(NamedDescendantForPosition);
-  static NAN_METHOD(IsValid);
+  static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void ToString(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void DescendantForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void NamedDescendantForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void DescendantForPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void NamedDescendantForPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void IsValid(const Nan::FunctionCallbackInfo<v8::Value> &);
 
-  static NAN_GETTER(Type);
-  static NAN_GETTER(StartIndex);
-  static NAN_GETTER(EndIndex);
-  static NAN_GETTER(StartPosition);
-  static NAN_GETTER(EndPosition);
-  static NAN_GETTER(IsNamed);
-  static NAN_GETTER(Id);
+  static void Type(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void StartIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void EndIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void StartPosition(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void EndPosition(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void IsNamed(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void Id(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
 
-  static NAN_GETTER(Parent);
-  static NAN_GETTER(Children);
-  static NAN_GETTER(NamedChildren);
-  static NAN_GETTER(FirstChild);
-  static NAN_GETTER(FirstNamedChild);
-  static NAN_GETTER(LastChild);
-  static NAN_GETTER(LastNamedChild);
-  static NAN_GETTER(NextSibling);
-  static NAN_GETTER(NextNamedSibling);
-  static NAN_GETTER(PreviousSibling);
-  static NAN_GETTER(PreviousNamedSibling);
+  static void Parent(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void Children(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void NamedChildren(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void FirstChild(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void FirstNamedChild(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void LastChild(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void LastNamedChild(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void NextSibling(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void NextNamedSibling(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void PreviousSibling(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void PreviousNamedSibling(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
 
   static ASTNode *Unwrap(const v8::Local<v8::Object> &);
   static ASTNode *UnwrapValid(const v8::Local<v8::Object> &);
