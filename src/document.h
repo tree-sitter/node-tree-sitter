@@ -16,17 +16,17 @@ class Document : public Nan::ObjectWrap {
   explicit Document();
   ~Document();
 
-  static NAN_GETTER(RootNode);
-  static NAN_METHOD(New);
-  static NAN_METHOD(GetInput);
-  static NAN_METHOD(SetInput);
-  static NAN_METHOD(SetLanguage);
-  static NAN_METHOD(Edit);
-  static NAN_METHOD(Parse);
-  static NAN_METHOD(Invalidate);
-  static NAN_METHOD(GetLogger);
-  static NAN_METHOD(SetLogger);
-  static NAN_METHOD(PrintDebuggingGraphs);
+  static void RootNode(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void GetInput(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void SetInput(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void SetLanguage(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Edit(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Parse(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Invalidate(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void GetLogger(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void SetLogger(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void PrintDebuggingGraphs(const Nan::FunctionCallbackInfo<v8::Value> &);
 
   TSDocument *document_;
   static Nan::Persistent<v8::Function> constructor;

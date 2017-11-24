@@ -54,7 +54,7 @@ Document::~Document() {
   ts_document_free(document_);
 }
 
-NAN_METHOD(Document::New) {
+void Document::New(const Nan::FunctionCallbackInfo<Value> &info) {
   if (info.IsConstructCall()) {
     Document *document = new Document();
     document->Wrap(info.This());
@@ -70,7 +70,7 @@ NAN_METHOD(Document::New) {
   }
 }
 
-NAN_GETTER(Document::RootNode) {
+void Document::RootNode(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   TSNode node = ts_document_root_node(document->document_);
   size_t parse_count = ts_document_parse_count(document->document_);
@@ -80,7 +80,7 @@ NAN_GETTER(Document::RootNode) {
     info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_METHOD(Document::GetInput) {
+void Document::GetInput(const Nan::FunctionCallbackInfo<Value> &info) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
 
   TSInput current_input = ts_document_input(document->document_);
@@ -92,7 +92,7 @@ NAN_METHOD(Document::GetInput) {
   }
 }
 
-NAN_METHOD(Document::SetInput) {
+void Document::SetInput(const Nan::FunctionCallbackInfo<Value> &info) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   Local<Object> input = Local<Object>::Cast(info[0]);
   info.GetReturnValue().Set(info.This());
@@ -127,7 +127,7 @@ NAN_METHOD(Document::SetInput) {
   info.GetReturnValue().Set(info.This());
 }
 
-NAN_METHOD(Document::SetLanguage) {
+void Document::SetLanguage(const Nan::FunctionCallbackInfo<Value> &info) {
   Local<Object> arg = Local<Object>::Cast(info[0]);
 
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
@@ -155,7 +155,7 @@ NAN_METHOD(Document::SetLanguage) {
   info.GetReturnValue().Set(info.This());
 }
 
-NAN_METHOD(Document::Edit) {
+void Document::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
   Local<Object> arg = Local<Object>::Cast(info[0]);
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
 
@@ -188,7 +188,7 @@ NAN_METHOD(Document::Edit) {
   info.GetReturnValue().Set(info.This());
 }
 
-NAN_METHOD(Document::Parse) {
+void Document::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   TSRange *ranges;
   uint32_t range_count;
@@ -202,13 +202,13 @@ NAN_METHOD(Document::Parse) {
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(Document::Invalidate) {
+void Document::Invalidate(const Nan::FunctionCallbackInfo<Value> &info) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   ts_document_invalidate(document->document_);
   info.GetReturnValue().Set(info.This());
 }
 
-NAN_METHOD(Document::GetLogger) {
+void Document::GetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
 
   TSLogger current_logger = ts_document_logger(document->document_);
@@ -220,7 +220,7 @@ NAN_METHOD(Document::GetLogger) {
   }
 }
 
-NAN_METHOD(Document::SetLogger) {
+void Document::SetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   Local<Function> func = Local<Function>::Cast(info[0]);
 
@@ -241,7 +241,7 @@ NAN_METHOD(Document::SetLogger) {
   info.GetReturnValue().Set(info.This());
 }
 
-NAN_METHOD(Document::PrintDebuggingGraphs) {
+void Document::PrintDebuggingGraphs(const Nan::FunctionCallbackInfo<Value> &info) {
   Document *document = ObjectWrap::Unwrap<Document>(info.This());
   Local<Boolean> value = Local<Boolean>::Cast(info[0]);
 
