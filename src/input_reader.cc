@@ -28,7 +28,7 @@ InputReader::InputReader(Local<Object> object) : object(object), partial_string_
   buffer.resize(buffer_size);
 }
 
-int InputReader::Seek(void *payload, uint32_t character, uint32_t byte) {
+int InputReader::Seek(void *payload, uint32_t byte) {
   InputReader *reader = (InputReader *)payload;
   Local<Function> fn = Local<Function>::Cast(Nan::New(reader->object)->Get(Nan::New(seek_key)));
   if (!fn->IsFunction())
@@ -86,7 +86,6 @@ TSInput InputReader::Input() {
   result.encoding = TSInputEncodingUTF16;
   result.seek = Seek;
   result.read = Read;
-  result.measure_columns_in_bytes = true;
   return result;
 }
 
