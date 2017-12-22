@@ -98,7 +98,7 @@ void Document::SetInput(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(info.This());
 
   if (input->IsNull() || input->IsFalse() || input->IsUndefined()) {
-    ts_document_set_input(document->document_, {0, 0, 0, TSInputEncodingUTF16, true});
+    ts_document_set_input(document->document_, {0, 0, 0, TSInputEncodingUTF16});
     return;
   }
 
