@@ -15,8 +15,7 @@ declare module "tree-sitter" {
     public invalidate(): void;
   }
 
-  // TODO Need to specify the arguments
-  type LoggerFunc = (...args: any[]) => void;
+  type LoggerFunc = (message: string, params: {[param: string]: string}, type: "parse" | "lex") => void;
 
   type EditDelta = {
     startIndex: number;
@@ -34,10 +33,10 @@ declare module "tree-sitter" {
 
   export type StringInput = {
     position: number;
-    string: Buffer;
+    string: any;
     bufferSize: number | null;
     seek(distance: number): void;
-    read(): Buffer;
+    read(): any;
   }
 
   export interface AstNode {
