@@ -9,8 +9,8 @@ declare module "tree-sitter" {
     public parse(): void;
     public getLogger(): LoggerFunc;
     public setLogger(logFunc: LoggerFunc): void;
-    public getInput(): StringInput | null;
-    public setInput(input: StringInput): void;
+    public getInput(): Input | null;
+    public setInput(input: Input): void;
     public edit(delta: EditDelta): Document;
     public invalidate(): void;
   }
@@ -31,11 +31,8 @@ declare module "tree-sitter" {
     column: number;
   };
 
-  export type StringInput = {
-    position: number;
-    string: any;
-    bufferSize: number | null;
-    seek(distance: number): void;
+  export type Input = {
+    seek(index: number): void;
     read(): any;
   }
 
