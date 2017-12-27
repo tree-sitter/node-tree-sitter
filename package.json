@@ -13,6 +13,7 @@
     "lexer"
   ],
   "main": "index.js",
+  "types": "node-tree-sitter.d.ts",
   "dependencies": {
     "nan": "^2.1.0"
   }
