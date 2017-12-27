@@ -23,6 +23,8 @@ class ASTNode : public Nan::ObjectWrap {
   static void DescendantForPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void NamedDescendantForPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void IsValid(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void HasChanges(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void HasError(const Nan::FunctionCallbackInfo<v8::Value> &);
 
   static void Type(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void StartIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);

@@ -48,6 +48,8 @@ void ASTNode::Init() {
     {"namedDescendantForIndex", NamedDescendantForIndex},
     {"descendantForPosition", DescendantForPosition},
     {"namedDescendantForPosition", NamedDescendantForPosition},
+    {"hasChanges", HasChanges},
+    {"hasError", HasError},
   };
 
   for (size_t i = 0; i < length_of_array(enum_getters); i++)
@@ -116,6 +118,22 @@ void ASTNode::IsValid(const Nan::FunctionCallbackInfo<Value> &info) {
   ASTNode *node = Unwrap(info.This());
   if (node) {
     bool result = node->parse_count_ == ts_document_parse_count(node->document_);
+    info.GetReturnValue().Set(Nan::New<Boolean>(result));
+  }
+}
+
+void ASTNode::HasChanges(const Nan::FunctionCallbackInfo<Value> &info) {
+  ASTNode *node = Unwrap(info.This());
+  if (node) {
+    bool result = ts_node_has_changes(node->node_);
+    info.GetReturnValue().Set(Nan::New<Boolean>(result));
+  }
+}
+
+void ASTNode::HasError(const Nan::FunctionCallbackInfo<Value> &info) {
+  ASTNode *node = Unwrap(info.This());
+  if (node) {
+    bool result = ts_node_has_error(node->node_);
     info.GetReturnValue().Set(Nan::New<Boolean>(result));
   }
 }

@@ -59,6 +59,8 @@ declare module "tree-sitter" {
 
     // Methods
     isValid(): boolean;
+    hasError(): boolean;
+    hasChanges(): boolean;
     toString(): string;
     descendantForIndex(index: number): AstNode;
     descendantForIndex(startIndex: number, endIndex: number): AstNode;
