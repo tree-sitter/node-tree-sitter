@@ -1,26 +1,43 @@
-const {Document, ASTNode, pointTransferArray} = require('./build/Release/tree_sitter_runtime_binding');
-const StringInput = require("./lib/string_input");
+const {Document, ASTNode, pointTransferArray} = require('./build/Release/tree_sitter_runtime_binding')
 
-Document.prototype.setInputString = function(string, bufferSize) {
+class StringInput {
+  constructor (string, bufferSize) {
+    this.position = 0
+    this.string = string
+    this.bufferSize = Number.isFinite(bufferSize) ? bufferSize : null
+  }
+
+  seek (position) {
+    this.position = position
+  }
+
+  read () {
+    const result = this.string.slice(this.position)
+    this.position = this.string.length
+    return result
+  }
+}
+
+Document.prototype.setInputString = function (string, bufferSize) {
   this.invalidate()
-  this.setInput(new StringInput(string, bufferSize));
-  return this;
-};
+  this.setInput(new StringInput(string, bufferSize))
+  return this
+}
 
 const {startPosition, endPosition} = ASTNode.prototype
 
 Object.defineProperty(ASTNode.prototype, 'startPosition', {
-  get() {
+  get () {
     startPosition.call(this)
     return {row: pointTransferArray[0], column: pointTransferArray[1]}
   }
 })
 
 Object.defineProperty(ASTNode.prototype, 'endPosition', {
-  get() {
+  get () {
     endPosition.call(this)
     return {row: pointTransferArray[0], column: pointTransferArray[1]}
   }
 })
 
-exports.Document = Document;
+exports.Document = Document
