@@ -11,17 +11,20 @@ namespace node_tree_sitter {
 using namespace v8;
 
 Nan::Persistent<Function> ASTNode::constructor;
+static uint32_t *point_transfer_buffer;
 
-void ASTNode::Init() {
+void ASTNode::Init(v8::Local<v8::Object> exports) {
+  point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
+  auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
+  exports->Set(Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
+
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("ASTNode").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   GetterPair enum_getters[] = {
     {"startIndex", StartIndex},
-    {"startPosition", StartPosition},
     {"endIndex", EndIndex},
-    {"endPosition", EndPosition},
     {"type", Type},
     {"isNamed", IsNamed},
   };
@@ -42,6 +45,8 @@ void ASTNode::Init() {
   };
 
   FunctionPair methods[] = {
+    {"startPosition", StartPosition},
+    {"endPosition", EndPosition},
     {"isValid", IsValid},
     {"toString", ToString},
     {"descendantForIndex", DescendantForIndex},
@@ -68,7 +73,10 @@ void ASTNode::Init() {
   for (size_t i = 0; i < length_of_array(methods); i++)
     Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
 
-  constructor.Reset(Nan::Persistent<Function>(tpl->GetFunction()));
+  auto constructor_local = tpl->GetFunction();
+  exports->Set(Nan::New("ASTNode").ToLocalChecked(), constructor_local);
+
+  constructor.Reset(Nan::Persistent<Function>(constructor_local));
 }
 
 ASTNode *ASTNode::Unwrap(const Local<Object> &object) {
@@ -308,23 +316,21 @@ void ASTNode::EndIndex(Local<String> property, const Nan::PropertyCallbackInfo<V
   }
 }
 
-void ASTNode::StartPosition(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
+void ASTNode::StartPosition(const Nan::FunctionCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSPoint result = ts_node_start_point(node->node_);
-    info.GetReturnValue().Set(PointToJS(result));
-  } else {
-    info.GetReturnValue().Set(Nan::Null());
+    point_transfer_buffer[0] = result.row;
+    point_transfer_buffer[1] = result.column / 2;
   }
 }
 
-void ASTNode::EndPosition(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
+void ASTNode::EndPosition(const Nan::FunctionCallbackInfo<Value> &info) {
   ASTNode *node = UnwrapValid(info.This());
   if (node) {
     TSPoint result = ts_node_end_point(node->node_);
-    info.GetReturnValue().Set(PointToJS(result));
-  } else {
-    info.GetReturnValue().Set(Nan::Null());
+    point_transfer_buffer[0] = result.row;
+    point_transfer_buffer[1] = result.column / 2;
   }
 }
 

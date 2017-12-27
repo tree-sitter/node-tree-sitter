@@ -10,7 +10,7 @@ namespace node_tree_sitter {
 
 class ASTNode : public Nan::ObjectWrap {
  public:
-  static void Init();
+  static void Init(v8::Local<v8::Object> exports);
   static v8::Local<v8::Value> NewInstance(TSNode, TSDocument *, size_t);
 
  private:
@@ -25,12 +25,12 @@ class ASTNode : public Nan::ObjectWrap {
   static void IsValid(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void HasChanges(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void HasError(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void StartPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void EndPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
 
   static void Type(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void StartIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void EndIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void StartPosition(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void EndPosition(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void IsNamed(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void Id(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
 
