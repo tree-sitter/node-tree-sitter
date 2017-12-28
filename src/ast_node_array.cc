@@ -13,7 +13,7 @@ using namespace v8;
 
 Nan::Persistent<Function> ASTNodeArray::constructor;
 
-void ASTNodeArray::Init() {
+void ASTNodeArray::Init(v8::Local<v8::Object> exports) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("ASTNodeArray").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -51,6 +51,7 @@ void ASTNodeArray::Init() {
     prototype->Set(method_name, array->Get(method_name));
   }
 
+  exports->Set(Nan::New("ASTNodeArray").ToLocalChecked(), constructor_local);
   constructor.Reset(Nan::Persistent<Function>(constructor_local));
 }
 

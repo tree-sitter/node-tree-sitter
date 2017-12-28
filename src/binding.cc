@@ -13,7 +13,7 @@ using namespace v8;
 void InitAll(Local<Object> exports) {
   InitConversions();
   ASTNode::Init(exports);
-  ASTNodeArray::Init();
+  ASTNodeArray::Init(exports);
   InputReader::Init();
   Document::Init(exports);
   InitConversions();
