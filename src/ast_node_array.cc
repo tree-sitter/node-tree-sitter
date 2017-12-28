@@ -28,6 +28,11 @@ void ASTNodeArray::Init(v8::Local<v8::Object> exports) {
     Nan::New("length").ToLocalChecked(),
     Length, NULL);
 
+  Nan::SetAccessor(
+    tpl->InstanceTemplate(),
+    Nan::New("isNamed").ToLocalChecked(),
+    IsNamed);
+
   const char * array_methods[] = {
     "every",
     "filter",
@@ -90,6 +95,11 @@ void ASTNodeArray::Length(Local<String> property, const Nan::PropertyCallbackInf
     ts_node_named_child_count(array->parent_node_) :
     ts_node_child_count(array->parent_node_);
   info.GetReturnValue().Set(Nan::New<Number>(length));
+}
+
+void ASTNodeArray::IsNamed(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
+  ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(info.This());
+  info.GetReturnValue().Set(array->is_named_);
 }
 
 }  // namespace node_tree_sitter

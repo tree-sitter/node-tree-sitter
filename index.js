@@ -25,9 +25,17 @@ Document.prototype.setInputString = function (string, bufferSize) {
 }
 
 ASTNodeArray.prototype[Symbol.iterator] = function* () {
-  let i = 0;
-  while(i < this.length) {
-    yield this[i++];
+  let node = this[0];
+
+  const getNext = this.isNamed ?
+    (node) => node.nextNamedSibling :
+    (node) => node.nextSibling;
+
+  if (node) {
+    yield node;
+    while ((node = getNext(node))) {
+      yield node;
+    }
   }
 }
 
