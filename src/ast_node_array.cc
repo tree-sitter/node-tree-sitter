@@ -13,7 +13,7 @@ using namespace v8;
 
 Nan::Persistent<Function> ASTNodeArray::constructor;
 
-void ASTNodeArray::Init() {
+void ASTNodeArray::Init(v8::Local<v8::Object> exports) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("ASTNodeArray").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -27,6 +27,11 @@ void ASTNodeArray::Init() {
     tpl->InstanceTemplate(),
     Nan::New("length").ToLocalChecked(),
     Length, NULL);
+
+  Nan::SetAccessor(
+    tpl->InstanceTemplate(),
+    Nan::New("isNamed").ToLocalChecked(),
+    IsNamed);
 
   const char * array_methods[] = {
     "every",
@@ -51,6 +56,7 @@ void ASTNodeArray::Init() {
     prototype->Set(method_name, array->Get(method_name));
   }
 
+  exports->Set(Nan::New("ASTNodeArray").ToLocalChecked(), constructor_local);
   constructor.Reset(Nan::Persistent<Function>(constructor_local));
 }
 
@@ -89,6 +95,11 @@ void ASTNodeArray::Length(Local<String> property, const Nan::PropertyCallbackInf
     ts_node_named_child_count(array->parent_node_) :
     ts_node_child_count(array->parent_node_);
   info.GetReturnValue().Set(Nan::New<Number>(length));
+}
+
+void ASTNodeArray::IsNamed(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
+  ASTNodeArray *array = ObjectWrap::Unwrap<ASTNodeArray>(info.This());
+  info.GetReturnValue().Set(array->is_named_);
 }
 
 }  // namespace node_tree_sitter

@@ -74,7 +74,7 @@ declare module "tree-sitter" {
 
   type ArrayCallback<TItem, TArray, TReturn> = (node: TItem, index?: number, array?: TArray) => TReturn
 
-  export interface AstNodeArray extends ArrayLike<AstNode> {
+  export interface AstNodeArray extends ArrayLike<AstNode>, Iterable<AstNode> {
     map<T>(callback: ArrayCallback<AstNode, AstNodeArray, void>, thisArg?: any): T[];
     every(callback: ArrayCallback<AstNode, AstNodeArray, void>, thisArg?: any): void;
     filter(callback: ArrayCallback<AstNode, AstNodeArray, boolean>, thisArg?: any): AstNode[];

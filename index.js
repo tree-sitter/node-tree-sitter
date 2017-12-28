@@ -1,4 +1,4 @@
-const {Document, ASTNode, pointTransferArray} = require('./build/Release/tree_sitter_runtime_binding')
+const {Document, ASTNode, ASTNodeArray, pointTransferArray} = require('./build/Release/tree_sitter_runtime_binding')
 
 class StringInput {
   constructor (string, bufferSize) {
@@ -22,6 +22,21 @@ Document.prototype.setInputString = function (string, bufferSize) {
   this.invalidate()
   this.setInput(new StringInput(string, bufferSize))
   return this
+}
+
+ASTNodeArray.prototype[Symbol.iterator] = function* () {
+  let node = this[0];
+
+  const getNext = this.isNamed ?
+    (node) => node.nextNamedSibling :
+    (node) => node.nextSibling;
+
+  if (node) {
+    yield node;
+    while ((node = getNext(node))) {
+      yield node;
+    }
+  }
 }
 
 const {startPosition, endPosition} = ASTNode.prototype
