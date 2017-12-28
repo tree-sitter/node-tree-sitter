@@ -24,7 +24,7 @@ Document.prototype.setInputString = function (string, bufferSize) {
   return this
 }
 
-ASTNodeArray[Symbol.iterator] = function* () {
+ASTNodeArray.prototype[Symbol.iterator] = function* () {
   let i = 0;
   while(i < this.length) {
     yield this[i++];
