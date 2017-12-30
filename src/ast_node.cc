@@ -48,6 +48,7 @@ void ASTNode::Init(v8::Local<v8::Object> exports) {
     {"startPosition", StartPosition},
     {"endPosition", EndPosition},
     {"isValid", IsValid},
+    {"isMissing", IsMissing},
     {"toString", ToString},
     {"descendantForIndex", DescendantForIndex},
     {"namedDescendantForIndex", NamedDescendantForIndex},
@@ -126,6 +127,14 @@ void ASTNode::IsValid(const Nan::FunctionCallbackInfo<Value> &info) {
   ASTNode *node = Unwrap(info.This());
   if (node) {
     bool result = node->parse_count_ == ts_document_parse_count(node->document_);
+    info.GetReturnValue().Set(Nan::New<Boolean>(result));
+  }
+}
+
+void ASTNode::IsMissing(const Nan::FunctionCallbackInfo<Value> &info) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    bool result = ts_node_is_missing(node->node_);
     info.GetReturnValue().Set(Nan::New<Boolean>(result));
   }
 }
