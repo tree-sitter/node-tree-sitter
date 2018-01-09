@@ -31,6 +31,7 @@ void ASTNode::Init(v8::Local<v8::Object> exports) {
 
   GetterPair non_enum_getters[] = {
     {"parent", Parent},
+    {"childIndex", ChildIndex},
     {"children", Children},
     {"namedChildren", NamedChildren},
     {"firstChild", FirstChild},
@@ -50,6 +51,8 @@ void ASTNode::Init(v8::Local<v8::Object> exports) {
     {"isValid", IsValid},
     {"isMissing", IsMissing},
     {"toString", ToString},
+    {"firstChildForIndex", FirstChildForIndex},
+    {"firstNamedChildForIndex", FirstNamedChildForIndex},
     {"descendantForIndex", DescendantForIndex},
     {"namedDescendantForIndex", NamedDescendantForIndex},
     {"descendantForPosition", DescendantForPosition},
@@ -152,6 +155,30 @@ void ASTNode::HasError(const Nan::FunctionCallbackInfo<Value> &info) {
   if (node) {
     bool result = ts_node_has_error(node->node_);
     info.GetReturnValue().Set(Nan::New<Boolean>(result));
+  }
+}
+
+void ASTNode::FirstNamedChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node && info.Length() > 0) {
+    Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[0]);
+    if (byte.IsNothing()) return;
+    TSNode result = ts_node_first_named_child_for_byte(node->node_, byte.FromJust());
+    if (result.data) {
+      info.GetReturnValue().Set(ASTNode::NewInstance(result, node->document_, node->parse_count_));
+    }
+  }
+}
+
+void ASTNode::FirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node && info.Length() > 0) {
+    Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[0]);
+    if (byte.IsNothing()) return;
+    TSNode result = ts_node_first_child_for_byte(node->node_, byte.FromJust());
+    if (result.data) {
+      info.GetReturnValue().Set(ASTNode::NewInstance(result, node->document_, node->parse_count_));
+    }
   }
 }
 
@@ -415,6 +442,18 @@ void ASTNode::Parent(Local<String> property, const Nan::PropertyCallbackInfo<Val
     TSNode parent = ts_node_parent(node->node_);
     if (parent.data) {
       info.GetReturnValue().Set(ASTNode::NewInstance(parent, node->document_, node->parse_count_));
+      return;
+    }
+  }
+  info.GetReturnValue().Set(Nan::Null());
+}
+
+void ASTNode::ChildIndex(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
+  ASTNode *node = UnwrapValid(info.This());
+  if (node) {
+    uint32_t child_index = ts_node_child_index(node->node_);
+    if (child_index != UINT32_MAX) {
+      info.GetReturnValue().Set(Nan::New(child_index));
       return;
     }
   }

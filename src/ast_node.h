@@ -18,6 +18,8 @@ class ASTNode : public Nan::ObjectWrap {
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void ToString(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void FirstChildForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void FirstNamedChildForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void DescendantForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void NamedDescendantForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void DescendantForPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
@@ -36,6 +38,7 @@ class ASTNode : public Nan::ObjectWrap {
   static void Id(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
 
   static void Parent(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void ChildIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void Children(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void NamedChildren(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void FirstChild(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
