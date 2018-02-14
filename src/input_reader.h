@@ -10,7 +10,7 @@ namespace node_tree_sitter {
 class InputReader {
  public:
   static void Init();
-  static int Seek(void *, uint32_t);
+  static int Seek(void *, uint32_t, TSPoint);
   static const char * Read(void *, uint32_t *);
 
   InputReader(v8::Local<v8::Object>);

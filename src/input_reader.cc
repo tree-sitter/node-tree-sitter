@@ -1,4 +1,5 @@
 #include "./input_reader.h"
+#include "./conversions.h"
 #include <v8.h>
 #include <nan.h>
 #include <tree_sitter/runtime.h>
@@ -28,15 +29,23 @@ InputReader::InputReader(Local<Object> object) : object(object), partial_string_
   buffer.resize(buffer_size);
 }
 
-int InputReader::Seek(void *payload, uint32_t byte) {
+int InputReader::Seek(void *payload, uint32_t byte, TSPoint position) {
   InputReader *reader = (InputReader *)payload;
-  Local<Function> fn = Local<Function>::Cast(Nan::New(reader->object)->Get(Nan::New(seek_key)));
-  if (!fn->IsFunction())
-    return 0;
+  Local<Object> js_reader = Nan::New(reader->object);
+  Local<Function> fn = Local<Function>::Cast(js_reader->Get(Nan::New(seek_key)));
+  if (!fn->IsFunction()) return 0;
 
   uint32_t utf16_unit = byte / 2;
-  Local<Value> argv[1] = { Nan::New<Number>(utf16_unit) };
-  Local<Value> result = fn->Call(Nan::New(reader->object), 1, argv);
+  Local<Value> argv[2] = { Nan::New<Number>(utf16_unit), PointToJS(position) };
+
+  TryCatch try_catch(Isolate::GetCurrent());
+  Local<Value> result = fn->Call(js_reader, 2, argv);
+  if (try_catch.HasCaught()) {
+    reader->partial_string_offset = 0;
+    reader->partial_string.Reset();
+    return 0;
+  }
+
   reader->partial_string_offset = 0;
   reader->partial_string.Reset();
   return result->NumberValue();
