@@ -1,4 +1,11 @@
-const {Document, ASTNode, ASTNodeArray, pointTransferArray} = require('./build/Release/tree_sitter_runtime_binding')
+let binding;
+try {
+  binding = require('./build/Release/tree_sitter_runtime_binding')
+} catch (e) {
+  binding = require('./build/Debug/tree_sitter_runtime_binding')
+}
+
+const {Document, ASTNode, ASTNodeArray, pointTransferArray} = binding;
 
 class StringInput {
   constructor (string, bufferSize) {
