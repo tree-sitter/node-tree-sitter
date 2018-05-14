@@ -1,4 +1,4 @@
-#include "./ast_node.h"
+#include "./node.h"
 #include <nan.h>
 #include <tree_sitter/runtime.h>
 #include <v8.h>

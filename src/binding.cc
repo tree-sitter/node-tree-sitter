@@ -1,8 +1,9 @@
 #include <node.h>
 #include <v8.h>
-#include "./ast_node.h"
-#include "./ast_node_array.h"
-#include "./document.h"
+#include "./node.h"
+#include "./node_array.h"
+#include "./parser.h"
+#include "./tree.h"
 #include "./input_reader.h"
 #include "./conversions.h"
 
@@ -12,10 +13,11 @@ using namespace v8;
 
 void InitAll(Local<Object> exports) {
   InitConversions();
-  ASTNode::Init(exports);
-  ASTNodeArray::Init(exports);
+  Node::Init(exports);
+  NodeArray::Init(exports);
   InputReader::Init();
-  Document::Init(exports);
+  Parser::Init(exports);
+  Tree::Init(exports);
   InitConversions();
 }
 

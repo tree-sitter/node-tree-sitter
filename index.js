@@ -1,65 +1,82 @@
 let binding;
 try {
-  binding = require('./build/Release/tree_sitter_runtime_binding')
+  binding = require('./build/Release/tree_sitter_runtime_binding');
 } catch (e) {
-  binding = require('./build/Debug/tree_sitter_runtime_binding')
+  try {
+    binding = require('./build/Debug/tree_sitter_runtime_binding');
+  } catch (_) {
+    throw e;
+  }
 }
 
-const {Document, ASTNode, ASTNodeArray, pointTransferArray} = binding;
+const {Parser, Node, NodeArray, pointTransferArray} = binding;
 
 class StringInput {
-  constructor (string, bufferSize) {
-    this.position = 0
-    this.string = string
-    this.bufferSize = Number.isFinite(bufferSize) ? bufferSize : null
+  constructor(string, bufferSize) {
+    this.position = 0;
+    this.string = string;
+    this.bufferSize = Number.isFinite(bufferSize) ? bufferSize : null;
   }
 
-  seek (position) {
-    this.position = position
+  seek(position) {
+    this.position = position;
   }
 
-  read () {
-    const result = this.string.slice(this.position)
-    this.position = this.string.length
-    return result
+  read() {
+    const result = this.string.slice(this.position);
+    this.position = this.string.length;
+    return result;
   }
 }
 
-Document.prototype.setInputString = function (string, bufferSize) {
-  this.invalidate()
-  this.setInput(new StringInput(string, bufferSize))
-  return this
+const {parse, setLanguage} = Parser.prototype;
+const languageSymbol = Symbol('parser.language');
+
+Parser.prototype.setLanguage = function(language) {
+  setLanguage.call(this, language);
+  this[languageSymbol] = language;
+  return this;
 }
 
-ASTNodeArray.prototype[Symbol.iterator] = function* () {
+Parser.prototype.getLanguage = function(language) {
+  return this[languageSymbol] || null;
+}
+
+Parser.prototype.parse = function(input, oldTree, bufferSize) {
+  if (typeof input === 'string') {
+    return parse.call(this, new StringInput(input, bufferSize), oldTree);
+  } else {
+    return parse.call(this, input, oldTree);
+  }
+}
+
+NodeArray.prototype[Symbol.iterator] = function*() {
   let node = this[0];
 
   const getNext = this.isNamed ?
     (node) => node.nextNamedSibling :
     (node) => node.nextSibling;
 
-  if (node) {
+  while (node) {
     yield node;
-    while ((node = getNext(node))) {
-      yield node;
-    }
+    node = getNext(node);
   }
 }
 
-const {startPosition, endPosition} = ASTNode.prototype
+const {startPosition, endPosition} = Node.prototype
 
-Object.defineProperty(ASTNode.prototype, 'startPosition', {
-  get () {
-    startPosition.call(this)
-    return {row: pointTransferArray[0], column: pointTransferArray[1]}
+Object.defineProperty(Node.prototype, 'startPosition', {
+  get() {
+    startPosition.call(this);
+    return {row: pointTransferArray[0], column: pointTransferArray[1]};
   }
-})
+});
 
-Object.defineProperty(ASTNode.prototype, 'endPosition', {
-  get () {
-    endPosition.call(this)
-    return {row: pointTransferArray[0], column: pointTransferArray[1]}
+Object.defineProperty(Node.prototype, 'endPosition', {
+  get() {
+    endPosition.call(this);
+    return {row: pointTransferArray[0], column: pointTransferArray[1]};
   }
-})
+});
 
-exports.Document = Document
+module.exports = Parser;
