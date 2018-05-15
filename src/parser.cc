@@ -1,5 +1,6 @@
 #include "./parser.h"
 #include <string>
+#include <vector>
 #include <v8.h>
 #include <nan.h>
 #include "./conversions.h"
@@ -7,12 +8,13 @@
 #include "./logger.h"
 #include "./tree.h"
 #include "./util.h"
-#include "text-buffer-wrapper.h"
-#include "text-buffer.h"
+#include "text-buffer-snapshot-wrapper.h"
 
 namespace node_tree_sitter {
 
 using namespace v8;
+using std::vector;
+using std::pair;
 
 Nan::Persistent<Function> Parser::constructor;
 
@@ -140,33 +142,54 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
 
 class ParseWorker : public Nan::AsyncWorker {
   Parser *parser_;
-  const TextBuffer::Snapshot *snapshot_;
+  const vector<pair<const char16_t *, uint32_t>> *slices_;
   TSTree *old_tree_;
   TSTree *result_;
-  Point position_;
-  Text current_chunk_;
+  uint32_t slice_index_;
+  uint32_t slice_offset_;
 
   static int Seek(void *payload, uint32_t byte, TSPoint position) {
     ParseWorker *worker = static_cast<ParseWorker *>(payload);
-    worker->position_ = {position.row, position.column / 2};
+
+    uint32_t total_length = 0;
+    uint32_t goal_index = byte / 2;
+    for (unsigned i = 0, n = worker->slices_->size(); i < n; i++) {
+      uint32_t next_total_length = total_length + worker->slices_->at(i).second;
+      if (next_total_length > goal_index) {
+        worker->slice_index_ = i;
+        worker->slice_offset_ = goal_index - total_length;
+        return true;
+      }
+      total_length = next_total_length;
+    }
+
+    worker->slice_index_ = worker->slices_->size();
+    worker->slice_offset_ = 0;
     return true;
   }
 
   static const char *Read(void *payload, uint32_t *length) {
     ParseWorker *worker = static_cast<ParseWorker *>(payload);
-    Point next_position = worker->position_.traverse(Point{1000, 0});
-    worker->current_chunk_ = worker->snapshot_->text_in_range({worker->position_, next_position});
-    worker->position_ = next_position;
-    *length = 2 * worker->current_chunk_.size();
-    return reinterpret_cast<const char *>(worker->current_chunk_.data());
+
+    if (worker->slice_index_ == worker->slices_->size()) {
+      *length = 0;
+      return "";
+    }
+
+    auto &slice = worker->slices_->at(worker->slice_index_);
+    const char16_t *result = slice.first + worker->slice_offset_;
+    *length = 2 * (slice.second - worker->slice_offset_);
+    worker->slice_index_++;
+    worker->slice_offset_ = 0;
+    return reinterpret_cast<const char *>(result);
   }
 
 public:
   ParseWorker(Nan::Callback *callback, Parser *parser,
-              const TextBuffer::Snapshot *snapshot, TSTree *old_tree) :
+              const vector<pair<const char16_t *, uint32_t>> *slices, TSTree *old_tree) :
     AsyncWorker(callback),
     parser_(parser),
-    snapshot_(snapshot),
+    slices_(slices),
     old_tree_(old_tree),
     result_(nullptr) {}
 
@@ -181,7 +204,6 @@ public:
   }
 
   void HandleOKCallback() {
-    delete snapshot_;
     parser_->is_parsing_async_ = false;
     if (old_tree_) ts_tree_delete(old_tree_);
     Local<Value> argv[] = {Tree::NewInstance(result_)};
@@ -197,7 +219,7 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 
   auto callback = new Nan::Callback(info[0].As<Function>());
-  auto &text_buffer = Nan::ObjectWrap::Unwrap<TextBufferWrapper>(info[1].As<Object>())->text_buffer;
+  auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[1].As<Object>());
 
   parser->is_parsing_async_ = true;
 
@@ -214,7 +236,7 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
   Nan::AsyncQueueWorker(new ParseWorker(
     callback,
     parser,
-    text_buffer.create_snapshot(),
+    snapshot->slices(),
     old_tree
   ));
 }

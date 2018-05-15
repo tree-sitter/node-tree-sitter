@@ -51,8 +51,12 @@ Parser.prototype.parse = function(input, oldTree, bufferSize) {
 };
 
 Parser.prototype.parseTextBuffer = function(buffer, oldTree) {
+  const snapshot = buffer.getSnapshot();
   return new Promise(resolve => {
-    parseTextBuffer.call(this, resolve, buffer, oldTree)
+    parseTextBuffer.call(this, (result) => {
+      snapshot.destroy();
+      resolve(result);
+    }, snapshot, oldTree)
   });
 };
 
