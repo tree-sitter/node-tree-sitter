@@ -83,10 +83,24 @@ declare module "tree-sitter" {
     some(callback: ArrayCallback<Node, NodeArray, boolean>, thisArg?: any): boolean,
   };
 
+  export interface TreeCursor {
+    nodeType: string;
+    nodeIsNamed: boolean;
+    startPosition: Point;
+    endPosition: Point;
+    startIndex: number;
+    endIndex: number;
+
+    public gotoParent(): boolean;
+    public gotoFirstChild(): boolean;
+    public gotoNextSibling(): boolean;
+  };
+
   export interface Tree {
     public readonly rootNode: Node;
 
     public edit(delta: Edit): Document;
+    public walk(): TreeCursor;
     public getChangedRanges(other: Tree): Range[];
   };
 

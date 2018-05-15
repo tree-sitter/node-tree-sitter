@@ -11,13 +11,8 @@ namespace node_tree_sitter {
 using namespace v8;
 
 Nan::Persistent<Function> Node::constructor;
-static uint32_t *point_transfer_buffer;
 
-void Node::Init(v8::Local<v8::Object> exports) {
-  point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
-  auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
-  exports->Set(Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
-
+void Node::Init(Local<Object> exports) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->SetClassName(Nan::New("Node").ToLocalChecked());
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -336,20 +331,12 @@ void Node::EndIndex(Local<String> property, const Nan::PropertyCallbackInfo<Valu
 
 void Node::StartPosition(const Nan::FunctionCallbackInfo<Value> &info) {
   Node *node = Unwrap(info.This());
-  if (node) {
-    TSPoint result = ts_node_start_point(node->node_);
-    point_transfer_buffer[0] = result.row;
-    point_transfer_buffer[1] = result.column / 2;
-  }
+  if (node) TransferPoint(ts_node_start_point(node->node_));
 }
 
 void Node::EndPosition(const Nan::FunctionCallbackInfo<Value> &info) {
   Node *node = Unwrap(info.This());
-  if (node) {
-    TSPoint result = ts_node_end_point(node->node_);
-    point_transfer_buffer[0] = result.row;
-    point_transfer_buffer[1] = result.column / 2;
-  }
+  if (node) TransferPoint(ts_node_end_point(node->node_));
 }
 
 void Node::Children(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {

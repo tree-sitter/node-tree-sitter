@@ -14,6 +14,7 @@
         "src/node.cc",
         "src/parser.cc",
         "src/tree.cc",
+        "src/tree_cursor.cc",
       ],
       "include_dirs": [
         "include",

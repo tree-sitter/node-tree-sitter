@@ -7,9 +7,10 @@
 
 namespace node_tree_sitter {
 
-void InitConversions();
+void InitConversions(v8::Local<v8::Object> exports);
 v8::Local<v8::Object> RangeToJS(const TSRange &);
 v8::Local<v8::Object> PointToJS(const TSPoint &);
+void TransferPoint(const TSPoint &);
 v8::Local<v8::Number> ByteCountToJS(uint32_t);
 Nan::Maybe<TSPoint> PointFromJS(const v8::Local<v8::Value> &);
 Nan::Maybe<uint32_t> ByteCountFromJS(const v8::Local<v8::Value> &);

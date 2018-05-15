@@ -14,12 +14,22 @@ Nan::Persistent<String> start_key;
 Nan::Persistent<String> end_key;
 
 static unsigned BYTES_PER_CHARACTER = 2;
+static uint32_t *point_transfer_buffer;
 
-void InitConversions() {
+void InitConversions(Local<Object> exports) {
   row_key.Reset(Nan::Persistent<String>(Nan::New("row").ToLocalChecked()));
   column_key.Reset(Nan::Persistent<String>(Nan::New("column").ToLocalChecked()));
   start_key.Reset(Nan::Persistent<String>(Nan::New("start").ToLocalChecked()));
   end_key.Reset(Nan::Persistent<String>(Nan::New("end").ToLocalChecked()));
+
+  point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
+  auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
+  exports->Set(Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
+}
+
+void TransferPoint(const TSPoint &point) {
+  point_transfer_buffer[0] = point.row;
+  point_transfer_buffer[1] = point.column / 2;
 }
 
 Local<Object> RangeToJS(const TSRange &range) {

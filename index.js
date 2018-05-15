@@ -9,7 +9,7 @@ try {
   }
 }
 
-const {Parser, Node, NodeArray, pointTransferArray} = binding;
+const {Parser, Node, NodeArray, TreeCursor, pointTransferArray} = binding;
 
 class StringInput {
   constructor(string, bufferSize) {
@@ -63,20 +63,25 @@ NodeArray.prototype[Symbol.iterator] = function*() {
   }
 }
 
-const {startPosition, endPosition} = Node.prototype
+for (const {prototype} of [Node, TreeCursor]) {
+  const {startPosition, endPosition} = prototype;
+  Object.defineProperty(prototype, 'startPosition', {
+    get() {
+      startPosition.call(this);
+      return transferPoint();
+    }
+  });
 
-Object.defineProperty(Node.prototype, 'startPosition', {
-  get() {
-    startPosition.call(this);
-    return {row: pointTransferArray[0], column: pointTransferArray[1]};
-  }
-});
+  Object.defineProperty(prototype, 'endPosition', {
+    get() {
+      endPosition.call(this);
+      return transferPoint();
+    }
+  });
+}
 
-Object.defineProperty(Node.prototype, 'endPosition', {
-  get() {
-    endPosition.call(this);
-    return {row: pointTransferArray[0], column: pointTransferArray[1]};
-  }
-});
+function transferPoint() {
+  return {row: pointTransferArray[0], column: pointTransferArray[1]};
+}
 
 module.exports = Parser;
