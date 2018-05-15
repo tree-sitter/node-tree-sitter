@@ -25,6 +25,7 @@ class Parser : public Nan::ObjectWrap {
   static void SetLogger(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Parse(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void ParseTextBuffer(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void ParseTextBufferSync(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void PrintDotGraphs(const Nan::FunctionCallbackInfo<v8::Value> &);
 
   static Nan::Persistent<v8::Function> constructor;

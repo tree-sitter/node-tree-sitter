@@ -29,7 +29,7 @@ class StringInput {
   }
 }
 
-const {parse, parseTextBuffer, setLanguage} = Parser.prototype;
+const {parse, parseTextBuffer, parseTextBufferSync, setLanguage} = Parser.prototype;
 const languageSymbol = Symbol('parser.language');
 
 Parser.prototype.setLanguage = function(language) {
@@ -58,6 +58,13 @@ Parser.prototype.parseTextBuffer = function(buffer, oldTree) {
       resolve(result);
     }, snapshot, oldTree)
   });
+};
+
+Parser.prototype.parseTextBufferSync = function(buffer, oldTree) {
+  const snapshot = buffer.getSnapshot();
+  const tree = parseTextBufferSync.call(this, snapshot, oldTree);
+  snapshot.destroy();
+  return tree;
 };
 
 NodeArray.prototype[Symbol.iterator] = function*() {
