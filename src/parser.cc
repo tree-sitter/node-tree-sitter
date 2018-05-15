@@ -200,7 +200,10 @@ public:
       Seek,
       TSInputEncodingUTF16,
     };
+    TSLogger logger = ts_parser_logger(parser_->parser_);
+    ts_parser_set_logger(parser_->parser_, TSLogger{0, 0});
     result_ = ts_parser_parse(parser_->parser_, old_tree_, input);
+    ts_parser_set_logger(parser_->parser_, logger);
   }
 
   void HandleOKCallback() {
