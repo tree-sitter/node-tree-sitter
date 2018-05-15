@@ -29,7 +29,7 @@ class StringInput {
   }
 }
 
-const {parse, setLanguage} = Parser.prototype;
+const {parse, parseTextBuffer, setLanguage} = Parser.prototype;
 const languageSymbol = Symbol('parser.language');
 
 Parser.prototype.setLanguage = function(language) {
@@ -48,6 +48,12 @@ Parser.prototype.parse = function(input, oldTree, bufferSize) {
   } else {
     return parse.call(this, input, oldTree);
   }
+};
+
+Parser.prototype.parseTextBuffer = function(buffer, oldTree) {
+  return new Promise(resolve => {
+    parseTextBuffer.call(this, resolve, buffer, oldTree)
+  });
 };
 
 NodeArray.prototype[Symbol.iterator] = function*() {

@@ -12,6 +12,7 @@ class Tree : public Nan::ObjectWrap {
  public:
   static void Init(v8::Local<v8::Object> exports);
   static v8::Local<v8::Value> NewInstance(TSTree *);
+  static const TSTree *UnwrapTree(const v8::Local<v8::Value> &);
 
  private:
   explicit Tree(TSTree *);
