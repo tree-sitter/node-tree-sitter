@@ -66,10 +66,13 @@ const char * InputReader::Read(void *payload, uint32_t *bytes_read) {
       return "";
     }
 
-    result = Local<String>::Cast(read_fn->Call(Nan::New(reader->object), 0, NULL));
-    start = 0;
-    if (!result->IsString()) {
+    auto result_value = read_fn->Call(Nan::New(reader->object), 0, NULL);
+    if (result_value->IsString()) {
+      result = Local<String>::Cast(result_value);
+      start = 0;
+    } else {
       *bytes_read = 0;
+      start = 0;
       return "";
     }
   }

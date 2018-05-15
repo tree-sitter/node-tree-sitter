@@ -58,9 +58,13 @@ void Parser::New(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void Parser::SetLanguage(const Nan::FunctionCallbackInfo<Value> &info) {
-  Local<Object> arg = Local<Object>::Cast(info[0]);
-
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  if (!info[0]->IsObject()) {
+    Nan::ThrowTypeError("Invalid language object");
+    return;
+  }
+
+  Local<Object> arg = Local<Object>::Cast(info[0]);
   if (arg->InternalFieldCount() != 1) {
     Nan::ThrowTypeError("Invalid language object");
     return;
@@ -126,20 +130,18 @@ void Parser::GetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Parser::SetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
-  Local<Function> func = Local<Function>::Cast(info[0]);
 
   TSLogger current_logger = ts_parser_logger(parser->parser_);
-  if (current_logger.payload)
-    delete (Logger *)current_logger.payload;
 
-  if (func->IsFunction()) {
-    ts_parser_set_logger(parser->parser_, Logger::Make(func));
-  } else {
+  if (info[0]->IsFunction()) {
+    if (current_logger.payload) delete (Logger *)current_logger.payload;
+    ts_parser_set_logger(parser->parser_, Logger::Make(Local<Function>::Cast(info[0])));
+  } else if (!info[0]->BooleanValue()) {
+    if (current_logger.payload) delete (Logger *)current_logger.payload;
     ts_parser_set_logger(parser->parser_, { 0, 0 });
-    if (!(func->IsNull() || func->IsFalse() || func->IsUndefined())) {
-      Nan::ThrowTypeError("Debug callback must either be a function or a falsy value");
-      return;
-    }
+  } else {
+    Nan::ThrowTypeError("Logger callback must either be a function or a falsy value");
+    return;
   }
 
   info.GetReturnValue().Set(info.This());

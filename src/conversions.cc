@@ -47,12 +47,12 @@ Local<Object> PointToJS(const TSPoint &point) {
 }
 
 Nan::Maybe<TSPoint> PointFromJS(const Local<Value> &arg) {
-  Local<Object> js_point = Local<Object>::Cast(arg);
-  if (!js_point->IsObject()) {
+  if (!arg->IsObject()) {
     Nan::ThrowTypeError("Point must be a {row, column} object");
     return Nan::Nothing<TSPoint>();
   }
 
+  Local<Object> js_point = Local<Object>::Cast(arg);
   Local<Value> js_row = js_point->Get(Nan::New(row_key));
   if (!js_row->IsNumber()) {
     Nan::ThrowTypeError("Point.row must be a number");

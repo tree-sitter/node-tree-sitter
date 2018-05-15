@@ -36,11 +36,11 @@ Parser.prototype.setLanguage = function(language) {
   setLanguage.call(this, language);
   this[languageSymbol] = language;
   return this;
-}
+};
 
 Parser.prototype.getLanguage = function(language) {
   return this[languageSymbol] || null;
-}
+};
 
 Parser.prototype.parse = function(input, oldTree, bufferSize) {
   if (typeof input === 'string') {
@@ -48,7 +48,7 @@ Parser.prototype.parse = function(input, oldTree, bufferSize) {
   } else {
     return parse.call(this, input, oldTree);
   }
-}
+};
 
 NodeArray.prototype[Symbol.iterator] = function*() {
   let node = this[0];
