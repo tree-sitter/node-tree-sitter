@@ -11,3 +11,7 @@ install:
   - npm install
 
 build: off
+
+branches:
+  only:
+    - master

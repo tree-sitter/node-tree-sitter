@@ -1,5 +1,5 @@
-#ifndef NODE_TREE_SITTER_AST_NODE_H_
-#define NODE_TREE_SITTER_AST_NODE_H_
+#ifndef NODE_TREE_SITTER_NODE_H_
+#define NODE_TREE_SITTER_NODE_H_
 
 #include <nan.h>
 #include <v8.h>
@@ -8,13 +8,13 @@
 
 namespace node_tree_sitter {
 
-class ASTNode : public Nan::ObjectWrap {
+class Node : public Nan::ObjectWrap {
  public:
   static void Init(v8::Local<v8::Object> exports);
-  static v8::Local<v8::Value> NewInstance(TSNode, TSDocument *, size_t);
+  static v8::Local<v8::Value> NewInstance(TSNode);
 
  private:
-  explicit ASTNode(TSNode, TSDocument *, size_t);
+  explicit Node(TSNode);
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void ToString(const Nan::FunctionCallbackInfo<v8::Value> &);
@@ -24,7 +24,6 @@ class ASTNode : public Nan::ObjectWrap {
   static void NamedDescendantForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void DescendantForPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void NamedDescendantForPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void IsValid(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void IsMissing(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void HasChanges(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void HasError(const Nan::FunctionCallbackInfo<v8::Value> &);
@@ -38,7 +37,6 @@ class ASTNode : public Nan::ObjectWrap {
   static void Id(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
 
   static void Parent(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void ChildIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void Children(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void NamedChildren(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void FirstChild(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
@@ -50,16 +48,14 @@ class ASTNode : public Nan::ObjectWrap {
   static void PreviousSibling(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void PreviousNamedSibling(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
 
-  static ASTNode *Unwrap(const v8::Local<v8::Object> &);
-  static ASTNode *UnwrapValid(const v8::Local<v8::Object> &);
+  static Node *Unwrap(const v8::Local<v8::Object> &);
+  static Node *UnwrapValid(const v8::Local<v8::Object> &);
 
   TSNode node_;
-  TSDocument *document_;
-  size_t parse_count_;
 
   static Nan::Persistent<v8::Function> constructor;
 };
 
 }  // namespace node_tree_sitter
 
-#endif  // NODE_TREE_SITTER_AST_NODE_H_
+#endif  // NODE_TREE_SITTER_NODE_H_

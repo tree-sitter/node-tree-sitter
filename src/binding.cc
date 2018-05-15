@@ -1,8 +1,10 @@
 #include <node.h>
 #include <v8.h>
-#include "./ast_node.h"
-#include "./ast_node_array.h"
-#include "./document.h"
+#include "./node.h"
+#include "./node_array.h"
+#include "./parser.h"
+#include "./tree.h"
+#include "./tree_cursor.h"
 #include "./input_reader.h"
 #include "./conversions.h"
 
@@ -11,12 +13,13 @@ namespace node_tree_sitter {
 using namespace v8;
 
 void InitAll(Local<Object> exports) {
-  InitConversions();
-  ASTNode::Init(exports);
-  ASTNodeArray::Init(exports);
+  InitConversions(exports);
+  Node::Init(exports);
+  NodeArray::Init(exports);
   InputReader::Init();
-  Document::Init(exports);
-  InitConversions();
+  Parser::Init(exports);
+  Tree::Init(exports);
+  TreeCursor::Init(exports);
 }
 
 NODE_MODULE(tree_sitter_runtime_binding, InitAll)
