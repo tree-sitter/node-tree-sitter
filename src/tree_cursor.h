@@ -20,6 +20,7 @@ class TreeCursor : public Nan::ObjectWrap {
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GotoParent(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GotoFirstChild(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void GotoFirstChildForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GotoNextSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void StartPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void EndPosition(const Nan::FunctionCallbackInfo<v8::Value> &);

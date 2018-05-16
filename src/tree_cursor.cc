@@ -30,6 +30,7 @@ void TreeCursor::Init(v8::Local<v8::Object> exports) {
     {"endPosition", EndPosition},
     {"gotoParent", GotoParent},
     {"gotoFirstChild", GotoFirstChild},
+    {"gotoFirstChildForIndex", GotoFirstChildForIndex},
     {"gotoNextSibling", GotoNextSibling},
   };
 
@@ -78,6 +79,20 @@ void TreeCursor::GotoFirstChild(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   bool result = ts_tree_cursor_goto_first_child(cursor->cursor_);
   info.GetReturnValue().Set(Nan::New(result));
+}
+
+void TreeCursor::GotoFirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
+  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
+  if (!info[0]->IsUint32()) {
+    Nan::ThrowTypeError("Argument must be an integer");
+  }
+  uint32_t goal_byte = info[0]->Uint32Value() * 2;
+  int64_t child_index = ts_tree_cursor_goto_first_child_for_byte(cursor->cursor_, goal_byte);
+  if (child_index < 0) {
+    info.GetReturnValue().Set(Nan::Null());
+  } else {
+    info.GetReturnValue().Set(Nan::New(static_cast<uint32_t>(child_index)));
+  }
 }
 
 void TreeCursor::GotoNextSibling(const Nan::FunctionCallbackInfo<Value> &info) {
