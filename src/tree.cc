@@ -50,14 +50,15 @@ Tree::Tree(TSTree *tree) : tree_(tree) {}
 Tree::~Tree() { ts_tree_delete(tree_); }
 
 Local<Value> Tree::NewInstance(TSTree *tree) {
-  Local<Object> self;
-  MaybeLocal<Object> maybe_self = Nan::New(constructor)->NewInstance(Nan::GetCurrentContext());
-  if (maybe_self.ToLocal(&self)) {
-    (new Tree(tree))->Wrap(self);
-    return self;
-  } else {
-    return Nan::Null();
+  if (tree) {
+    Local<Object> self;
+    MaybeLocal<Object> maybe_self = Nan::New(constructor)->NewInstance(Nan::GetCurrentContext());
+    if (maybe_self.ToLocal(&self)) {
+      (new Tree(tree))->Wrap(self);
+      return self;
+    }
   }
+  return Nan::Null();
 }
 
 const TSTree *Tree::UnwrapTree(const Local<Value> &value) {
