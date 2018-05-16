@@ -109,14 +109,14 @@ void Tree::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Tree::Walk(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  TSTreeCursor *cursor = ts_tree_cursor_new(tree->tree_);
+  TSTreeCursor cursor = ts_tree_cursor_new(tree->tree_);
   info.GetReturnValue().Set(TreeCursor::NewInstance(cursor));
 }
 
 void Tree::RootNode(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
   TSNode node = ts_tree_root_node(tree->tree_);
-  if (node.subtree) {
+  if (node.id) {
     info.GetReturnValue().Set(Node::NewInstance(node));
   } else {
     info.GetReturnValue().Set(Nan::Null());

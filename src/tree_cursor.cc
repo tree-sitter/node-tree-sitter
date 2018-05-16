@@ -50,7 +50,7 @@ void TreeCursor::Init(v8::Local<v8::Object> exports) {
   constructor.Reset(Nan::Persistent<Function>(constructor_local));
 }
 
-Local<Value> TreeCursor::NewInstance(TSTreeCursor *cursor) {
+Local<Value> TreeCursor::NewInstance(TSTreeCursor cursor) {
   Local<Object> self;
   MaybeLocal<Object> maybe_self = Nan::New(constructor)->NewInstance(Nan::GetCurrentContext());
   if (maybe_self.ToLocal(&self)) {
@@ -61,9 +61,9 @@ Local<Value> TreeCursor::NewInstance(TSTreeCursor *cursor) {
   }
 }
 
-TreeCursor::TreeCursor(TSTreeCursor *cursor) : cursor_(cursor) {}
+TreeCursor::TreeCursor(TSTreeCursor cursor) : cursor_(cursor) {}
 
-TreeCursor::~TreeCursor() { ts_tree_cursor_delete(cursor_); }
+TreeCursor::~TreeCursor() { ts_tree_cursor_delete(&cursor_); }
 
 void TreeCursor::New(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(Nan::Null());
@@ -71,13 +71,13 @@ void TreeCursor::New(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void TreeCursor::GotoParent(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  bool result = ts_tree_cursor_goto_parent(cursor->cursor_);
+  bool result = ts_tree_cursor_goto_parent(&cursor->cursor_);
   info.GetReturnValue().Set(Nan::New(result));
 }
 
 void TreeCursor::GotoFirstChild(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  bool result = ts_tree_cursor_goto_first_child(cursor->cursor_);
+  bool result = ts_tree_cursor_goto_first_child(&cursor->cursor_);
   info.GetReturnValue().Set(Nan::New(result));
 }
 
@@ -87,7 +87,7 @@ void TreeCursor::GotoFirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &
     Nan::ThrowTypeError("Argument must be an integer");
   }
   uint32_t goal_byte = info[0]->Uint32Value() * 2;
-  int64_t child_index = ts_tree_cursor_goto_first_child_for_byte(cursor->cursor_, goal_byte);
+  int64_t child_index = ts_tree_cursor_goto_first_child_for_byte(&cursor->cursor_, goal_byte);
   if (child_index < 0) {
     info.GetReturnValue().Set(Nan::Null());
   } else {
@@ -97,43 +97,43 @@ void TreeCursor::GotoFirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &
 
 void TreeCursor::GotoNextSibling(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  bool result = ts_tree_cursor_goto_next_sibling(cursor->cursor_);
+  bool result = ts_tree_cursor_goto_next_sibling(&cursor->cursor_);
   info.GetReturnValue().Set(Nan::New(result));
 }
 
 void TreeCursor::StartPosition(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(cursor->cursor_);
+  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
   TransferPoint(ts_node_start_point(node));
 }
 
 void TreeCursor::EndPosition(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(cursor->cursor_);
+  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
   TransferPoint(ts_node_end_point(node));
 }
 
 void TreeCursor::NodeType(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(cursor->cursor_);
+  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
   info.GetReturnValue().Set(Nan::New(ts_node_type(node)).ToLocalChecked());
 }
 
 void TreeCursor::NodeIsNamed(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(cursor->cursor_);
+  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
   info.GetReturnValue().Set(Nan::New(ts_node_is_named(node)));
 }
 
 void TreeCursor::StartIndex(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(cursor->cursor_);
+  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
   info.GetReturnValue().Set(ByteCountToJS(ts_node_start_byte(node)));
 }
 
 void TreeCursor::EndIndex(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(cursor->cursor_);
+  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
   info.GetReturnValue().Set(ByteCountToJS(ts_node_end_byte(node)));
 }
 
