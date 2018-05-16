@@ -1,5 +1,6 @@
 #include "./parser.h"
 #include <string>
+#include <vector>
 #include <v8.h>
 #include <nan.h>
 #include "./conversions.h"
@@ -7,10 +8,13 @@
 #include "./logger.h"
 #include "./tree.h"
 #include "./util.h"
+#include "text-buffer-snapshot-wrapper.h"
 
 namespace node_tree_sitter {
 
 using namespace v8;
+using std::vector;
+using std::pair;
 
 Nan::Persistent<Function> Parser::constructor;
 
@@ -26,6 +30,8 @@ void Parser::Init(Local<Object> exports) {
     {"setLanguage", SetLanguage},
     {"printDotGraphs", PrintDotGraphs},
     {"parse", Parse},
+    {"parseTextBuffer", ParseTextBuffer},
+    {"parseTextBufferSync", ParseTextBufferSync},
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
@@ -37,7 +43,7 @@ void Parser::Init(Local<Object> exports) {
   exports->Set(Nan::New("LANGUAGE_VERSION").ToLocalChecked(), Nan::New<Number>(TREE_SITTER_LANGUAGE_VERSION));
 }
 
-Parser::Parser() : parser_(ts_parser_new()) {}
+Parser::Parser() : parser_(ts_parser_new()), is_parsing_async_(false) {}
 
 Parser::~Parser() { ts_parser_delete(parser_); }
 
@@ -59,6 +65,11 @@ void Parser::New(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Parser::SetLanguage(const Nan::FunctionCallbackInfo<Value> &info) {
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  if (parser->is_parsing_async_) {
+    Nan::ThrowError("Parser is in use");
+    return;
+  }
+
   if (!info[0]->IsObject()) {
     Nan::ThrowTypeError("Invalid language object");
     return;
@@ -91,6 +102,10 @@ void Parser::SetLanguage(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  if (parser->is_parsing_async_) {
+    Nan::ThrowError("Parser is in use");
+    return;
+  }
 
   if (!info[0]->IsObject()) {
     Nan::ThrowTypeError("Input must be an object");
@@ -109,11 +124,161 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
     return;
   }
 
+  const TSTree *old_tree = nullptr;
+  if (info.Length() > 1 && info[1]->BooleanValue()) {
+    const TSTree *tree = Tree::UnwrapTree(info[1]);
+    if (!tree) {
+      Nan::ThrowTypeError("Second argument must be a tree");
+      return;
+    }
+    old_tree = tree;
+  }
+
   InputReader input_reader(input);
-  TSTree *tree = ts_parser_parse(parser->parser_, nullptr, input_reader.Input());
+  TSTree *tree = ts_parser_parse(parser->parser_, old_tree, input_reader.Input());
 
   Local<Value> result = Tree::NewInstance(tree);
   info.GetReturnValue().Set(result);
+}
+
+class TextBufferInput {
+public:
+  TextBufferInput(const vector<pair<const char16_t *, uint32_t>> *slices)
+    : slices_(slices), slice_index_(0), slice_offset_(0) {}
+
+  TSInput input() {
+    return TSInput{
+      this,
+      Read,
+      Seek,
+      TSInputEncodingUTF16,
+    };
+  }
+
+private:
+  static int Seek(void *payload, uint32_t byte, TSPoint position) {
+    auto self = static_cast<TextBufferInput *>(payload);
+
+    uint32_t total_length = 0;
+    uint32_t goal_index = byte / 2;
+    for (unsigned i = 0, n = self->slices_->size(); i < n; i++) {
+      uint32_t next_total_length = total_length + self->slices_->at(i).second;
+      if (next_total_length > goal_index) {
+        self->slice_index_ = i;
+        self->slice_offset_ = goal_index - total_length;
+        return true;
+      }
+      total_length = next_total_length;
+    }
+
+    self->slice_index_ = self->slices_->size();
+    self->slice_offset_ = 0;
+    return true;
+  }
+
+  static const char *Read(void *payload, uint32_t *length) {
+    auto self = static_cast<TextBufferInput *>(payload);
+
+    if (self->slice_index_ == self->slices_->size()) {
+      *length = 0;
+      return "";
+    }
+
+    auto &slice = self->slices_->at(self->slice_index_);
+    const char16_t *result = slice.first + self->slice_offset_;
+    *length = 2 * (slice.second - self->slice_offset_);
+    self->slice_index_++;
+    self->slice_offset_ = 0;
+    return reinterpret_cast<const char *>(result);
+  }
+
+  const vector<pair<const char16_t *, uint32_t>> *slices_;
+  uint32_t slice_index_;
+  uint32_t slice_offset_;
+};
+
+class ParseWorker : public Nan::AsyncWorker {
+  Parser *parser_;
+  TSTree *old_tree_;
+  TSTree *result_;
+  TextBufferInput input_;
+
+public:
+  ParseWorker(Nan::Callback *callback, Parser *parser,
+              const vector<pair<const char16_t *, uint32_t>> *slices, TSTree *old_tree) :
+    AsyncWorker(callback),
+    parser_(parser),
+    old_tree_(old_tree),
+    result_(nullptr),
+    input_(slices) {}
+
+  void Execute() {
+    TSLogger logger = ts_parser_logger(parser_->parser_);
+    ts_parser_set_logger(parser_->parser_, TSLogger{0, 0});
+    result_ = ts_parser_parse(parser_->parser_, old_tree_, input_.input());
+    ts_parser_set_logger(parser_->parser_, logger);
+  }
+
+  void HandleOKCallback() {
+    parser_->is_parsing_async_ = false;
+    if (old_tree_) ts_tree_delete(old_tree_);
+    Local<Value> argv[] = {Tree::NewInstance(result_)};
+    callback->Call(1, argv);
+  }
+};
+
+void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
+  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  if (parser->is_parsing_async_) {
+    Nan::ThrowError("Parser is in use");
+    return;
+  }
+
+  auto callback = new Nan::Callback(info[0].As<Function>());
+  auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[1].As<Object>());
+
+  parser->is_parsing_async_ = true;
+
+  TSTree *old_tree = nullptr;
+  if (info.Length() > 2 && info[2]->BooleanValue()) {
+    const TSTree *tree = Tree::UnwrapTree(info[2]);
+    if (!tree) {
+      Nan::ThrowTypeError("Second argument must be a tree");
+      return;
+    }
+    old_tree = ts_tree_copy(tree);
+  }
+
+  Nan::AsyncQueueWorker(new ParseWorker(
+    callback,
+    parser,
+    snapshot->slices(),
+    old_tree
+  ));
+}
+
+void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
+  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  if (parser->is_parsing_async_) {
+    Nan::ThrowError("Parser is in use");
+    return;
+  }
+
+  auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[0].As<Object>());
+
+  TSTree *old_tree = nullptr;
+  if (info.Length() > 1 && info[2]->BooleanValue()) {
+    const TSTree *tree = Tree::UnwrapTree(info[1]);
+    if (!tree) {
+      Nan::ThrowTypeError("Second argument must be a tree");
+      return;
+    }
+    old_tree = ts_tree_copy(tree);
+  }
+
+  TextBufferInput input(snapshot->slices());
+  TSTree *result = ts_parser_parse(parser->parser_, old_tree, input.input());
+  info.GetReturnValue().Set(Tree::NewInstance(result));
 }
 
 void Parser::GetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -130,6 +295,10 @@ void Parser::GetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Parser::SetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  if (parser->is_parsing_async_) {
+    Nan::ThrowError("Parser is in use");
+    return;
+  }
 
   TSLogger current_logger = ts_parser_logger(parser->parser_);
 
@@ -149,6 +318,11 @@ void Parser::SetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Parser::PrintDotGraphs(const Nan::FunctionCallbackInfo<Value> &info) {
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  if (parser->is_parsing_async_) {
+    Nan::ThrowError("Parser is in use");
+    return;
+  }
+
   Local<Boolean> value = Local<Boolean>::Cast(info[0]);
 
   if (value->IsBoolean() && value->BooleanValue()) {

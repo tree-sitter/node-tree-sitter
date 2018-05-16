@@ -18,6 +18,7 @@
       ],
       "include_dirs": [
         "include",
+        "vendor/superstring",
         "<!(node -e \"require('nan')\")",
       ],
       'conditions': [

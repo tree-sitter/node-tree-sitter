@@ -60,6 +60,16 @@ Local<Value> Tree::NewInstance(TSTree *tree) {
   }
 }
 
+const TSTree *Tree::UnwrapTree(const Local<Value> &value) {
+  if (!value->IsObject()) return nullptr;
+  Local<Object> js_tree = Local<Object>::Cast(value);
+  if (!Nan::New(constructor_template)->HasInstance(js_tree)) {
+    return nullptr;
+  }
+
+  return ObjectWrap::Unwrap<Tree>(js_tree)->tree_;
+}
+
 void Tree::New(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(Nan::Null());
 }
@@ -99,14 +109,14 @@ void Tree::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Tree::Walk(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  TSTreeCursor *cursor = ts_tree_cursor_new(tree->tree_);
+  TSTreeCursor cursor = ts_tree_cursor_new(tree->tree_);
   info.GetReturnValue().Set(TreeCursor::NewInstance(cursor));
 }
 
 void Tree::RootNode(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
   TSNode node = ts_tree_root_node(tree->tree_);
-  if (node.subtree) {
+  if (node.id) {
     info.GetReturnValue().Set(Node::NewInstance(node));
   } else {
     info.GetReturnValue().Set(Nan::Null());
@@ -114,18 +124,15 @@ void Tree::RootNode(Local<String> property, const Nan::PropertyCallbackInfo<Valu
 }
 
 void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
-  if (!info[0]->IsObject()) return;
-  Local<Object> js_tree = Local<Object>::Cast(info[0]);
-  if (!Nan::New(constructor_template)->HasInstance(js_tree)) {
+  Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
+  const TSTree *other_tree = UnwrapTree(info[0]);
+  if (!other_tree) {
     Nan::ThrowTypeError("Argument must be a tree");
     return;
   }
 
-  Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  Tree *other_tree = ObjectWrap::Unwrap<Tree>(js_tree);
-
   uint32_t range_count;
-  TSRange *ranges = ts_tree_get_changed_ranges(tree->tree_, other_tree->tree_, &range_count);
+  TSRange *ranges = ts_tree_get_changed_ranges(tree->tree_, other_tree, &range_count);
 
   Local<Array> result = Nan::New<Array>();
   for (size_t i = 0; i < range_count; i++) {

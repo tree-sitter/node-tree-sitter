@@ -12,6 +12,9 @@ class Parser : public Nan::ObjectWrap {
  public:
   static void Init(v8::Local<v8::Object> exports);
 
+  TSParser *parser_;
+  bool is_parsing_async_;
+
  private:
   explicit Parser();
   ~Parser();
@@ -21,9 +24,10 @@ class Parser : public Nan::ObjectWrap {
   static void GetLogger(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void SetLogger(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Parse(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void ParseTextBuffer(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void ParseTextBufferSync(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void PrintDotGraphs(const Nan::FunctionCallbackInfo<v8::Value> &);
 
-  TSParser *parser_;
   static Nan::Persistent<v8::Function> constructor;
 };
 

@@ -78,7 +78,7 @@ void Node::Init(Local<Object> exports) {
 
 Node *Node::Unwrap(const Local<Object> &object) {
   Node *node = Nan::ObjectWrap::Unwrap<Node>(object);
-  if (node && node->node_.subtree) {
+  if (node && node->node_.id) {
     return node;
   } else {
     return NULL;
@@ -141,7 +141,7 @@ void Node::FirstNamedChildForIndex(const Nan::FunctionCallbackInfo<Value> &info)
     Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[0]);
     if (byte.IsNothing()) return;
     TSNode result = ts_node_first_named_child_for_byte(node->node_, byte.FromJust());
-    if (result.subtree) {
+    if (result.id) {
       info.GetReturnValue().Set(Node::NewInstance(result));
     }
   }
@@ -153,7 +153,7 @@ void Node::FirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
     Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[0]);
     if (byte.IsNothing()) return;
     TSNode result = ts_node_first_child_for_byte(node->node_, byte.FromJust());
-    if (result.subtree) {
+    if (result.id) {
       info.GetReturnValue().Set(Node::NewInstance(result));
     }
   }
@@ -284,8 +284,6 @@ void Node::Type(Local<String> property, const Nan::PropertyCallbackInfo<Value> &
   if (node) {
     const char *result = ts_node_type(node->node_);
     info.GetReturnValue().Set(Nan::New(result).ToLocalChecked());
-  } else {
-    info.GetReturnValue().Set(Nan::Null());
   }
 }
 
@@ -294,18 +292,14 @@ void Node::IsNamed(Local<String> property, const Nan::PropertyCallbackInfo<Value
   if (node) {
     bool result = ts_node_is_named(node->node_);
     info.GetReturnValue().Set(Nan::New(result));
-  } else {
-    info.GetReturnValue().Set(Nan::Null());
   }
 }
 
 void Node::Id(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   Node *node = Unwrap(info.This());
   if (node) {
-    uint64_t result = reinterpret_cast<uint64_t>(node->node_.subtree);
+    uint64_t result = reinterpret_cast<uint64_t>(node->node_.id);
     info.GetReturnValue().Set(Nan::New<Number>(result));
-  } else {
-    info.GetReturnValue().Set(Nan::Null());
   }
 }
 
@@ -314,8 +308,6 @@ void Node::StartIndex(Local<String> property, const Nan::PropertyCallbackInfo<Va
   if (node) {
     int32_t result = ts_node_start_byte(node->node_) / 2;
     info.GetReturnValue().Set(Nan::New<Integer>(result));
-  } else {
-    info.GetReturnValue().Set(Nan::Null());
   }
 }
 
@@ -324,8 +316,6 @@ void Node::EndIndex(Local<String> property, const Nan::PropertyCallbackInfo<Valu
   if (node) {
     int32_t result = ts_node_end_byte(node->node_) / 2;
     info.GetReturnValue().Set(Nan::New<Integer>(result));
-  } else {
-    info.GetReturnValue().Set(Nan::Null());
   }
 }
 
@@ -341,25 +331,23 @@ void Node::EndPosition(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Node::Children(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   Node *node = Unwrap(info.This());
-  if (node)
+  if (node) {
     info.GetReturnValue().Set(NodeArray::NewInstance(node->node_, false));
-  else
-    info.GetReturnValue().Set(Nan::Null());
+  }
 }
 
 void Node::NamedChildren(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   Node *node = Unwrap(info.This());
-  if (node)
+  if (node) {
     info.GetReturnValue().Set(NodeArray::NewInstance(node->node_, true));
-  else
-    info.GetReturnValue().Set(Nan::Null());
+  }
 }
 
 void Node::FirstChild(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
   Node *node = Unwrap(info.This());
   if (node) {
     TSNode child = ts_node_child(node->node_, 0);
-    if (child.subtree) {
+    if (child.id) {
       info.GetReturnValue().Set(Node::NewInstance(child));
       return;
     }
@@ -371,7 +359,7 @@ void Node::FirstNamedChild(Local<String> property, const Nan::PropertyCallbackIn
   Node *node = Unwrap(info.This());
   if (node) {
     TSNode child = ts_node_named_child(node->node_, 0);
-    if (child.subtree) {
+    if (child.id) {
       info.GetReturnValue().Set(Node::NewInstance(child));
       return;
     }
@@ -409,7 +397,7 @@ void Node::Parent(Local<String> property, const Nan::PropertyCallbackInfo<Value>
   Node *node = Unwrap(info.This());
   if (node) {
     TSNode parent = ts_node_parent(node->node_);
-    if (parent.subtree) {
+    if (parent.id) {
       info.GetReturnValue().Set(Node::NewInstance(parent));
       return;
     }
@@ -421,7 +409,7 @@ void Node::NextSibling(Local<String> property, const Nan::PropertyCallbackInfo<V
   Node *node = Unwrap(info.This());
   if (node) {
     TSNode sibling = ts_node_next_sibling(node->node_);
-    if (sibling.subtree) {
+    if (sibling.id) {
       info.GetReturnValue().Set(Node::NewInstance(sibling));
       return;
     }
@@ -433,7 +421,7 @@ void Node::NextNamedSibling(Local<String> property, const Nan::PropertyCallbackI
   Node *node = Unwrap(info.This());
   if (node) {
     TSNode sibling = ts_node_next_named_sibling(node->node_);
-    if (sibling.subtree) {
+    if (sibling.id) {
       info.GetReturnValue().Set(Node::NewInstance(sibling));
       return;
     }
@@ -445,7 +433,7 @@ void Node::PreviousSibling(Local<String> property, const Nan::PropertyCallbackIn
   Node *node = Unwrap(info.This());
   if (node) {
     TSNode sibling = ts_node_prev_sibling(node->node_);
-    if (sibling.subtree) {
+    if (sibling.id) {
       info.GetReturnValue().Set(Node::NewInstance(sibling));
       return;
     }
@@ -457,7 +445,7 @@ void Node::PreviousNamedSibling(Local<String> property, const Nan::PropertyCallb
   Node *node = Unwrap(info.This());
   if (node) {
     TSNode sibling = ts_node_prev_named_sibling(node->node_);
-    if (sibling.subtree) {
+    if (sibling.id) {
       info.GetReturnValue().Set(Node::NewInstance(sibling));
       return;
     }

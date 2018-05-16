@@ -11,15 +11,16 @@ namespace node_tree_sitter {
 class TreeCursor : public Nan::ObjectWrap {
  public:
   static void Init(v8::Local<v8::Object> exports);
-  static v8::Local<v8::Value> NewInstance(TSTreeCursor *);
+  static v8::Local<v8::Value> NewInstance(TSTreeCursor);
 
  private:
-  explicit TreeCursor(TSTreeCursor *);
+  explicit TreeCursor(TSTreeCursor);
   ~TreeCursor();
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GotoParent(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GotoFirstChild(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void GotoFirstChildForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GotoNextSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void StartPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void EndPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
@@ -29,7 +30,7 @@ class TreeCursor : public Nan::ObjectWrap {
   static void StartIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void EndIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
 
-  TSTreeCursor *cursor_;
+  TSTreeCursor cursor_;
   static Nan::Persistent<v8::Function> constructor;
   static Nan::Persistent<v8::FunctionTemplate> constructor_template;
 };

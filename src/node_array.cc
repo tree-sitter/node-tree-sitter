@@ -82,7 +82,7 @@ void NodeArray::GetIndex(uint32_t index, const Nan::PropertyCallbackInfo<Value> 
   TSNode child = array->is_named_ ?
     ts_node_named_child(array->parent_node_, index) :
     ts_node_child(array->parent_node_, index);
-  if (child.subtree) {
+  if (child.id) {
     info.GetReturnValue().Set(Node::NewInstance(child));
   }
 }
