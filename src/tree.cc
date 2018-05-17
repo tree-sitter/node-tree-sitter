@@ -82,28 +82,28 @@ void Tree::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
   auto start_byte = ByteCountFromJS(arg->Get(Nan::New("startIndex").ToLocalChecked()));
   if (start_byte.IsNothing()) return;
 
-  auto bytes_removed = ByteCountFromJS(arg->Get(Nan::New("lengthRemoved").ToLocalChecked()));
-  if (bytes_removed.IsNothing()) return;
+  auto old_end_byte = ByteCountFromJS(arg->Get(Nan::New("oldEndIndex").ToLocalChecked()));
+  if (old_end_byte.IsNothing()) return;
 
-  auto bytes_added = ByteCountFromJS(arg->Get(Nan::New("lengthAdded").ToLocalChecked()));
-  if (bytes_added.IsNothing()) return;
+  auto new_end_byte = ByteCountFromJS(arg->Get(Nan::New("newEndIndex").ToLocalChecked()));
+  if (new_end_byte.IsNothing()) return;
 
   auto start_position = PointFromJS(arg->Get(Nan::New("startPosition").ToLocalChecked()));
   if (start_position.IsNothing()) return;
 
-  auto extent_removed = PointFromJS(arg->Get(Nan::New("extentRemoved").ToLocalChecked()));
-  if (extent_removed.IsNothing()) return;
+  auto old_end_point = PointFromJS(arg->Get(Nan::New("oldEndPosition").ToLocalChecked()));
+  if (old_end_point.IsNothing()) return;
 
-  auto extent_added = PointFromJS(arg->Get(Nan::New("extentAdded").ToLocalChecked()));
-  if (extent_added.IsNothing()) return;
+  auto new_end_point = PointFromJS(arg->Get(Nan::New("newEndPosition").ToLocalChecked()));
+  if (new_end_point.IsNothing()) return;
 
   TSInputEdit edit;
   edit.start_byte = start_byte.FromJust();
-  edit.bytes_removed = bytes_removed.FromJust();
-  edit.bytes_added = bytes_added.FromJust();
+  edit.old_end_byte = old_end_byte.FromJust();
+  edit.new_end_byte = new_end_byte.FromJust();
   edit.start_point = start_position.FromJust();
-  edit.extent_removed = extent_removed.FromJust();
-  edit.extent_added = extent_added.FromJust();
+  edit.old_end_point = old_end_point.FromJust();
+  edit.new_end_point = new_end_point.FromJust();
   ts_tree_edit(tree->tree_, &edit);
   info.GetReturnValue().Set(info.This());
 }

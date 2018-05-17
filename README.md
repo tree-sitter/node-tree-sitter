@@ -29,7 +29,7 @@ parser.setLanguage(JavaScript);
 Then you can parse some source code,
 
 ```javascript
-const sourceCode = 'var x = 1; x++; console.log(x);';
+const sourceCode = 'let x = 1; console.log(x);';
 const tree = parser.parse(sourceCode);
 ```
 
@@ -39,16 +39,14 @@ and inspect the syntax tree.
 console.log(tree.rootNode.toString());
 
 // (program
-//   (variable_declaration
+//   (lexical_declaration
 //     (variable_declarator (identifier) (number)))
-//   (expression_statement
-//     (update_expression (identifier)))
 //   (expression_statement
 //     (call_expression
 //       (member_expression (identifier) (property_identifier))
 //       (arguments (identifier)))))
 
-const callExpression = tree.rootNode.children[2].firstChild;
+const callExpression = tree.rootNode.children[1].firstChild;
 console.log(callExpression);
 
 // { type: 'call_expression',
@@ -62,16 +60,17 @@ console.log(callExpression);
 If your source code *changes*, you can update the syntax tree. This will take less time than the first parse.
 
 ```javascript
-// Replace 'var' with 'let'
+// Replace 'let' with 'const'
+const newSourceCode = 'const x = 1; console.log(x);';
+
 tree.edit({
   startIndex: 0,
-  lengthAdded: 3,
-  lengthRemoved: 3,
+  oldEndIndex: 3,
+  newEndIndex: 4,
   startPosition: {row: 0, column: 0},
-  extentAdded: {row: 0, column: 3},
-  extentRemoved: {row: 0, column: 3},
+  oldEndPosition: {row: 0, column: 3},
+  newEndPosition: {row: 0, column: 4},
 });
 
-const newSourceCode = 'let x = 1; x++; console.log(x);';
 const newTree = parser.parse(newCode, tree);
 ```
