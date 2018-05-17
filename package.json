@@ -15,6 +15,6 @@
   "main": "index.js",
   "types": "tree-sitter.d.ts",
   "dependencies": {
-    "nan": "^2.1.0"
+    "nan": "^2.10.0"
   }
 }
