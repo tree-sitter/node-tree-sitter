@@ -14,26 +14,32 @@ npm install tree-sitter
 
 ### Usage
 
-Create a grammar using [tree-sitter-cli](http://github.com/tree-sitter/tree-sitter-cli). See [the JavaScript grammar](http://github.com/tree-sitter/tree-sitter-javascript) and the [Go grammar](http://github.com/tree-sitter/tree-sitter-go) for some examples.
+First, you'll need a Tree-sitter grammar for the language you want to parse. There are many [existing grammars](https://github.com/tree-sitter) such as [tree-sitter-javascript](http://github.com/tree-sitter/tree-sitter-javascript) and [tree-sitter-go](http://github.com/tree-sitter/tree-sitter-go). You can also develop a new grammar using the [Tree-sitter CLI](http://github.com/tree-sitter/tree-sitter-cli).
 
-Make a document using your grammar:
+Once you've got your grammar, create a parser with that grammar.
 
 ```javascript
-const {Document} = require('tree-sitter');
+const Parser = require('tree-sitter');
+const JavaScript = require('tree-sitter-javascript');
 
-const document = new Document();
-document.setLanguage(require('tree-sitter-javascript'));
-document.setInputString('let x = 1; x++; console.log(x);');
-document.parse();
+const parser = new Parser();
+parser.setLanguage(JavaScript);
 ```
 
-Access the document's AST:
+Then you can parse some source code,
 
 ```javascript
-console.log(document.rootNode.toString());
+const sourceCode = 'var x = 1; x++; console.log(x);';
+const tree = parser.parse(sourceCode);
+```
+
+and inspect the syntax tree.
+
+```javascript
+console.log(tree.rootNode.toString());
 
 // (program
-//   (lexical_declaration
+//   (variable_declaration
 //     (variable_declarator (identifier) (number)))
 //   (expression_statement
 //     (update_expression (identifier)))
@@ -42,7 +48,7 @@ console.log(document.rootNode.toString());
 //       (member_expression (identifier) (property_identifier))
 //       (arguments (identifier)))))
 
-const callExpression = document.rootNode.children[2].children[0];
+const callExpression = tree.rootNode.children[2].firstChild;
 console.log(callExpression);
 
 // { type: 'call_expression',
@@ -51,4 +57,21 @@ console.log(callExpression);
 //   startIndex: 0,
 //   endIndex: 30,
 //   children: { length: 2 } }
+```
+
+If your source code *changes*, you can update the syntax tree. This will take less time than the first parse.
+
+```javascript
+// Replace 'var' with 'let'
+tree.edit({
+  startIndex: 0,
+  lengthAdded: 3,
+  lengthRemoved: 3,
+  startPosition: {row: 0, column: 0},
+  extentAdded: {row: 0, column: 3},
+  extentRemoved: {row: 0, column: 3},
+});
+
+const newSourceCode = 'let x = 1; x++; console.log(x);';
+const newTree = parser.parse(newCode, tree);
 ```
