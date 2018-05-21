@@ -66,10 +66,10 @@ const newSourceCode = 'const x = 1; console.log(x);';
 tree.edit({
   startIndex: 0,
   oldEndIndex: 3,
-  newEndIndex: 4,
+  newEndIndex: 5,
   startPosition: {row: 0, column: 0},
   oldEndPosition: {row: 0, column: 3},
-  newEndPosition: {row: 0, column: 4},
+  newEndPosition: {row: 0, column: 5},
 });
 
 const newTree = parser.parse(newCode, tree);
