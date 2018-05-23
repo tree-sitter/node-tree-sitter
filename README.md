@@ -74,3 +74,27 @@ tree.edit({
 
 const newTree = parser.parse(newCode, tree);
 ```
+
+### Advanced Usage
+
+If you have source code stored in a [superstring](https://github.com/atom/superstring) `TextBuffer`, you can parse that source code on a background thread with a `Promise`-based interface:
+
+```javascript
+const {TextBuffer} = require('superstring');
+
+async function test() {
+  const buffer = new TextBuffer('const x= 1; console.log(x);');
+  const newTree = await parser.parseTextBuffer(buffer, oldTree);
+}
+```
+
+Using a background thread can introduce a slight delay, so you may want to allow *some* work to be done on the main thread, in the hopes that parsing will complete so quickly that you won't even *need* a background thread:
+
+```javascript
+async function test2() {
+  const buffer = new TextBuffer('const x= 1; console.log(x);');
+  const newTree = await parser.parseTextBuffer(buffer, oldTree, {
+    syncOperationCount: 1000
+  });
+}
+```

@@ -1,6 +1,7 @@
 #include "./parser.h"
 #include <string>
 #include <vector>
+#include <climits>
 #include <v8.h>
 #include <nan.h>
 #include "./conversions.h"
@@ -200,29 +201,30 @@ private:
 class ParseWorker : public Nan::AsyncWorker {
   Parser *parser_;
   TSTree *old_tree_;
-  TSTree *result_;
-  TextBufferInput input_;
+  TSTree *new_tree_;
+  TextBufferInput *input_;
 
 public:
   ParseWorker(Nan::Callback *callback, Parser *parser,
-              const vector<pair<const char16_t *, uint32_t>> *slices, TSTree *old_tree) :
+              TextBufferInput *input, TSTree *old_tree) :
     AsyncWorker(callback),
     parser_(parser),
     old_tree_(old_tree),
-    result_(nullptr),
-    input_(slices) {}
+    new_tree_(nullptr),
+    input_(input) {}
 
   void Execute() {
     TSLogger logger = ts_parser_logger(parser_->parser_);
     ts_parser_set_logger(parser_->parser_, TSLogger{0, 0});
-    result_ = ts_parser_parse(parser_->parser_, old_tree_, input_.input());
+    new_tree_ = ts_parser_resume(parser_->parser_);
     ts_parser_set_logger(parser_->parser_, logger);
   }
 
   void HandleOKCallback() {
     parser_->is_parsing_async_ = false;
     if (old_tree_) ts_tree_delete(old_tree_);
-    Local<Value> argv[] = {Tree::NewInstance(result_)};
+    delete input_;
+    Local<Value> argv[] = {Tree::NewInstance(new_tree_)};
     callback->Call(1, argv);
   }
 };
@@ -249,12 +251,38 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
     old_tree = ts_tree_copy(tree);
   }
 
-  Nan::AsyncQueueWorker(new ParseWorker(
-    callback,
-    parser,
-    snapshot->slices(),
-    old_tree
-  ));
+  size_t operation_limit = 0;
+  if (info.Length() > 3 && info[3]->BooleanValue()) {
+    if (info[3]->IsUint32()) {
+      operation_limit = info[3]->Uint32Value();
+    } else {
+      Nan::ThrowTypeError("The `syncOperationLimit` option must be a positive integer.");
+      return;
+    }
+  }
+
+  auto input = new TextBufferInput(snapshot->slices());
+  TSLogger logger = ts_parser_logger(parser->parser_);
+  ts_parser_set_operation_limit(parser->parser_, operation_limit);
+  ts_parser_set_logger(parser->parser_, TSLogger{0, 0});
+  TSTree *result = ts_parser_parse(parser->parser_, old_tree, input->input());
+  ts_parser_set_operation_limit(parser->parser_, SIZE_MAX);
+  ts_parser_set_logger(parser->parser_, logger);
+
+  if (result) {
+    parser->is_parsing_async_ = false;
+    if (old_tree) ts_tree_delete(old_tree);
+    delete input;
+    Local<Value> argv[] = {Tree::NewInstance(result)};
+    callback->Call(1, argv);
+  } else {
+    Nan::AsyncQueueWorker(new ParseWorker(
+      callback,
+      parser,
+      input,
+      old_tree
+    ));
+  }
 }
 
 void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {

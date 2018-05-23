@@ -50,13 +50,14 @@ Parser.prototype.parse = function(input, oldTree, bufferSize) {
   }
 };
 
-Parser.prototype.parseTextBuffer = function(buffer, oldTree) {
+Parser.prototype.parseTextBuffer = function(buffer, oldTree, options) {
   const snapshot = buffer.getSnapshot();
+  const syncOperationLimit = options && options.syncOperationLimit;
   return new Promise(resolve => {
     parseTextBuffer.call(this, (result) => {
       snapshot.destroy();
       resolve(result);
-    }, snapshot, oldTree)
+    }, snapshot, oldTree, syncOperationLimit)
   });
 };
 
