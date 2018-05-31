@@ -46,15 +46,14 @@ console.log(tree.rootNode.toString());
 //       (member_expression (identifier) (property_identifier))
 //       (arguments (identifier)))))
 
-const callExpression = tree.rootNode.children[1].firstChild;
+const callExpression = tree.rootNode.child(1).firstChild;
 console.log(callExpression);
 
 // { type: 'call_expression',
 //   startPosition: {row: 0, column: 16},
 //   endPosition: {row: 0, column: 30},
 //   startIndex: 0,
-//   endIndex: 30,
-//   children: { length: 2 } }
+//   endIndex: 30 }
 ```
 
 If your source code *changes*, you can update the syntax tree. This will take less time than the first parse.
