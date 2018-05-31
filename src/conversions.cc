@@ -75,12 +75,12 @@ Local<Number> ByteCountToJS(uint32_t byte_count) {
 }
 
 Nan::Maybe<uint32_t> ByteCountFromJS(const v8::Local<v8::Value> &arg) {
-  if (!arg->IsNumber()) {
+  if (!arg->IsUint32()) {
     Nan::ThrowTypeError("Character index must be a number");
     return Nan::Nothing<uint32_t>();
   }
 
-  return Nan::Just<uint32_t>(arg->Int32Value() * BYTES_PER_CHARACTER);
+  return Nan::Just<uint32_t>(arg->Uint32Value() * BYTES_PER_CHARACTER);
 }
 
 }  // namespace node_tree_sitter

@@ -8,15 +8,13 @@
 
 namespace node_tree_sitter {
 
-class Node : public Nan::ObjectWrap {
+class Node {
  public:
   static void Init(v8::Local<v8::Object> exports);
-  static v8::Local<v8::Value> NewInstance(TSNode);
+  static void MarshalNode(TSNode);
+  static TSNode UnmarshalNode(const v8::Local<v8::Value> &tree);
 
  private:
-  explicit Node(TSNode);
-
-  static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void ToString(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void FirstChildForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void FirstNamedChildForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
@@ -30,30 +28,25 @@ class Node : public Nan::ObjectWrap {
   static void StartPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void EndPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
 
-  static void Type(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void StartIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void EndIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void IsNamed(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void Id(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void Type(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void StartIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void EndIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void IsNamed(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Id(const Nan::FunctionCallbackInfo<v8::Value> &);
 
-  static void Parent(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void Children(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void NamedChildren(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void FirstChild(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void FirstNamedChild(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void LastChild(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void LastNamedChild(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void NextSibling(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void NextNamedSibling(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void PreviousSibling(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void PreviousNamedSibling(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-
-  static Node *Unwrap(const v8::Local<v8::Object> &);
-  static Node *UnwrapValid(const v8::Local<v8::Object> &);
-
-  TSNode node_;
-
-  static Nan::Persistent<v8::Function> constructor;
+  static void Parent(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Child(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void ChildCount(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void NamedChild(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void NamedChildCount(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void FirstChild(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void FirstNamedChild(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void LastChild(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void LastNamedChild(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void NextSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void NextNamedSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void PreviousSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void PreviousNamedSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
 };
 
 }  // namespace node_tree_sitter

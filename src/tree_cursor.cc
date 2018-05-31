@@ -2,7 +2,6 @@
 #include <nan.h>
 #include <tree_sitter/runtime.h>
 #include <v8.h>
-#include "./node_array.h"
 #include "./util.h"
 #include "./conversions.h"
 
