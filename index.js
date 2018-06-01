@@ -31,10 +31,6 @@ class SyntaxNode {
     return NodeMethods.type(this.tree);
   }
 
-  get id() {
-    return `${this._0}${this._1}`
-  }
-
   get isNamed() {
     marshalNode(this);
     return NodeMethods.isNamed(this.tree);
@@ -267,7 +263,7 @@ Parser.prototype.parseTextBuffer = function(buffer, oldTree, options) {
   const snapshot = buffer.getSnapshot();
   const syncOperationLimit = options && options.syncOperationLimit;
   return new Promise(resolve => {
-    parseTextBuffer.call(this, (result) => {
+    parseTextBuffer.call(this, result => {
       snapshot.destroy();
       resolve(result);
     }, snapshot, oldTree, syncOperationLimit)

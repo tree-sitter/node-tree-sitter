@@ -30,16 +30,15 @@ declare module "tree-sitter" {
   };
 
   export interface Node {
-    id: number;
     isNamed: boolean;
     type: string;
     startPosition: Point;
     endPosition: Point;
-    children: NodeArray;
+    children: Array<Node>;
+    namedChildren: Array<Node>;
     startIndex: number;
     endIndex: number;
     parent: Node | null;
-    namedChildren: NodeArray;
     firstChild: Node | null;
     lastChild: Node | null;
     firstNamedChild: Node | null;
@@ -61,26 +60,6 @@ declare module "tree-sitter" {
     descendantForPosition(startPosition: Point, endPosition: Point): Node;
     namedDescendantForPosition(position: Point): Node;
     namedDescendantForPosition(startPosition: Point, endPosition: Point): Node;
-  };
-
-  type ArrayCallback<TItem, TArray, TReturn> = (
-    node: TItem,
-    index?: number,
-    array?: TArray
-  ) => TReturn;
-
-  export interface NodeArray extends ArrayLike<Node>, Iterable<Node> {
-    map<T>(callback: ArrayCallback<Node, NodeArray, void>, thisArg?: any): T[];
-    every(callback: ArrayCallback<Node, NodeArray, void>, thisArg?: any): void;
-    filter(callback: ArrayCallback<Node, NodeArray, boolean>, thisArg?: any): Node[];
-    find(callback: ArrayCallback<Node, NodeArray, boolean>, thisArg?: any): Node | undefined,
-    findIndex(callback: ArrayCallback<Node, NodeArray, boolean>, thisArg?: any): number;
-    forEach(callback: ArrayCallback<Node, NodeArray, void>, thisArg?: any): void;
-    indexOf(searchElement: Node, fromIndex?: number): number;
-    reduce<T>(callback: (accumulator: T, current: Node, currentIndex?: number, array?: NodeArray) => T, initialValue?: T): T;
-    reduceRight<T>(callback: (accumulator: T, current: Node, currentIndex?: number, array?: NodeArray) => T, initialValue?: T): T;
-    slice(begin?: number, end?: number): Node[],
-    some(callback: ArrayCallback<Node, NodeArray, boolean>, thisArg?: any): boolean,
   };
 
   export interface TreeCursor {
