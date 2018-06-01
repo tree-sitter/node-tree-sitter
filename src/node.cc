@@ -2,32 +2,29 @@
 #include <nan.h>
 #include <tree_sitter/runtime.h>
 #include <v8.h>
-#include "./node_array.h"
 #include "./util.h"
 #include "./conversions.h"
+#include "./tree.h"
 
 namespace node_tree_sitter {
 
 using namespace v8;
 
-Nan::Persistent<Function> Node::constructor;
+static uint32_t *transfer_buffer;
 
 void Node::Init(Local<Object> exports) {
-  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
-  tpl->SetClassName(Nan::New("Node").ToLocalChecked());
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  Local<Object> result = Nan::New<Object>();
 
-  GetterPair enum_getters[] = {
+  FunctionPair methods[] = {
     {"startIndex", StartIndex},
     {"endIndex", EndIndex},
     {"type", Type},
     {"isNamed", IsNamed},
-  };
-
-  GetterPair non_enum_getters[] = {
     {"parent", Parent},
-    {"children", Children},
-    {"namedChildren", NamedChildren},
+    {"child", Child},
+    {"namedChild", NamedChild},
+    {"childCount", ChildCount},
+    {"namedChildCount", NamedChildCount},
     {"firstChild", FirstChild},
     {"lastChild", LastChild},
     {"firstNamedChild", FirstNamedChild},
@@ -37,9 +34,6 @@ void Node::Init(Local<Object> exports) {
     {"previousSibling", PreviousSibling},
     {"previousNamedSibling", PreviousNamedSibling},
     {"id", Id},
-  };
-
-  FunctionPair methods[] = {
     {"startPosition", StartPosition},
     {"endPosition", EndPosition},
     {"isMissing", IsMissing},
@@ -54,403 +48,314 @@ void Node::Init(Local<Object> exports) {
     {"hasError", HasError},
   };
 
-  for (size_t i = 0; i < length_of_array(enum_getters); i++)
-    Nan::SetAccessor(
-      tpl->InstanceTemplate(),
-      Nan::New(enum_getters[i].name).ToLocalChecked(),
-      enum_getters[i].callback);
-
-  for (size_t i = 0; i < length_of_array(non_enum_getters); i++)
-    Nan::SetAccessor(
-      tpl->InstanceTemplate(),
-      Nan::New(non_enum_getters[i].name).ToLocalChecked(),
-      non_enum_getters[i].callback,
-      0, Local<Value>(), DEFAULT, DontEnum);
-
-  for (size_t i = 0; i < length_of_array(methods); i++)
-    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
-
-  auto constructor_local = tpl->GetFunction();
-  exports->Set(Nan::New("Node").ToLocalChecked(), constructor_local);
-
-  constructor.Reset(Nan::Persistent<Function>(constructor_local));
-}
-
-Node *Node::Unwrap(const Local<Object> &object) {
-  Node *node = Nan::ObjectWrap::Unwrap<Node>(object);
-  if (node && node->node_.id) {
-    return node;
-  } else {
-    return NULL;
+  for (size_t i = 0; i < length_of_array(methods); i++) {
+    result->Set(
+      Nan::New(methods[i].name).ToLocalChecked(),
+      Nan::New<FunctionTemplate>(methods[i].callback)->GetFunction()
+    );
   }
+
+  uint32_t transfer_buffer_length = 6;
+  transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
+  auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
+  exports->Set(
+    Nan::New("nodeTransferArray").ToLocalChecked(),
+    Uint32Array::New(js_transfer_buffer, 0, transfer_buffer_length)
+  );
+
+  exports->Set(Nan::New("NodeMethods").ToLocalChecked(), result);
 }
 
-Node::Node(TSNode node) : node_(node) {}
+void Node::MarshalNode(TSNode node) {
+  transfer_buffer[0] = 0;
+  transfer_buffer[1] = 0;
+  memcpy(&transfer_buffer[0], &node.id, sizeof(node.id));
+  transfer_buffer[2] = node.context[0];
+  transfer_buffer[3] = node.context[1];
+  transfer_buffer[4] = node.context[2];
+  transfer_buffer[5] = node.context[3];
+}
 
-Local<Value> Node::NewInstance(TSNode node) {
-  Local<Object> self;
-  MaybeLocal<Object> maybe_self = Nan::New(constructor)->NewInstance(Nan::GetCurrentContext());
-  if (maybe_self.ToLocal(&self)) {
-    (new Node(node))->Wrap(self);
-    return self;
-  } else {
-    return Nan::Null();
+TSNode Node::UnmarshalNode(const v8::Local<v8::Value> &tree) {
+  TSNode result = {{0, 0, 0, 0}, nullptr, nullptr};
+  result.tree = Tree::UnwrapTree(tree);
+  if (!result.tree) {
+    Nan::ThrowTypeError("Argument must be a tree");
+    return result;
   }
-}
 
-void Node::New(const Nan::FunctionCallbackInfo<Value> &info) {
-  info.GetReturnValue().Set(Nan::Null());
+  memcpy(&result.id, &transfer_buffer[0], sizeof(result.id));
+  result.context[0] = transfer_buffer[2];
+  result.context[1] = transfer_buffer[3];
+  result.context[2] = transfer_buffer[4];
+  result.context[3] = transfer_buffer[5];
+  return result;
 }
 
 void Node::ToString(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    const char *string = ts_node_string(node->node_);
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    const char *string = ts_node_string(node);
     info.GetReturnValue().Set(Nan::New(string).ToLocalChecked());
     free((char *)string);
   }
 }
 
 void Node::IsMissing(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    bool result = ts_node_is_missing(node->node_);
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    bool result = ts_node_is_missing(node);
     info.GetReturnValue().Set(Nan::New<Boolean>(result));
   }
 }
 
 void Node::HasChanges(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    bool result = ts_node_has_changes(node->node_);
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    bool result = ts_node_has_changes(node);
     info.GetReturnValue().Set(Nan::New<Boolean>(result));
   }
 }
 
 void Node::HasError(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    bool result = ts_node_has_error(node->node_);
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    bool result = ts_node_has_error(node);
     info.GetReturnValue().Set(Nan::New<Boolean>(result));
   }
 }
 
 void Node::FirstNamedChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node && info.Length() > 0) {
-    Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[0]);
-    if (byte.IsNothing()) return;
-    TSNode result = ts_node_first_named_child_for_byte(node->node_, byte.FromJust());
-    if (result.id) {
-      info.GetReturnValue().Set(Node::NewInstance(result));
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[1]);
+    if (byte.IsJust()) {
+      MarshalNode(ts_node_first_named_child_for_byte(node, byte.FromJust()));
     }
   }
 }
 
 void Node::FirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node && info.Length() > 0) {
-    Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[0]);
-    if (byte.IsNothing()) return;
-    TSNode result = ts_node_first_child_for_byte(node->node_, byte.FromJust());
-    if (result.id) {
-      info.GetReturnValue().Set(Node::NewInstance(result));
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id && info.Length() > 1) {
+    Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[1]);
+    if (byte.IsJust()) {
+      MarshalNode(ts_node_first_child_for_byte(node, byte.FromJust()));
     }
   }
 }
 
 void Node::NamedDescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    uint32_t min, max;
-    switch (info.Length()) {
-      case 1: {
-        Nan::Maybe<uint32_t> maybe_value = ByteCountFromJS(info[0]);
-        if (maybe_value.IsNothing()) return;
-        min = max = maybe_value.FromJust();
-        break;
-      }
-      case 2: {
-        Nan::Maybe<uint32_t> maybe_min = ByteCountFromJS(info[0]);
-        Nan::Maybe<uint32_t> maybe_max = ByteCountFromJS(info[1]);
-        if (maybe_min.IsNothing()) return;
-        if (maybe_max.IsNothing()) return;
-        min = maybe_min.FromJust();
-        max = maybe_max.FromJust();
-        break;
-      }
-      default:
-        Nan::ThrowTypeError("Must provide 1 or 2 character indices");
-        return;
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    Nan::Maybe<uint32_t> maybe_min = ByteCountFromJS(info[1]);
+    Nan::Maybe<uint32_t> maybe_max = ByteCountFromJS(info[2]);
+    if (maybe_min.IsJust() && maybe_max.IsJust()) {
+      uint32_t min = maybe_min.FromJust();
+      uint32_t max = maybe_max.FromJust();
+      MarshalNode(ts_node_named_descendant_for_byte_range(node, min, max));
     }
-
-    TSNode result = ts_node_named_descendant_for_byte_range(node->node_, min, max);
-    info.GetReturnValue().Set(Node::NewInstance(result));
   }
 }
 
 void Node::DescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    uint32_t min, max;
-    switch (info.Length()) {
-      case 1: {
-        Nan::Maybe<uint32_t> maybe_value = ByteCountFromJS(info[0]);
-        if (maybe_value.IsNothing()) return;
-        min = max = maybe_value.FromJust();
-        break;
-      }
-      case 2: {
-        Nan::Maybe<uint32_t> maybe_min = ByteCountFromJS(info[0]);
-        Nan::Maybe<uint32_t> maybe_max = ByteCountFromJS(info[1]);
-        if (maybe_min.IsNothing()) return;
-        if (maybe_max.IsNothing()) return;
-        min = maybe_min.FromJust();
-        max = maybe_max.FromJust();
-        break;
-      }
-      default:
-        Nan::ThrowTypeError("Must provide 1 or 2 character indices");
-        return;
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    Nan::Maybe<uint32_t> maybe_min = ByteCountFromJS(info[1]);
+    Nan::Maybe<uint32_t> maybe_max = ByteCountFromJS(info[2]);
+    if (maybe_min.IsJust() && maybe_max.IsJust()) {
+      uint32_t min = maybe_min.FromJust();
+      uint32_t max = maybe_max.FromJust();
+      MarshalNode(ts_node_descendant_for_byte_range(node, min, max));
     }
-
-    TSNode result = ts_node_descendant_for_byte_range(node->node_, min, max);
-    info.GetReturnValue().Set(Node::NewInstance(result));
   }
 }
 
 void Node::NamedDescendantForPosition(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    TSPoint min, max;
-    switch (info.Length()) {
-      case 1: {
-        Nan::Maybe<TSPoint> value = PointFromJS(info[0]);
-        if (value.IsNothing()) return;
-        min = max = value.FromJust();
-        break;
-      }
-      case 2: {
-        Nan::Maybe<TSPoint> maybe_min = PointFromJS(info[0]);
-        Nan::Maybe<TSPoint> maybe_max = PointFromJS(info[1]);
-        if (maybe_min.IsNothing()) return;
-        if (maybe_max.IsNothing()) return;
-        min = maybe_min.FromJust();
-        max = maybe_max.FromJust();
-        break;
-      }
-      default:
-        Nan::ThrowTypeError("Must provide 1 or 2 points");
-        return;
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    Nan::Maybe<TSPoint> maybe_min = PointFromJS(info[1]);
+    Nan::Maybe<TSPoint> maybe_max = PointFromJS(info[2]);
+    if (maybe_min.IsJust() && maybe_max.IsJust()) {
+      TSPoint min = maybe_min.FromJust();
+      TSPoint max = maybe_max.FromJust();
+      MarshalNode(ts_node_named_descendant_for_point_range(node, min, max));
     }
-
-    TSNode result = ts_node_named_descendant_for_point_range(node->node_, min, max);
-    info.GetReturnValue().Set(Node::NewInstance(result));
   }
 }
 
 void Node::DescendantForPosition(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    TSPoint min, max;
-    switch (info.Length()) {
-      case 1: {
-        Nan::Maybe<TSPoint> value = PointFromJS(info[0]);
-        if (value.IsNothing()) return;
-        min = max = value.FromJust();
-        break;
-      }
-      case 2: {
-        Nan::Maybe<TSPoint> maybe_min = PointFromJS(info[0]);
-        Nan::Maybe<TSPoint> maybe_max = PointFromJS(info[1]);
-        if (maybe_min.IsNothing()) return;
-        if (maybe_max.IsNothing()) return;
-        min = maybe_min.FromJust();
-        max = maybe_max.FromJust();
-        break;
-      }
-      default:
-        Nan::ThrowTypeError("Must provide 1 or 2 points");
-        return;
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    Nan::Maybe<TSPoint> maybe_min = PointFromJS(info[1]);
+    Nan::Maybe<TSPoint> maybe_max = PointFromJS(info[2]);
+    if (maybe_min.IsJust() && maybe_max.IsJust()) {
+      TSPoint min = maybe_min.FromJust();
+      TSPoint max = maybe_max.FromJust();
+      MarshalNode(ts_node_descendant_for_point_range(node, min, max));
     }
-
-    TSNode result = ts_node_descendant_for_point_range(node->node_, min, max);
-    info.GetReturnValue().Set(Node::NewInstance(result));
   }
 }
 
-void Node::Type(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    const char *result = ts_node_type(node->node_);
+void Node::Type(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    const char *result = ts_node_type(node);
     info.GetReturnValue().Set(Nan::New(result).ToLocalChecked());
   }
 }
 
-void Node::IsNamed(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    bool result = ts_node_is_named(node->node_);
+void Node::IsNamed(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    bool result = ts_node_is_named(node);
     info.GetReturnValue().Set(Nan::New(result));
   }
 }
 
-void Node::Id(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    uint64_t result = reinterpret_cast<uint64_t>(node->node_.id);
+void Node::Id(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    uint64_t result = reinterpret_cast<uint64_t>(node.id);
     info.GetReturnValue().Set(Nan::New<Number>(result));
   }
 }
 
-void Node::StartIndex(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    int32_t result = ts_node_start_byte(node->node_) / 2;
+void Node::StartIndex(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    int32_t result = ts_node_start_byte(node) / 2;
     info.GetReturnValue().Set(Nan::New<Integer>(result));
   }
 }
 
-void Node::EndIndex(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    int32_t result = ts_node_end_byte(node->node_) / 2;
+void Node::EndIndex(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    int32_t result = ts_node_end_byte(node) / 2;
     info.GetReturnValue().Set(Nan::New<Integer>(result));
   }
 }
 
 void Node::StartPosition(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) TransferPoint(ts_node_start_point(node->node_));
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    TransferPoint(ts_node_start_point(node));
+  }
 }
 
 void Node::EndPosition(const Nan::FunctionCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) TransferPoint(ts_node_end_point(node->node_));
-}
-
-void Node::Children(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    info.GetReturnValue().Set(NodeArray::NewInstance(node->node_, false));
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    TransferPoint(ts_node_end_point(node));
   }
 }
 
-void Node::NamedChildren(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    info.GetReturnValue().Set(NodeArray::NewInstance(node->node_, true));
-  }
-}
-
-void Node::FirstChild(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    TSNode child = ts_node_child(node->node_, 0);
-    if (child.id) {
-      info.GetReturnValue().Set(Node::NewInstance(child));
+void Node::Child(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    if (!info[1]->IsUint32()) {
+      Nan::ThrowTypeError("Second argument must be an integer");
       return;
     }
+    uint32_t index = info[1]->Uint32Value();
+    MarshalNode(ts_node_child(node, index));
   }
-  info.GetReturnValue().Set(Nan::Null());
 }
 
-void Node::FirstNamedChild(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    TSNode child = ts_node_named_child(node->node_, 0);
-    if (child.id) {
-      info.GetReturnValue().Set(Node::NewInstance(child));
+void Node::NamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    if (!info[1]->IsUint32()) {
+      Nan::ThrowTypeError("Second argument must be an integer");
       return;
     }
+    uint32_t index = info[1]->Uint32Value();
+    MarshalNode(ts_node_named_child(node, index));
   }
-  info.GetReturnValue().Set(Nan::Null());
 }
 
-void Node::LastChild(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    uint32_t child_count = ts_node_child_count(node->node_);
+void Node::ChildCount(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    info.GetReturnValue().Set(Nan::New(ts_node_child_count(node)));
+  }
+}
+
+void Node::NamedChildCount(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    info.GetReturnValue().Set(Nan::New(ts_node_named_child_count(node)));
+  }
+}
+
+void Node::FirstChild(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    MarshalNode(ts_node_child(node, 0));
+  }
+}
+
+void Node::FirstNamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    MarshalNode(ts_node_named_child(node, 0));
+  }
+}
+
+void Node::LastChild(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    uint32_t child_count = ts_node_child_count(node);
     if (child_count > 0) {
-      TSNode child = ts_node_child(node->node_, child_count - 1);
-      info.GetReturnValue().Set(Node::NewInstance(child));
-      return;
+      MarshalNode(ts_node_child(node, child_count - 1));
     }
   }
-  info.GetReturnValue().Set(Nan::Null());
 }
 
-void Node::LastNamedChild(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    uint32_t child_count = ts_node_named_child_count(node->node_);
+void Node::LastNamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    uint32_t child_count = ts_node_named_child_count(node);
     if (child_count > 0) {
-      TSNode child = ts_node_named_child(node->node_, child_count - 1);
-      info.GetReturnValue().Set(Node::NewInstance(child));
-      return;
+      MarshalNode(ts_node_named_child(node, child_count - 1));
     }
   }
-  info.GetReturnValue().Set(Nan::Null());
 }
 
-void Node::Parent(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    TSNode parent = ts_node_parent(node->node_);
-    if (parent.id) {
-      info.GetReturnValue().Set(Node::NewInstance(parent));
-      return;
-    }
+void Node::Parent(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    MarshalNode(ts_node_parent(node));
   }
-  info.GetReturnValue().Set(Nan::Null());
 }
 
-void Node::NextSibling(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    TSNode sibling = ts_node_next_sibling(node->node_);
-    if (sibling.id) {
-      info.GetReturnValue().Set(Node::NewInstance(sibling));
-      return;
-    }
+void Node::NextSibling(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    MarshalNode(ts_node_next_sibling(node));
   }
-  info.GetReturnValue().Set(Nan::Null());
 }
 
-void Node::NextNamedSibling(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    TSNode sibling = ts_node_next_named_sibling(node->node_);
-    if (sibling.id) {
-      info.GetReturnValue().Set(Node::NewInstance(sibling));
-      return;
-    }
+void Node::NextNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    MarshalNode(ts_node_next_named_sibling(node));
   }
-  info.GetReturnValue().Set(Nan::Null());
 }
 
-void Node::PreviousSibling(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    TSNode sibling = ts_node_prev_sibling(node->node_);
-    if (sibling.id) {
-      info.GetReturnValue().Set(Node::NewInstance(sibling));
-      return;
-    }
+void Node::PreviousSibling(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    MarshalNode(ts_node_prev_sibling(node));
   }
-  info.GetReturnValue().Set(Nan::Null());
 }
 
-void Node::PreviousNamedSibling(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
-  Node *node = Unwrap(info.This());
-  if (node) {
-    TSNode sibling = ts_node_prev_named_sibling(node->node_);
-    if (sibling.id) {
-      info.GetReturnValue().Set(Node::NewInstance(sibling));
-      return;
-    }
+void Node::PreviousNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (node.id) {
+    MarshalNode(ts_node_prev_named_sibling(node));
   }
-  info.GetReturnValue().Set(Nan::Null());
 }
 
 }  // namespace node_tree_sitter

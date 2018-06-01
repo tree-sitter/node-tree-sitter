@@ -10,7 +10,6 @@
         "src/conversions.cc",
         "src/input_reader.cc",
         "src/logger.cc",
-        "src/node_array.cc",
         "src/node.cc",
         "src/parser.cc",
         "src/tree.cc",

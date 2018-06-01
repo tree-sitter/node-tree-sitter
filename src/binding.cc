@@ -1,7 +1,6 @@
 #include <node.h>
 #include <v8.h>
 #include "./node.h"
-#include "./node_array.h"
 #include "./parser.h"
 #include "./tree.h"
 #include "./tree_cursor.h"
@@ -15,7 +14,6 @@ using namespace v8;
 void InitAll(Local<Object> exports) {
   InitConversions(exports);
   Node::Init(exports);
-  NodeArray::Init(exports);
   InputReader::Init();
   Parser::Init(exports);
   Tree::Init(exports);

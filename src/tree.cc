@@ -22,14 +22,10 @@ void Tree::Init(Local<Object> exports) {
   Local<String> class_name = Nan::New("Tree").ToLocalChecked();
   tpl->SetClassName(class_name);
 
-  Nan::SetAccessor(
-    tpl->InstanceTemplate(),
-    Nan::New("rootNode").ToLocalChecked(),
-    RootNode);
-
   FunctionPair methods[] = {
     {"edit", Edit},
     {"walk", Walk},
+    {"rootNode", RootNode},
     {"printDotGraph", PrintDotGraph},
     {"getChangedRanges", GetChangedRanges},
   };
@@ -114,14 +110,9 @@ void Tree::Walk(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(TreeCursor::NewInstance(cursor));
 }
 
-void Tree::RootNode(Local<String> property, const Nan::PropertyCallbackInfo<Value> &info) {
+void Tree::RootNode(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  TSNode node = ts_tree_root_node(tree->tree_);
-  if (node.id) {
-    info.GetReturnValue().Set(Node::NewInstance(node));
-  } else {
-    info.GetReturnValue().Set(Nan::Null());
-  }
+  Node::MarshalNode(ts_tree_root_node(tree->tree_));
 }
 
 void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {

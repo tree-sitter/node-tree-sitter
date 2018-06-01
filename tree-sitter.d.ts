@@ -29,58 +29,37 @@ declare module "tree-sitter" {
     read(): any;
   };
 
-  export interface Node {
-    id: number;
+  export interface SyntaxNode {
     isNamed: boolean;
     type: string;
     startPosition: Point;
     endPosition: Point;
-    children: NodeArray;
+    children: Array<SyntaxNode>;
+    namedChildren: Array<SyntaxNode>;
     startIndex: number;
     endIndex: number;
-    parent: Node | null;
-    namedChildren: NodeArray;
-    firstChild: Node | null;
-    lastChild: Node | null;
-    firstNamedChild: Node | null;
-    lastNamedChild: Node | null;
-    nextSibling: Node | null;
-    nextNamedSibling: Node | null;
-    previousSibling: Node | null;
-    previousNamedSibling: Node | null;
+    parent: SyntaxNode | null;
+    firstChild: SyntaxNode | null;
+    lastChild: SyntaxNode | null;
+    firstNamedChild: SyntaxNode | null;
+    lastNamedChild: SyntaxNode | null;
+    nextSibling: SyntaxNode | null;
+    nextNamedSibling: SyntaxNode | null;
+    previousSibling: SyntaxNode | null;
+    previousNamedSibling: SyntaxNode | null;
 
     isValid(): boolean;
     hasError(): boolean;
     hasChanges(): boolean;
     toString(): string;
-    descendantForIndex(index: number): Node;
-    descendantForIndex(startIndex: number, endIndex: number): Node;
-    namedDescendantForIndex(index: number): Node;
-    namedDescendantForIndex(startIndex: number, endIndex: number): Node;
-    descendantForPosition(position: Point): Node;
-    descendantForPosition(startPosition: Point, endPosition: Point): Node;
-    namedDescendantForPosition(position: Point): Node;
-    namedDescendantForPosition(startPosition: Point, endPosition: Point): Node;
-  };
-
-  type ArrayCallback<TItem, TArray, TReturn> = (
-    node: TItem,
-    index?: number,
-    array?: TArray
-  ) => TReturn;
-
-  export interface NodeArray extends ArrayLike<Node>, Iterable<Node> {
-    map<T>(callback: ArrayCallback<Node, NodeArray, void>, thisArg?: any): T[];
-    every(callback: ArrayCallback<Node, NodeArray, void>, thisArg?: any): void;
-    filter(callback: ArrayCallback<Node, NodeArray, boolean>, thisArg?: any): Node[];
-    find(callback: ArrayCallback<Node, NodeArray, boolean>, thisArg?: any): Node | undefined,
-    findIndex(callback: ArrayCallback<Node, NodeArray, boolean>, thisArg?: any): number;
-    forEach(callback: ArrayCallback<Node, NodeArray, void>, thisArg?: any): void;
-    indexOf(searchElement: Node, fromIndex?: number): number;
-    reduce<T>(callback: (accumulator: T, current: Node, currentIndex?: number, array?: NodeArray) => T, initialValue?: T): T;
-    reduceRight<T>(callback: (accumulator: T, current: Node, currentIndex?: number, array?: NodeArray) => T, initialValue?: T): T;
-    slice(begin?: number, end?: number): Node[],
-    some(callback: ArrayCallback<Node, NodeArray, boolean>, thisArg?: any): boolean,
+    descendantForIndex(index: number): SyntaxNode;
+    descendantForIndex(startIndex: number, endIndex: number): SyntaxNode;
+    namedDescendantForIndex(index: number): SyntaxNode;
+    namedDescendantForIndex(startIndex: number, endIndex: number): SyntaxNode;
+    descendantForPosition(position: Point): SyntaxNode;
+    descendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
+    namedDescendantForPosition(position: Point): SyntaxNode;
+    namedDescendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
   };
 
   export interface TreeCursor {
@@ -97,7 +76,7 @@ declare module "tree-sitter" {
   };
 
   export interface Tree {
-    public readonly rootNode: Node;
+    public readonly rootNode: SyntaxNode;
 
     public edit(delta: Edit): Document;
     public walk(): TreeCursor;
