@@ -66,19 +66,10 @@ void Node::Init(Local<Object> exports) {
   exports->Set(Nan::New("NodeMethods").ToLocalChecked(), result);
 }
 
-union PointerToInts {
-  const void *pointer;
-  struct {
-    uint32_t int1;
-    uint32_t int2;
-  };
-};
-
 void Node::MarshalNode(TSNode node) {
-  PointerToInts pointer_to_ints;
-  pointer_to_ints.pointer = node.id;
-  transfer_buffer[0] = pointer_to_ints.int1;
-  transfer_buffer[1] = pointer_to_ints.int2;
+  transfer_buffer[0] = 0;
+  transfer_buffer[1] = 0;
+  memcpy(&transfer_buffer[0], &node.id, sizeof(node.id));
   transfer_buffer[2] = node.context[0];
   transfer_buffer[3] = node.context[1];
   transfer_buffer[4] = node.context[2];
@@ -93,10 +84,7 @@ TSNode Node::UnmarshalNode(const v8::Local<v8::Value> &tree) {
     return result;
   }
 
-  PointerToInts pointer_to_ints;
-  pointer_to_ints.int1 = transfer_buffer[0];
-  pointer_to_ints.int2 = transfer_buffer[1];
-  result.id = pointer_to_ints.pointer;
+  memcpy(&result.id, &transfer_buffer[0], sizeof(result.id));
   result.context[0] = transfer_buffer[2];
   result.context[1] = transfer_buffer[3];
   result.context[2] = transfer_buffer[4];
