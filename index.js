@@ -15,7 +15,7 @@ const {rootNode} = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
-    if (!this.nodes) this.nodes = new Map();
+    if (!this.nodes) this.nodes = {};
     rootNode.call(this);
     return unmarshalNode(this);
   }
@@ -302,7 +302,7 @@ const {pointTransferArray, nodeTransferArray} = binding;
 function unmarshalNode(tree) {
   const key = `${nodeTransferArray[0]}${nodeTransferArray[1]}`
   if (key === '00') return null;
-  let result = tree.nodes.get(key);
+  let result = tree.nodes[key];
   if (!result) {
     result = new SyntaxNode(tree);
     result._0 = nodeTransferArray[0];
@@ -311,7 +311,7 @@ function unmarshalNode(tree) {
     result._3 = nodeTransferArray[3];
     result._4 = nodeTransferArray[4];
     result._5 = nodeTransferArray[5];
-    tree.nodes.set(key, result);
+    tree.nodes[key] = result;
   }
   return result;
 }
