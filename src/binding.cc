@@ -4,7 +4,6 @@
 #include "./parser.h"
 #include "./tree.h"
 #include "./tree_cursor.h"
-#include "./input_reader.h"
 #include "./conversions.h"
 
 namespace node_tree_sitter {
@@ -14,7 +13,6 @@ using namespace v8;
 void InitAll(Local<Object> exports) {
   InitConversions(exports);
   Node::Init(exports);
-  InputReader::Init();
   Parser::Init(exports);
   Tree::Init(exports);
   TreeCursor::Init(exports);

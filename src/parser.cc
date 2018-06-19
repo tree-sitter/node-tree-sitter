@@ -5,7 +5,6 @@
 #include <v8.h>
 #include <nan.h>
 #include "./conversions.h"
-#include "./input_reader.h"
 #include "./logger.h"
 #include "./tree.h"
 #include "./util.h"
@@ -18,6 +17,139 @@ using std::vector;
 using std::pair;
 
 Nan::Persistent<Function> Parser::constructor;
+
+class CallbackInput {
+ public:
+  CallbackInput(v8::Local<v8::Function> callback, v8::Local<v8::Value> js_buffer_size)
+    : callback(callback),
+      byte_offset(0),
+      partial_string_offset(0) {
+    if (js_buffer_size->IsUint32()) {
+      buffer.resize(Local<Integer>::Cast(js_buffer_size)->Uint32Value());
+    } else {
+      buffer.resize(32 * 1024);
+    }
+  }
+
+  TSInput Input() {
+    TSInput result;
+    result.payload = (void *)this;
+    result.encoding = TSInputEncodingUTF16;
+    result.read = Read;
+    return result;
+  }
+
+ private:
+  static const char * Read(void *payload, uint32_t byte, TSPoint position, uint32_t *bytes_read) {
+    CallbackInput *reader = (CallbackInput *)payload;
+
+    if (byte != reader->byte_offset) {
+      reader->byte_offset = byte;
+      reader->partial_string_offset = 0;
+      reader->partial_string.Reset();
+    }
+
+    Local<String> result;
+    uint32_t start;
+    if (reader->partial_string_offset) {
+      result = Nan::New(reader->partial_string);
+      start = reader->partial_string_offset;
+    } else {
+      Local<Function> callback = Nan::New(reader->callback);
+      uint32_t utf16_unit = byte / 2;
+      Local<Value> argv[2] = { Nan::New<Number>(utf16_unit), PointToJS(position) };
+      TryCatch try_catch(Isolate::GetCurrent());
+      auto result_value = callback->Call(Nan::Null(), 2, argv);
+      if (!try_catch.HasCaught() && result_value->IsString()) {
+        result = Local<String>::Cast(result_value);
+        start = 0;
+      } else {
+        *bytes_read = 0;
+        start = 0;
+        return "";
+      }
+    }
+
+    int utf16_units_read = result->Write(reader->buffer.data(), start, reader->buffer.size(), 2);
+    int end = start + utf16_units_read;
+    *bytes_read = 2 * utf16_units_read;
+
+    reader->byte_offset += *bytes_read;
+
+    if (end < result->Length()) {
+      reader->partial_string_offset = end;
+      reader->partial_string.Reset(result);
+    } else {
+      reader->partial_string_offset = 0;
+      reader->partial_string.Reset();
+    }
+
+    return (const char *)reader->buffer.data();
+  }
+
+  Nan::Persistent<v8::Function> callback;
+  std::vector<uint16_t> buffer;
+  size_t byte_offset;
+  Nan::Persistent<v8::String> partial_string;
+  size_t partial_string_offset;
+};
+
+class TextBufferInput {
+public:
+  TextBufferInput(const vector<pair<const char16_t *, uint32_t>> *slices)
+    : slices_(slices),
+      byte_offset(0),
+      slice_index_(0),
+      slice_offset_(0) {}
+
+  TSInput input() {
+    return TSInput{this, Read, TSInputEncodingUTF16};
+  }
+
+private:
+  void seek(uint32_t byte_offset) {
+    this->byte_offset = byte_offset;
+
+    uint32_t total_length = 0;
+    uint32_t goal_index = byte_offset / 2;
+    for (unsigned i = 0, n = this->slices_->size(); i < n; i++) {
+      uint32_t next_total_length = total_length + this->slices_->at(i).second;
+      if (next_total_length > goal_index) {
+        this->slice_index_ = i;
+        this->slice_offset_ = goal_index - total_length;
+        return;
+      }
+      total_length = next_total_length;
+    }
+
+    this->slice_index_ = this->slices_->size();
+    this->slice_offset_ = 0;
+  }
+
+  static const char *Read(void *payload, uint32_t byte, TSPoint position, uint32_t *length) {
+    auto self = static_cast<TextBufferInput *>(payload);
+
+    if (byte != self->byte_offset) self->seek(byte);
+
+    if (self->slice_index_ == self->slices_->size()) {
+      *length = 0;
+      return "";
+    }
+
+    auto &slice = self->slices_->at(self->slice_index_);
+    const char16_t *result = slice.first + self->slice_offset_;
+    *length = 2 * (slice.second - self->slice_offset_);
+    self->byte_offset += *length;
+    self->slice_index_++;
+    self->slice_offset_ = 0;
+    return reinterpret_cast<const char *>(result);
+  }
+
+  const vector<pair<const char16_t *, uint32_t>> *slices_;
+  uint32_t byte_offset;
+  uint32_t slice_index_;
+  uint32_t slice_offset_;
+};
 
 void Parser::Init(Local<Object> exports) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
@@ -108,22 +240,12 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  if (!info[0]->IsObject()) {
-    Nan::ThrowTypeError("Input must be an object");
+  if (!info[0]->IsFunction()) {
+    Nan::ThrowTypeError("Input must be a function");
     return;
   }
 
-  Local<Object> input = Local<Object>::Cast(info[0]);
-
-  if (!input->Get(Nan::New("seek").ToLocalChecked())->IsFunction()) {
-    Nan::ThrowTypeError("Input must implement seek(n)");
-    return;
-  }
-
-  if (!input->Get(Nan::New("read").ToLocalChecked())->IsFunction()) {
-    Nan::ThrowTypeError("Input must implement read(n)");
-    return;
-  }
+  Local<Function> callback = Local<Function>::Cast(info[0]);
 
   const TSTree *old_tree = nullptr;
   if (info.Length() > 1 && info[1]->BooleanValue()) {
@@ -135,94 +257,35 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
     old_tree = tree;
   }
 
-  InputReader input_reader(input);
-  TSTree *tree = ts_parser_parse(parser->parser_, old_tree, input_reader.Input());
-
+  Local<Value> buffer_size = Nan::Null();
+  if (info.Length() > 2) buffer_size = info[2];
+  CallbackInput callback_input(callback, buffer_size);
+  TSTree *tree = ts_parser_parse(parser->parser_, old_tree, callback_input.Input());
   Local<Value> result = Tree::NewInstance(tree);
   info.GetReturnValue().Set(result);
 }
 
-class TextBufferInput {
-public:
-  TextBufferInput(const vector<pair<const char16_t *, uint32_t>> *slices)
-    : slices_(slices), slice_index_(0), slice_offset_(0) {}
-
-  TSInput input() {
-    return TSInput{
-      this,
-      Read,
-      Seek,
-      TSInputEncodingUTF16,
-    };
-  }
-
-private:
-  static int Seek(void *payload, uint32_t byte, TSPoint position) {
-    auto self = static_cast<TextBufferInput *>(payload);
-
-    uint32_t total_length = 0;
-    uint32_t goal_index = byte / 2;
-    for (unsigned i = 0, n = self->slices_->size(); i < n; i++) {
-      uint32_t next_total_length = total_length + self->slices_->at(i).second;
-      if (next_total_length > goal_index) {
-        self->slice_index_ = i;
-        self->slice_offset_ = goal_index - total_length;
-        return true;
-      }
-      total_length = next_total_length;
-    }
-
-    self->slice_index_ = self->slices_->size();
-    self->slice_offset_ = 0;
-    return true;
-  }
-
-  static const char *Read(void *payload, uint32_t *length) {
-    auto self = static_cast<TextBufferInput *>(payload);
-
-    if (self->slice_index_ == self->slices_->size()) {
-      *length = 0;
-      return "";
-    }
-
-    auto &slice = self->slices_->at(self->slice_index_);
-    const char16_t *result = slice.first + self->slice_offset_;
-    *length = 2 * (slice.second - self->slice_offset_);
-    self->slice_index_++;
-    self->slice_offset_ = 0;
-    return reinterpret_cast<const char *>(result);
-  }
-
-  const vector<pair<const char16_t *, uint32_t>> *slices_;
-  uint32_t slice_index_;
-  uint32_t slice_offset_;
-};
-
 class ParseWorker : public Nan::AsyncWorker {
   Parser *parser_;
-  TSTree *old_tree_;
   TSTree *new_tree_;
   TextBufferInput *input_;
 
 public:
-  ParseWorker(Nan::Callback *callback, Parser *parser,
-              TextBufferInput *input, TSTree *old_tree) :
+  ParseWorker(Nan::Callback *callback, Parser *parser, TextBufferInput *input) :
     AsyncWorker(callback),
     parser_(parser),
-    old_tree_(old_tree),
     new_tree_(nullptr),
     input_(input) {}
 
   void Execute() {
     TSLogger logger = ts_parser_logger(parser_->parser_);
     ts_parser_set_logger(parser_->parser_, TSLogger{0, 0});
-    new_tree_ = ts_parser_resume(parser_->parser_);
+    new_tree_ = ts_parser_parse(parser_->parser_, nullptr, input_->input());
     ts_parser_set_logger(parser_->parser_, logger);
   }
 
   void HandleOKCallback() {
     parser_->is_parsing_async_ = false;
-    if (old_tree_) ts_tree_delete(old_tree_);
     delete input_;
     Local<Value> argv[] = {Tree::NewInstance(new_tree_)};
     callback->Call(1, argv);
@@ -241,14 +304,13 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
 
   parser->is_parsing_async_ = true;
 
-  TSTree *old_tree = nullptr;
+  const TSTree *old_tree = nullptr;
   if (info.Length() > 2 && info[2]->BooleanValue()) {
-    const TSTree *tree = Tree::UnwrapTree(info[2]);
-    if (!tree) {
+    old_tree = Tree::UnwrapTree(info[2]);
+    if (!old_tree) {
       Nan::ThrowTypeError("Second argument must be a tree");
       return;
     }
-    old_tree = ts_tree_copy(tree);
   }
 
   size_t operation_limit = 0;
@@ -271,7 +333,6 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
 
   if (result) {
     parser->is_parsing_async_ = false;
-    if (old_tree) ts_tree_delete(old_tree);
     delete input;
     Local<Value> argv[] = {Tree::NewInstance(result)};
     callback->Call(1, argv);
@@ -279,8 +340,7 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
     Nan::AsyncQueueWorker(new ParseWorker(
       callback,
       parser,
-      input,
-      old_tree
+      input
     ));
   }
 }

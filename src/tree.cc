@@ -2,7 +2,6 @@
 #include <string>
 #include <v8.h>
 #include <nan.h>
-#include "./input_reader.h"
 #include "./node.h"
 #include "./logger.h"
 #include "./util.h"

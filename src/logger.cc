@@ -1,5 +1,4 @@
 #include "./logger.h"
-#include "./input_reader.h"
 #include <string>
 #include <v8.h>
 #include <nan.h>

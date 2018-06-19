@@ -253,10 +253,10 @@ Parser.prototype.getLanguage = function(language) {
 
 Parser.prototype.parse = function(input, oldTree, bufferSize) {
   if (typeof input === 'string') {
-    return parse.call(this, new StringInput(input, bufferSize), oldTree);
-  } else {
-    return parse.call(this, input, oldTree);
+    const inputString = input;
+    input = (offset) => inputString.slice(offset)
   }
+  return parse.call(this, input, oldTree, bufferSize);
 };
 
 Parser.prototype.parseTextBuffer = function(buffer, oldTree, options) {
