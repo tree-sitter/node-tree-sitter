@@ -74,7 +74,25 @@ tree.edit({
 const newTree = parser.parse(newCode, tree);
 ```
 
-### Advanced Usage
+### Parsing Text From a Custom Data Structure
+
+If your text is stored in a data structure other than a single string, you can parse it by supplying a callback to `parse` instead of a string:
+
+```javascript
+const sourceLines = [
+  'let x = 1;',
+  'console.log(x);'
+];
+
+const tree = parser.parse((index, position) => {
+  let line = sourceLines[position.row];
+  if (line) {
+    return line.slice(position.column);
+  }
+});
+```
+
+### Asynchronous Parsing
 
 If you have source code stored in a [superstring](https://github.com/atom/superstring) `TextBuffer`, you can parse that source code on a background thread with a `Promise`-based interface:
 
