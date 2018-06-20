@@ -14,6 +14,7 @@ void TransferPoint(const TSPoint &);
 v8::Local<v8::Number> ByteCountToJS(uint32_t);
 Nan::Maybe<TSPoint> PointFromJS(const v8::Local<v8::Value> &);
 Nan::Maybe<uint32_t> ByteCountFromJS(const v8::Local<v8::Value> &);
+Nan::Maybe<TSRange> RangeFromJS(const v8::Local<v8::Value> &);
 
 extern Nan::Persistent<v8::String> row_key;
 extern Nan::Persistent<v8::String> column_key;

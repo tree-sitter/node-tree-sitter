@@ -180,6 +180,28 @@ Parser::Parser() : parser_(ts_parser_new()), is_parsing_async_(false) {}
 
 Parser::~Parser() { ts_parser_delete(parser_); }
 
+static bool handle_included_ranges(TSParser *parser, Local<Value> arg) {
+  if (arg->BooleanValue()) {
+    if (!arg->IsArray()) {
+      Nan::ThrowTypeError("includedRanges must be an array");
+      return false;
+    }
+
+    auto js_included_ranges = Local<Array>::Cast(arg);
+    vector<TSRange> included_ranges;
+    for (unsigned i = 0; i < js_included_ranges->Length(); i++) {
+      auto range = RangeFromJS(js_included_ranges->Get(i));
+      if (!range.IsJust()) return false;
+      included_ranges.push_back(range.FromJust());
+    }
+    ts_parser_set_included_ranges(parser, included_ranges.data(), included_ranges.size());
+  } else {
+    ts_parser_set_included_ranges(parser, nullptr, 0);
+  }
+
+  return true;
+}
+
 void Parser::New(const Nan::FunctionCallbackInfo<Value> &info) {
   if (info.IsConstructCall()) {
     Parser *parser = new Parser();
@@ -259,6 +281,9 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
 
   Local<Value> buffer_size = Nan::Null();
   if (info.Length() > 2) buffer_size = info[2];
+
+  if (!handle_included_ranges(parser->parser_, info[3])) return;
+
   CallbackInput callback_input(callback, buffer_size);
   TSTree *tree = ts_parser_parse(parser->parser_, old_tree, callback_input.Input());
   Local<Value> result = Tree::NewInstance(tree);
@@ -313,10 +338,12 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
     }
   }
 
+  if (!handle_included_ranges(parser->parser_, info[3])) return;
+
   size_t operation_limit = 0;
-  if (info.Length() > 3 && info[3]->BooleanValue()) {
-    if (info[3]->IsUint32()) {
-      operation_limit = info[3]->Uint32Value();
+  if (info[4]->BooleanValue()) {
+    if (info[4]->IsUint32()) {
+      operation_limit = info[4]->Uint32Value();
     } else {
       Nan::ThrowTypeError("The `syncOperationLimit` option must be a positive integer.");
       return;

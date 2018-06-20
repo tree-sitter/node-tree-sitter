@@ -10,8 +10,10 @@ using namespace v8;
 
 Nan::Persistent<String> row_key;
 Nan::Persistent<String> column_key;
-Nan::Persistent<String> start_key;
-Nan::Persistent<String> end_key;
+Nan::Persistent<String> start_index_key;
+Nan::Persistent<String> start_position_key;
+Nan::Persistent<String> end_index_key;
+Nan::Persistent<String> end_position_key;
 
 static unsigned BYTES_PER_CHARACTER = 2;
 static uint32_t *point_transfer_buffer;
@@ -19,8 +21,10 @@ static uint32_t *point_transfer_buffer;
 void InitConversions(Local<Object> exports) {
   row_key.Reset(Nan::Persistent<String>(Nan::New("row").ToLocalChecked()));
   column_key.Reset(Nan::Persistent<String>(Nan::New("column").ToLocalChecked()));
-  start_key.Reset(Nan::Persistent<String>(Nan::New("start").ToLocalChecked()));
-  end_key.Reset(Nan::Persistent<String>(Nan::New("end").ToLocalChecked()));
+  start_index_key.Reset(Nan::Persistent<String>(Nan::New("startIndex").ToLocalChecked()));
+  start_position_key.Reset(Nan::Persistent<String>(Nan::New("startPosition").ToLocalChecked()));
+  end_index_key.Reset(Nan::Persistent<String>(Nan::New("endIndex").ToLocalChecked()));
+  end_position_key.Reset(Nan::Persistent<String>(Nan::New("endPosition").ToLocalChecked()));
 
   point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
   auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
@@ -34,9 +38,40 @@ void TransferPoint(const TSPoint &point) {
 
 Local<Object> RangeToJS(const TSRange &range) {
   Local<Object> result = Nan::New<Object>();
-  result->Set(Nan::New(start_key), PointToJS(range.start));
-  result->Set(Nan::New(end_key), PointToJS(range.end));
+  result->Set(Nan::New(start_position_key), PointToJS(range.start_point));
+  result->Set(Nan::New(start_index_key), ByteCountToJS(range.start_byte));
+  result->Set(Nan::New(end_position_key), PointToJS(range.end_point));
+  result->Set(Nan::New(end_index_key), ByteCountToJS(range.end_byte));
   return result;
+}
+
+Nan::Maybe<TSRange> RangeFromJS(const Local<Value> &arg) {
+  if (!arg->IsObject()) {
+    Nan::ThrowTypeError("Range must be a {startPosition, endPosition, startIndex, endIndex} object");
+    return Nan::Nothing<TSRange>();
+  }
+
+  TSRange result;
+
+  Local<Object> js_range = Local<Object>::Cast(arg);
+
+  #define INIT(field, key, Type) { \
+    auto field = Type(js_range->Get(Nan::New(key))); \
+    if (field.IsJust()) { \
+      result.field = field.FromJust(); \
+    } else { \
+      return Nan::Nothing<TSRange>(); \
+    } \
+  }
+
+  INIT(start_point, start_position_key, PointFromJS);
+  INIT(end_point, end_position_key, PointFromJS);
+  INIT(start_byte, start_index_key, ByteCountFromJS);
+  INIT(end_byte, end_index_key, ByteCountFromJS);
+
+  #undef INIT
+
+  return Nan::Just(result);
 }
 
 Local<Object> PointToJS(const TSPoint &point) {

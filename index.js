@@ -251,28 +251,43 @@ Parser.prototype.getLanguage = function(language) {
   return this[languageSymbol] || null;
 };
 
-Parser.prototype.parse = function(input, oldTree, bufferSize) {
+Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={}) {
   if (typeof input === 'string') {
     const inputString = input;
     input = (offset) => inputString.slice(offset)
   }
-  return parse.call(this, input, oldTree, bufferSize);
+  return parse.call(
+    this,
+    input,
+    oldTree,
+    bufferSize,
+    includedRanges
+  );
 };
 
-Parser.prototype.parseTextBuffer = function(buffer, oldTree, options) {
+Parser.prototype.parseTextBuffer = function(
+  buffer, oldTree,
+  {syncOperationLimit, includedRanges} = {}
+) {
   const snapshot = buffer.getSnapshot();
-  const syncOperationLimit = options && options.syncOperationLimit;
   return new Promise(resolve => {
-    parseTextBuffer.call(this, result => {
-      snapshot.destroy();
-      resolve(result);
-    }, snapshot, oldTree, syncOperationLimit)
+    parseTextBuffer.call(
+      this,
+      result => {
+        snapshot.destroy();
+        resolve(result);
+      },
+      snapshot,
+      oldTree,
+      includedRanges,
+      syncOperationLimit
+    )
   });
 };
 
-Parser.prototype.parseTextBufferSync = function(buffer, oldTree) {
+Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges}={}) {
   const snapshot = buffer.getSnapshot();
-  const tree = parseTextBufferSync.call(this, snapshot, oldTree);
+  const tree = parseTextBufferSync.call(this, snapshot, oldTree, includedRanges);
   snapshot.destroy();
   return tree;
 };
