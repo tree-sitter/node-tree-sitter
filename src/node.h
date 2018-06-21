@@ -12,6 +12,7 @@ class Node {
  public:
   static void Init(v8::Local<v8::Object> exports);
   static void MarshalNode(TSNode);
+  static void MarshalNodes(const TSNode *, uint32_t);
   static TSNode UnmarshalNode(const v8::Local<v8::Value> &tree);
 
  private:
@@ -47,6 +48,8 @@ class Node {
   static void NextNamedSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void PreviousSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void PreviousNamedSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
+
+  static void DescendantsOfType(const Nan::FunctionCallbackInfo<v8::Value> &);
 };
 
 }  // namespace node_tree_sitter

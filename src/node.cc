@@ -1,6 +1,7 @@
 #include "./node.h"
 #include <nan.h>
 #include <tree_sitter/runtime.h>
+#include <vector>
 #include <v8.h>
 #include "./util.h"
 #include "./conversions.h"
@@ -8,9 +9,27 @@
 
 namespace node_tree_sitter {
 
+using std::vector;
 using namespace v8;
 
-static uint32_t *transfer_buffer;
+static uint32_t *transfer_buffer = NULL;
+static uint32_t transfer_buffer_length = 0;
+static Nan::Persistent<Object> module_exports;
+
+static uint32_t FIELD_COUNT_PER_NODE = 6;
+
+static void setup_transfer_buffer(uint32_t node_count) {
+  uint32_t new_length = node_count * FIELD_COUNT_PER_NODE;
+  if (new_length > transfer_buffer_length) {
+    transfer_buffer_length = new_length;
+    transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
+    auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
+    Nan::New(module_exports)->Set(
+      Nan::New("nodeTransferArray").ToLocalChecked(),
+      Uint32Array::New(js_transfer_buffer, 0, transfer_buffer_length)
+    );
+  }
+}
 
 void Node::Init(Local<Object> exports) {
   Local<Object> result = Nan::New<Object>();
@@ -46,6 +65,7 @@ void Node::Init(Local<Object> exports) {
     {"namedDescendantForPosition", NamedDescendantForPosition},
     {"hasChanges", HasChanges},
     {"hasError", HasError},
+    {"descendantsOfType", DescendantsOfType},
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
@@ -55,25 +75,29 @@ void Node::Init(Local<Object> exports) {
     );
   }
 
-  uint32_t transfer_buffer_length = 6;
-  transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
-  auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
-  exports->Set(
-    Nan::New("nodeTransferArray").ToLocalChecked(),
-    Uint32Array::New(js_transfer_buffer, 0, transfer_buffer_length)
-  );
+  module_exports.Reset(exports);
+  setup_transfer_buffer(1);
 
   exports->Set(Nan::New("NodeMethods").ToLocalChecked(), result);
 }
 
+void Node::MarshalNodes(const TSNode *nodes, uint32_t node_count) {
+  setup_transfer_buffer(node_count);
+  uint32_t *p = transfer_buffer;
+  for (unsigned i = 0; i < node_count; i++) {
+    TSNode node = nodes[i];
+    memset(p, 0, sizeof(node.id));
+    memcpy(p, &node.id, sizeof(node.id));
+    p += 2;
+    *(p++) = node.context[0];
+    *(p++) = node.context[1];
+    *(p++) = node.context[2];
+    *(p++) = node.context[3];
+  }
+}
+
 void Node::MarshalNode(TSNode node) {
-  transfer_buffer[0] = 0;
-  transfer_buffer[1] = 0;
-  memcpy(&transfer_buffer[0], &node.id, sizeof(node.id));
-  transfer_buffer[2] = node.context[0];
-  transfer_buffer[3] = node.context[1];
-  transfer_buffer[4] = node.context[2];
-  transfer_buffer[5] = node.context[3];
+  MarshalNodes(&node, 1);
 }
 
 TSNode Node::UnmarshalNode(const v8::Local<v8::Value> &tree) {
@@ -356,6 +380,86 @@ void Node::PreviousNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
   if (node.id) {
     MarshalNode(ts_node_prev_named_sibling(node));
   }
+}
+
+bool operator<=(const TSPoint &left, const TSPoint &right) {
+  if (left.row < right.row) return true;
+  if (left.row > right.row) return false;
+  return left.column <= right.column;
+}
+
+void Node::DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  if (!node.id) return;
+
+  if (!info[1]->IsString()) {
+    Nan::ThrowTypeError("Node type must be a string");
+    return;
+  }
+
+  auto js_node_type = Local<String>::Cast(info[1]);
+  std::string node_type(js_node_type->Utf8Length() + 1, '\0');
+  js_node_type->WriteUtf8(&node_type[0]);
+
+  const TSLanguage *language = ts_tree_language(node.tree);
+  TSSymbol symbol = ts_language_symbol_for_name(language, node_type.c_str());
+  if (!symbol) {
+    Nan::ThrowTypeError("Invalid node type");
+    return;
+  }
+
+  auto maybe_start_point = PointFromJS(info[2]);
+  auto maybe_end_point = PointFromJS(info[3]);
+  if (maybe_start_point.IsNothing() || maybe_end_point.IsNothing()) {
+    return;
+  }
+
+  TSPoint start_point = maybe_start_point.FromJust();
+  TSPoint end_point = maybe_end_point.FromJust();
+
+  vector<TSNode> found;
+  TSTreeCursor cursor = ts_tree_cursor_new(node);
+  auto already_visited_children = false;
+  while (true) {
+    TSNode descendant = ts_tree_cursor_current_node(&cursor);
+
+    if (!already_visited_children) {
+      if (ts_node_end_point(descendant) <= start_point) {
+        if (ts_tree_cursor_goto_next_sibling(&cursor)) {
+          already_visited_children = false;
+        } else {
+          if (!ts_tree_cursor_goto_parent(&cursor)) break;
+          already_visited_children = true;
+        }
+        continue;
+      }
+
+      if (end_point <= ts_node_start_point(descendant)) break;
+
+      if (ts_node_symbol(descendant) == symbol) {
+        found.push_back(descendant);
+      }
+
+      if (ts_tree_cursor_goto_first_child(&cursor)) {
+        already_visited_children = false;
+      } else if (ts_tree_cursor_goto_next_sibling(&cursor)) {
+        already_visited_children = false;
+      } else {
+        if (!ts_tree_cursor_goto_parent(&cursor)) break;
+        already_visited_children = true;
+      }
+    } else {
+      if (ts_tree_cursor_goto_next_sibling(&cursor)) {
+        already_visited_children = false;
+      } else {
+        if (!ts_tree_cursor_goto_parent(&cursor)) break;
+      }
+    }
+  }
+
+  ts_tree_cursor_delete(&cursor);
+  MarshalNodes(found.data(), found.size());
+  info.GetReturnValue().Set(Nan::New<Number>(found.size()));
 }
 
 }  // namespace node_tree_sitter

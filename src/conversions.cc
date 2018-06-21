@@ -3,6 +3,7 @@
 #include <tree_sitter/runtime.h>
 #include <v8.h>
 #include "./conversions.h"
+#include <cmath>
 
 namespace node_tree_sitter {
 
@@ -100,8 +101,19 @@ Nan::Maybe<TSPoint> PointFromJS(const Local<Value> &arg) {
     return Nan::Nothing<TSPoint>();
   }
 
-  uint32_t row = static_cast<uint32_t>(js_row->Int32Value());
-  uint32_t column = static_cast<uint32_t>(js_column->Int32Value() * BYTES_PER_CHARACTER);
+  uint32_t row, column;
+  if (std::isfinite(js_row->NumberValue())) {
+    row = static_cast<uint32_t>(js_row->Int32Value());
+  } else {
+    row = UINT32_MAX;
+  }
+
+  if (std::isfinite(js_column->NumberValue())) {
+    column = static_cast<uint32_t>(js_column->Int32Value()) * BYTES_PER_CHARACTER;
+  } else {
+    column = UINT32_MAX;
+  }
+
   return Nan::Just<TSPoint>({row, column});
 }
 

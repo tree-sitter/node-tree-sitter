@@ -181,12 +181,7 @@ Parser::Parser() : parser_(ts_parser_new()), is_parsing_async_(false) {}
 Parser::~Parser() { ts_parser_delete(parser_); }
 
 static bool handle_included_ranges(TSParser *parser, Local<Value> arg) {
-  if (arg->BooleanValue()) {
-    if (!arg->IsArray()) {
-      Nan::ThrowTypeError("includedRanges must be an array");
-      return false;
-    }
-
+  if (arg->IsArray()) {
     auto js_included_ranges = Local<Array>::Cast(arg);
     vector<TSRange> included_ranges;
     for (unsigned i = 0; i < js_included_ranges->Length(); i++) {

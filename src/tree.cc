@@ -105,7 +105,7 @@ void Tree::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Tree::Walk(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  TSTreeCursor cursor = ts_tree_cursor_new(tree->tree_);
+  TSTreeCursor cursor = ts_tree_cursor_new(ts_tree_root_node(tree->tree_));
   info.GetReturnValue().Set(TreeCursor::NewInstance(cursor));
 }
 
