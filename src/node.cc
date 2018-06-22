@@ -6,6 +6,7 @@
 #include "./util.h"
 #include "./conversions.h"
 #include "./tree.h"
+#include "./tree_cursor.h"
 
 namespace node_tree_sitter {
 
@@ -18,7 +19,7 @@ static Nan::Persistent<Object> module_exports;
 
 static uint32_t FIELD_COUNT_PER_NODE = 6;
 
-static void setup_transfer_buffer(uint32_t node_count) {
+static inline void setup_transfer_buffer(uint32_t node_count) {
   uint32_t new_length = node_count * FIELD_COUNT_PER_NODE;
   if (new_length > transfer_buffer_length) {
     transfer_buffer_length = new_length;
@@ -29,6 +30,12 @@ static void setup_transfer_buffer(uint32_t node_count) {
       Uint32Array::New(js_transfer_buffer, 0, transfer_buffer_length)
     );
   }
+}
+
+static inline bool operator<=(const TSPoint &left, const TSPoint &right) {
+  if (left.row < right.row) return true;
+  if (left.row > right.row) return false;
+  return left.column <= right.column;
 }
 
 void Node::Init(Local<Object> exports) {
@@ -66,6 +73,7 @@ void Node::Init(Local<Object> exports) {
     {"hasChanges", HasChanges},
     {"hasError", HasError},
     {"descendantsOfType", DescendantsOfType},
+    {"walk", Walk},
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
@@ -382,12 +390,6 @@ void Node::PreviousNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 }
 
-bool operator<=(const TSPoint &left, const TSPoint &right) {
-  if (left.row < right.row) return true;
-  if (left.row > right.row) return false;
-  return left.column <= right.column;
-}
-
 void Node::DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
   TSNode node = UnmarshalNode(info[0]);
   if (!node.id) return;
@@ -460,6 +462,12 @@ void Node::DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
   ts_tree_cursor_delete(&cursor);
   MarshalNodes(found.data(), found.size());
   info.GetReturnValue().Set(Nan::New<Number>(found.size()));
+}
+
+void Node::Walk(const Nan::FunctionCallbackInfo<Value> &info) {
+  TSNode node = UnmarshalNode(info[0]);
+  TSTreeCursor cursor = ts_tree_cursor_new(node);
+  info.GetReturnValue().Set(TreeCursor::NewInstance(cursor));
 }
 
 }  // namespace node_tree_sitter

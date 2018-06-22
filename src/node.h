@@ -50,6 +50,7 @@ class Node {
   static void PreviousNamedSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
 
   static void DescendantsOfType(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Walk(const Nan::FunctionCallbackInfo<v8::Value> &);
 };
 
 }  // namespace node_tree_sitter

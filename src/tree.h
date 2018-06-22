@@ -19,7 +19,6 @@ class Tree : public Nan::ObjectWrap {
   ~Tree();
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void Walk(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Edit(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void RootNode(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void PrintDotGraph(const Nan::FunctionCallbackInfo<v8::Value> &);

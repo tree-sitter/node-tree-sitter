@@ -6,7 +6,6 @@
 #include "./logger.h"
 #include "./util.h"
 #include "./conversions.h"
-#include "./tree_cursor.h"
 
 namespace node_tree_sitter {
 
@@ -23,7 +22,6 @@ void Tree::Init(Local<Object> exports) {
 
   FunctionPair methods[] = {
     {"edit", Edit},
-    {"walk", Walk},
     {"rootNode", RootNode},
     {"printDotGraph", PrintDotGraph},
     {"getChangedRanges", GetChangedRanges},
@@ -101,12 +99,6 @@ void Tree::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
   edit.new_end_point = new_end_point.FromJust();
   ts_tree_edit(tree->tree_, &edit);
   info.GetReturnValue().Set(info.This());
-}
-
-void Tree::Walk(const Nan::FunctionCallbackInfo<Value> &info) {
-  Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  TSTreeCursor cursor = ts_tree_cursor_new(ts_tree_root_node(tree->tree_));
-  info.GetReturnValue().Set(TreeCursor::NewInstance(cursor));
 }
 
 void Tree::RootNode(const Nan::FunctionCallbackInfo<Value> &info) {

@@ -21,6 +21,10 @@ Object.defineProperty(Tree.prototype, 'rootNode', {
   }
 })
 
+Tree.prototype.walk = function () {
+  return this.rootNode.walk()
+}
+
 class SyntaxNode {
   constructor(tree) {
     this.tree = tree;
@@ -223,6 +227,11 @@ class SyntaxNode {
       NodeMethods.descendantForPosition(this.tree, start, start);
     }
     return unmarshalNode(this.tree);
+  }
+
+  walk () {
+    marshalNode(this);
+    return NodeMethods.walk(this.tree);
   }
 }
 
