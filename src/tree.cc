@@ -103,7 +103,7 @@ void Tree::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Tree::RootNode(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  Node::MarshalNode(ts_tree_root_node(tree->tree_));
+  node_methods::MarshalNode(ts_tree_root_node(tree->tree_));
 }
 
 void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {

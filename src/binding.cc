@@ -12,7 +12,7 @@ using namespace v8;
 
 void InitAll(Local<Object> exports) {
   InitConversions(exports);
-  Node::Init(exports);
+  node_methods::Init(exports);
   Parser::Init(exports);
   Tree::Init(exports);
   TreeCursor::Init(exports);
