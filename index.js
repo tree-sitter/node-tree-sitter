@@ -15,7 +15,7 @@ const {rootNode} = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
-    if (!this.nodes) this.nodes = {};
+    if (!this._nodes) this._nodes = {};
     rootNode.call(this);
     return unmarshalNode(this);
   }
@@ -325,20 +325,19 @@ Object.defineProperty(TreeCursor.prototype, 'endPosition', {
 
 const {pointTransferArray} = binding;
 
+const NODE_FIELD_COUNT = 6;
+
 function unmarshalNode(tree, offset = 0) {
   const {nodeTransferArray} = binding;
   const key = `${nodeTransferArray[offset]}${nodeTransferArray[offset + 1]}`
   if (key === '00') return null;
-  let result = tree.nodes[key];
+  let result = tree._nodes[key];
   if (!result) {
     result = new SyntaxNode(tree);
-    result._0 = nodeTransferArray[offset];
-    result._1 = nodeTransferArray[offset + 1];
-    result._2 = nodeTransferArray[offset + 2];
-    result._3 = nodeTransferArray[offset + 3];
-    result._4 = nodeTransferArray[offset + 4];
-    result._5 = nodeTransferArray[offset + 5];
-    tree.nodes[key] = result;
+    tree._nodes[key] = result;
+  }
+  for (let i = 0; i < NODE_FIELD_COUNT; i++) {
+    result[i] = nodeTransferArray[offset + i];
   }
   return result;
 }
@@ -355,12 +354,9 @@ function unmarshalNodes(tree, count) {
 
 function marshalNode(node) {
   const {nodeTransferArray} = binding;
-  nodeTransferArray[0] = node._0;
-  nodeTransferArray[1] = node._1;
-  nodeTransferArray[2] = node._2;
-  nodeTransferArray[3] = node._3;
-  nodeTransferArray[4] = node._4;
-  nodeTransferArray[5] = node._5;
+  for (let i = 0; i < NODE_FIELD_COUNT; i++) {
+    nodeTransferArray[i] = node[i];
+  }
 }
 
 function unmarshalPoint() {
