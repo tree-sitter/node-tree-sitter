@@ -377,7 +377,7 @@ void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
   auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[0].As<Object>());
 
   TSTree *old_tree = nullptr;
-  if (info.Length() > 1 && info[2]->BooleanValue()) {
+  if (info.Length() > 1 && info[1]->BooleanValue()) {
     const TSTree *tree = Tree::UnwrapTree(info[1]);
     if (!tree) {
       Nan::ThrowTypeError("Second argument must be a tree");
@@ -385,6 +385,8 @@ void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
     }
     old_tree = ts_tree_copy(tree);
   }
+
+  if (!handle_included_ranges(parser->parser_, info[2])) return;
 
   TextBufferInput input(snapshot->slices());
   TSTree *result = ts_parser_parse(parser->parser_, old_tree, input.input());
