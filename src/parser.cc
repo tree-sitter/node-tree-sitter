@@ -181,12 +181,7 @@ Parser::Parser() : parser_(ts_parser_new()), is_parsing_async_(false) {}
 Parser::~Parser() { ts_parser_delete(parser_); }
 
 static bool handle_included_ranges(TSParser *parser, Local<Value> arg) {
-  if (arg->BooleanValue()) {
-    if (!arg->IsArray()) {
-      Nan::ThrowTypeError("includedRanges must be an array");
-      return false;
-    }
-
+  if (arg->IsArray()) {
     auto js_included_ranges = Local<Array>::Cast(arg);
     vector<TSRange> included_ranges;
     for (unsigned i = 0; i < js_included_ranges->Length(); i++) {
@@ -382,7 +377,7 @@ void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
   auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[0].As<Object>());
 
   TSTree *old_tree = nullptr;
-  if (info.Length() > 1 && info[2]->BooleanValue()) {
+  if (info.Length() > 1 && info[1]->BooleanValue()) {
     const TSTree *tree = Tree::UnwrapTree(info[1]);
     if (!tree) {
       Nan::ThrowTypeError("Second argument must be a tree");
@@ -390,6 +385,8 @@ void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
     }
     old_tree = ts_tree_copy(tree);
   }
+
+  if (!handle_included_ranges(parser->parser_, info[2])) return;
 
   TextBufferInput input(snapshot->slices());
   TSTree *result = ts_parser_parse(parser->parser_, old_tree, input.input());

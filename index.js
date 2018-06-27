@@ -15,11 +15,15 @@ const {rootNode} = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
-    if (!this.nodes) this.nodes = {};
+    if (!this._nodes) this._nodes = {};
     rootNode.call(this);
     return unmarshalNode(this);
   }
 })
+
+Tree.prototype.walk = function () {
+  return this.rootNode.walk()
+}
 
 class SyntaxNode {
   constructor(tree) {
@@ -199,6 +203,12 @@ class SyntaxNode {
     return unmarshalNode(this.tree);
   }
 
+  descendantsOfType(type, start, end) {
+    marshalNode(this);
+    const count = NodeMethods.descendantsOfType(this.tree, type, start, end);
+    return unmarshalNodes(this.tree, count);
+  }
+
   namedDescendantForPosition(start, end) {
     marshalNode(this);
     if (end != null) {
@@ -217,6 +227,11 @@ class SyntaxNode {
       NodeMethods.descendantForPosition(this.tree, start, start);
     }
     return unmarshalNode(this.tree);
+  }
+
+  walk () {
+    marshalNode(this);
+    return NodeMethods.walk(this.tree);
   }
 }
 
@@ -308,32 +323,40 @@ Object.defineProperty(TreeCursor.prototype, 'endPosition', {
   }
 });
 
-const {pointTransferArray, nodeTransferArray} = binding;
+const {pointTransferArray} = binding;
 
-function unmarshalNode(tree) {
-  const key = `${nodeTransferArray[0]}${nodeTransferArray[1]}`
+const NODE_FIELD_COUNT = 6;
+
+function unmarshalNode(tree, offset = 0) {
+  const {nodeTransferArray} = binding;
+  const key = `${nodeTransferArray[offset]}${nodeTransferArray[offset + 1]}`
   if (key === '00') return null;
-  let result = tree.nodes[key];
+  let result = tree._nodes[key];
   if (!result) {
     result = new SyntaxNode(tree);
-    result._0 = nodeTransferArray[0];
-    result._1 = nodeTransferArray[1];
-    result._2 = nodeTransferArray[2];
-    result._3 = nodeTransferArray[3];
-    result._4 = nodeTransferArray[4];
-    result._5 = nodeTransferArray[5];
-    tree.nodes[key] = result;
+    tree._nodes[key] = result;
+  }
+  for (let i = 0; i < NODE_FIELD_COUNT; i++) {
+    result[i] = nodeTransferArray[offset + i];
   }
   return result;
 }
 
+function unmarshalNodes(tree, count) {
+  const result = new Array(count);
+  let offset = 0;
+  for (let i = 0; i < count; i++) {
+    result[i] = unmarshalNode(tree, offset)
+    offset += 6
+  }
+  return result
+}
+
 function marshalNode(node) {
-  nodeTransferArray[0] = node._0;
-  nodeTransferArray[1] = node._1;
-  nodeTransferArray[2] = node._2;
-  nodeTransferArray[3] = node._3;
-  nodeTransferArray[4] = node._4;
-  nodeTransferArray[5] = node._5;
+  const {nodeTransferArray} = binding;
+  for (let i = 0; i < NODE_FIELD_COUNT; i++) {
+    nodeTransferArray[i] = node[i];
+  }
 }
 
 function unmarshalPoint() {
