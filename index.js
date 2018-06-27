@@ -364,3 +364,5 @@ function unmarshalPoint() {
 }
 
 module.exports = Parser;
+module.exports.Tree = Tree;
+module.exports.SyntaxNode = SyntaxNode;
