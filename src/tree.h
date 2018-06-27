@@ -22,6 +22,7 @@ class Tree : public Nan::ObjectWrap {
   static void Edit(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void RootNode(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void PrintDotGraph(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void GetEditedRange(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GetChangedRanges(const Nan::FunctionCallbackInfo<v8::Value> &);
 
   TSTree *tree_;

@@ -25,6 +25,7 @@ void Tree::Init(Local<Object> exports) {
     {"rootNode", RootNode},
     {"printDotGraph", PrintDotGraph},
     {"getChangedRanges", GetChangedRanges},
+    {"getEditedRange", GetEditedRange},
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
@@ -124,6 +125,55 @@ void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
 
   info.GetReturnValue().Set(result);
 }
+
+void Tree::GetEditedRange(const Nan::FunctionCallbackInfo<Value> &info) {
+  Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
+  TSNode root = ts_tree_root_node(tree->tree_);
+  if (!ts_node_has_changes(root)) return;
+  TSRange result = {
+    ts_node_start_point(root),
+    ts_node_end_point(root),
+    ts_node_start_byte(root),
+    ts_node_end_byte(root),
+  };
+
+  TSTreeCursor cursor = ts_tree_cursor_new(root);
+
+  while (true) {
+    if (!ts_tree_cursor_goto_first_child(&cursor)) break;
+    while (true) {
+      TSNode node = ts_tree_cursor_current_node(&cursor);
+      if (ts_node_has_changes(node)) {
+        result.start_byte = ts_node_start_byte(node);
+        result.start_point = ts_node_start_point(node);
+        break;
+      } else if (!ts_tree_cursor_goto_next_sibling(&cursor)) {
+        break;
+      }
+    }
+  }
+
+  while (ts_tree_cursor_goto_parent(&cursor)) {}
+
+  while (true) {
+    if (!ts_tree_cursor_goto_first_child(&cursor)) break;
+    while (true) {
+      TSNode node = ts_tree_cursor_current_node(&cursor);
+      if (ts_node_has_changes(node)) {
+        result.end_byte = ts_node_end_byte(node);
+        result.end_point = ts_node_end_point(node);
+      }
+
+      if (!ts_tree_cursor_goto_next_sibling(&cursor)) {
+        break;
+      }
+    }
+  }
+
+  ts_tree_cursor_delete(&cursor);
+  info.GetReturnValue().Set(RangeToJS(result));
+}
+
 
 void Tree::PrintDotGraph(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
