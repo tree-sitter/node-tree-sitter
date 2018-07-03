@@ -70,26 +70,26 @@ declare module "tree-sitter" {
     startIndex: number;
     endIndex: number;
 
-    public gotoParent(): boolean;
-    public gotoFirstChild(): boolean;
-    public gotoNextSibling(): boolean;
+    gotoParent(): boolean;
+    gotoFirstChild(): boolean;
+    gotoNextSibling(): boolean;
   };
 
   export interface Tree {
-    public readonly rootNode: SyntaxNode;
+    readonly rootNode: SyntaxNode;
 
-    public edit(delta: Edit): Document;
-    public walk(): TreeCursor;
-    public getChangedRanges(other: Tree): Range[];
   };
+    edit(delta: Edit): Document;
+    walk(): TreeCursor;
+    getChangedRanges(other: Tree): Range[];
 
   export class Parser {
-    public parse(input: string | Input, previousTree?: Tree): Tree;
-    public getLanguage(): any;
-    public setLanguage(language: any);
-    public getLogger(): Logger;
-    public setLogger(logFunc: Logger): void;
   };
 
   export = Parser;
+    parse(input: string | Input, previousTree?: Tree): Tree;
+    getLanguage(): any;
+    setLanguage(language: any);
+    getLogger(): Logger;
+    setLogger(logFunc: Logger): void;
 }
