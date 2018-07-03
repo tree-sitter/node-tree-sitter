@@ -27,7 +27,7 @@ declare module "tree-sitter" {
   export interface Input {
     seek(index: number): void;
     read(): any;
-  };
+  }
 
   export interface SyntaxNode {
     isNamed: boolean;
@@ -60,7 +60,7 @@ declare module "tree-sitter" {
     descendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
     namedDescendantForPosition(position: Point): SyntaxNode;
     namedDescendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
-  };
+  }
 
   export interface TreeCursor {
     nodeType: string;
@@ -73,18 +73,17 @@ declare module "tree-sitter" {
     gotoParent(): boolean;
     gotoFirstChild(): boolean;
     gotoNextSibling(): boolean;
-  };
+  }
 
   export interface Tree {
     readonly rootNode: SyntaxNode;
 
-  };
     edit(delta: Edit): Document;
     walk(): TreeCursor;
     getChangedRanges(other: Tree): Range[];
+  }
 
   export class Parser {
-  };
 
   export = Parser;
     parse(input: string | Input, previousTree?: Tree): Tree;
@@ -92,4 +91,5 @@ declare module "tree-sitter" {
     setLanguage(language: any);
     getLogger(): Logger;
     setLogger(logFunc: Logger): void;
+  }
 }
