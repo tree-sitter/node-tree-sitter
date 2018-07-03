@@ -11,11 +11,11 @@ declare module "tree-sitter" {
 
   export type Edit = {
     startIndex: number;
-    lengthRemoved: number;
-    lengthAdded: number;
+    oldEndIndex: number;
+    newEndIndex: number;
     startPosition: Point;
-    extentRemoved: Point;
-    extentAdded: Point;
+    oldEndPosition: Point;
+    newEndPosition: Point;
   };
 
   export type Logger = (
