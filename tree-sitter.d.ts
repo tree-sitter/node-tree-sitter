@@ -78,7 +78,7 @@ declare module "tree-sitter" {
   export interface Tree {
     readonly rootNode: SyntaxNode;
 
-    edit(delta: Edit): Document;
+    edit(delta: Edit): Tree;
     walk(): TreeCursor;
     getChangedRanges(other: Tree): Range[];
     getEditedRange(other: Tree): Range;
