@@ -84,8 +84,6 @@ declare module "tree-sitter" {
   }
 
   export class Parser {
-
-  export = Parser;
     parse(input: string | Input, previousTree?: Tree): Tree;
     getLanguage(): any;
     setLanguage(language: any);
