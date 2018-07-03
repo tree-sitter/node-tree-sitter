@@ -81,6 +81,7 @@ declare module "tree-sitter" {
     edit(delta: Edit): Document;
     walk(): TreeCursor;
     getChangedRanges(other: Tree): Range[];
+    getEditedRange(other: Tree): Range;
   }
 
   export class Parser {
