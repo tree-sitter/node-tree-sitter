@@ -69,6 +69,7 @@ declare module "tree-sitter" {
       descendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
       namedDescendantForPosition(position: Point): SyntaxNode;
       namedDescendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
+      descendantsOfType(type: String, startPosition?: Point, endPosition?: Point): Array<SyntaxNode>;
     }
 
     export interface TreeCursor {
