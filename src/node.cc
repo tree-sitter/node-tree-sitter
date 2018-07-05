@@ -360,14 +360,20 @@ static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  auto maybe_start_point = PointFromJS(info[2]);
-  auto maybe_end_point = PointFromJS(info[3]);
-  if (maybe_start_point.IsNothing() || maybe_end_point.IsNothing()) {
-    return;
+  TSPoint start_point = {0, 0};
+  TSPoint end_point = {UINT32_MAX, UINT32_MAX};
+
+  if (info[2]->BooleanValue()) {
+    auto maybe_start_point = PointFromJS(info[2]);
+    if (maybe_start_point.IsNothing()) return;
+    start_point = maybe_start_point.FromJust();
   }
 
-  TSPoint start_point = maybe_start_point.FromJust();
-  TSPoint end_point = maybe_end_point.FromJust();
+  if (info[3]->BooleanValue()) {
+    auto maybe_end_point = PointFromJS(info[3]);
+    if (maybe_end_point.IsNothing()) return;
+    end_point = maybe_end_point.FromJust();
+  }
 
   vector<TSNode> found;
   TSTreeCursor cursor = ts_tree_cursor_new(node);
