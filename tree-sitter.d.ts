@@ -1,95 +1,99 @@
 declare module "tree-sitter" {
-  export type Point = {
-    row: number;
-    column: number;
-  };
+  class Parser {
+    parse(input: string | Parser.Input, previousTree?: Parser.Tree): Parser.Tree;
+    getLanguage(): any;
+    setLanguage(language: any);
+    getLogger(): Parser.Logger;
+    setLogger(logFunc: Parser.Logger): void;
+  }
 
-  export type Range = {
-    start: Point;
-    end: Point;
-  };
+  namespace Parser {
+    export type Point = {
+      row: number;
+      column: number;
+    };
 
-  export type Edit = {
-    startIndex: number;
-    lengthRemoved: number;
-    lengthAdded: number;
-    startPosition: Point;
-    extentRemoved: Point;
-    extentAdded: Point;
-  };
+    export type Range = {
+      start: Point;
+      end: Point;
+    };
 
-  export type Logger = (
-    message: string,
-    params: {[param: string]: string},
-    type: "parse" | "lex"
-  ) => void;
+    export type Edit = {
+      startIndex: number;
+      oldEndIndex: number;
+      newEndIndex: number;
+      startPosition: Point;
+      oldEndPosition: Point;
+      newEndPosition: Point;
+    };
 
-  export interface Input {
-    seek(index: number): void;
-    read(): any;
-  };
+    export type Logger = (
+      message: string,
+      params: {[param: string]: string},
+      type: "parse" | "lex"
+    ) => void;
 
-  export interface SyntaxNode {
-    isNamed: boolean;
-    type: string;
-    startPosition: Point;
-    endPosition: Point;
-    children: Array<SyntaxNode>;
-    namedChildren: Array<SyntaxNode>;
-    startIndex: number;
-    endIndex: number;
-    parent: SyntaxNode | null;
-    firstChild: SyntaxNode | null;
-    lastChild: SyntaxNode | null;
-    firstNamedChild: SyntaxNode | null;
-    lastNamedChild: SyntaxNode | null;
-    nextSibling: SyntaxNode | null;
-    nextNamedSibling: SyntaxNode | null;
-    previousSibling: SyntaxNode | null;
-    previousNamedSibling: SyntaxNode | null;
+    export interface Input {
+      seek(index: number): void;
+      read(): any;
+    }
 
-    isValid(): boolean;
-    hasError(): boolean;
-    hasChanges(): boolean;
-    toString(): string;
-    descendantForIndex(index: number): SyntaxNode;
-    descendantForIndex(startIndex: number, endIndex: number): SyntaxNode;
-    namedDescendantForIndex(index: number): SyntaxNode;
-    namedDescendantForIndex(startIndex: number, endIndex: number): SyntaxNode;
-    descendantForPosition(position: Point): SyntaxNode;
-    descendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
-    namedDescendantForPosition(position: Point): SyntaxNode;
-    namedDescendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
-  };
+    export interface SyntaxNode {
+      isNamed: boolean;
+      type: string;
+      startPosition: Point;
+      endPosition: Point;
+      children: Array<SyntaxNode>;
+      namedChildren: Array<SyntaxNode>;
+      startIndex: number;
+      endIndex: number;
+      parent: SyntaxNode | null;
+      firstChild: SyntaxNode | null;
+      lastChild: SyntaxNode | null;
+      firstNamedChild: SyntaxNode | null;
+      lastNamedChild: SyntaxNode | null;
+      nextSibling: SyntaxNode | null;
+      nextNamedSibling: SyntaxNode | null;
+      previousSibling: SyntaxNode | null;
+      previousNamedSibling: SyntaxNode | null;
 
-  export interface TreeCursor {
-    nodeType: string;
-    nodeIsNamed: boolean;
-    startPosition: Point;
-    endPosition: Point;
-    startIndex: number;
-    endIndex: number;
+      isValid(): boolean;
+      hasError(): boolean;
+      hasChanges(): boolean;
+      toString(): string;
+      descendantForIndex(index: number): SyntaxNode;
+      descendantForIndex(startIndex: number, endIndex: number): SyntaxNode;
+      namedDescendantForIndex(index: number): SyntaxNode;
+      namedDescendantForIndex(startIndex: number, endIndex: number): SyntaxNode;
+      descendantForPosition(position: Point): SyntaxNode;
+      descendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
+      namedDescendantForPosition(position: Point): SyntaxNode;
+      namedDescendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
+    }
 
-    public gotoParent(): boolean;
-    public gotoFirstChild(): boolean;
-    public gotoNextSibling(): boolean;
-  };
+    export interface TreeCursor {
+      nodeType: string;
+      nodeIsNamed: boolean;
+      startPosition: Point;
+      endPosition: Point;
+      startIndex: number;
+      endIndex: number;
 
-  export interface Tree {
-    public readonly rootNode: SyntaxNode;
+      gotoParent(): boolean;
+      gotoFirstChild(): boolean;
+      gotoFirstChildForIndex(index: number): boolean;
+      gotoNextSibling(): boolean;
+    }
 
-    public edit(delta: Edit): Document;
-    public walk(): TreeCursor;
-    public getChangedRanges(other: Tree): Range[];
-  };
+    export interface Tree {
+      readonly rootNode: SyntaxNode;
 
-  export class Parser {
-    public parse(input: string | Input, previousTree?: Tree): Tree;
-    public getLanguage(): any;
-    public setLanguage(language: any);
-    public getLogger(): Logger;
-    public setLogger(logFunc: Logger): void;
-  };
+      edit(delta: Edit): Tree;
+      walk(): TreeCursor;
+      getChangedRanges(other: Tree): Range[];
+      getEditedRange(other: Tree): Range;
+    }
+  }
 
-  export = Parser;
+  export = Parser
 }
