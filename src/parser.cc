@@ -322,8 +322,6 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
   auto callback = new Nan::Callback(info[0].As<Function>());
   auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[1].As<Object>());
 
-  parser->is_parsing_async_ = true;
-
   const TSTree *old_tree = nullptr;
   if (info.Length() > 2 && info[2]->BooleanValue()) {
     old_tree = Tree::UnwrapTree(info[2]);
@@ -354,11 +352,11 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
   ts_parser_set_logger(parser->parser_, logger);
 
   if (result) {
-    parser->is_parsing_async_ = false;
     delete input;
     Local<Value> argv[] = {Tree::NewInstance(result)};
     callback->Call(1, argv);
   } else {
+    parser->is_parsing_async_ = true;
     Nan::AsyncQueueWorker(new ParseWorker(
       callback,
       parser,
