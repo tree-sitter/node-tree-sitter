@@ -181,13 +181,20 @@ Parser::Parser() : parser_(ts_parser_new()), is_parsing_async_(false) {}
 Parser::~Parser() { ts_parser_delete(parser_); }
 
 static bool handle_included_ranges(TSParser *parser, Local<Value> arg) {
+  uint32_t last_included_range_end = 0;
   if (arg->IsArray()) {
     auto js_included_ranges = Local<Array>::Cast(arg);
     vector<TSRange> included_ranges;
     for (unsigned i = 0; i < js_included_ranges->Length(); i++) {
-      auto range = RangeFromJS(js_included_ranges->Get(i));
-      if (!range.IsJust()) return false;
-      included_ranges.push_back(range.FromJust());
+      auto maybe_range = RangeFromJS(js_included_ranges->Get(i));
+      if (!maybe_range.IsJust()) return false;
+      auto range = maybe_range.FromJust();
+      if (range.start_byte < last_included_range_end) {
+        Nan::ThrowRangeError("Overlapping ranges");
+        return false;
+      }
+      last_included_range_end = range.end_byte;
+      included_ranges.push_back(range);
     }
     ts_parser_set_included_ranges(parser, included_ranges.data(), included_ranges.size());
   } else {
