@@ -273,12 +273,12 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
 
   const TSTree *old_tree = nullptr;
   if (info.Length() > 1 && info[1]->BooleanValue()) {
-    const TSTree *tree = Tree::UnwrapTree(info[1]);
+    const Tree *tree = Tree::UnwrapTree(info[1]);
     if (!tree) {
       Nan::ThrowTypeError("Second argument must be a tree");
       return;
     }
-    old_tree = tree;
+    old_tree = tree->tree_;
   }
 
   Local<Value> buffer_size = Nan::Null();
@@ -331,11 +331,12 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
 
   const TSTree *old_tree = nullptr;
   if (info.Length() > 2 && info[2]->BooleanValue()) {
-    old_tree = Tree::UnwrapTree(info[2]);
-    if (!old_tree) {
+    const Tree *tree = Tree::UnwrapTree(info[2]);
+    if (!tree) {
       Nan::ThrowTypeError("Second argument must be a tree");
       return;
     }
+    old_tree = tree->tree_;
   }
 
   if (!handle_included_ranges(parser->parser_, info[3])) return;
@@ -383,12 +384,12 @@ void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
 
   TSTree *old_tree = nullptr;
   if (info.Length() > 1 && info[1]->BooleanValue()) {
-    const TSTree *tree = Tree::UnwrapTree(info[1]);
+    const Tree *tree = Tree::UnwrapTree(info[1]);
     if (!tree) {
       Nan::ThrowTypeError("Second argument must be a tree");
       return;
     }
-    old_tree = ts_tree_copy(tree);
+    old_tree = ts_tree_copy(tree->tree_);
   }
 
   if (!handle_included_ranges(parser->parser_, info[2])) return;

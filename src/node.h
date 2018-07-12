@@ -5,12 +5,24 @@
 #include <v8.h>
 #include <node_object_wrap.h>
 #include <tree_sitter/runtime.h>
+#include "./tree.h"
 
 namespace node_tree_sitter {
 namespace node_methods {
 
 void Init(v8::Local<v8::Object>);
-void MarshalNode(TSNode);
+void MarshalNode(const Nan::FunctionCallbackInfo<v8::Value> &info, const Tree *, TSNode);
+
+static inline const void *UnmarshalNodeId(const uint32_t *buffer) {
+  const void *result;
+  memcpy(&result, buffer, sizeof(result));
+  return result;
+}
+
+static inline void MarshalNodeId(const void *id, uint32_t *buffer) {
+  memset(buffer, 0, sizeof(id));
+  memcpy(buffer, &id, sizeof(id));
+}
 
 }  // namespace node_methods
 }  // namespace node_tree_sitter
