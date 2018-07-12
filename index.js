@@ -11,17 +11,29 @@ try {
 
 const {Parser, NodeMethods, Tree, TreeCursor} = binding;
 
-const {rootNode} = Tree.prototype;
+const {rootNode, edit} = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
     return rootNode.call(this) || unmarshalNode(this);
   }
-})
+});
+
+Tree.prototype.edit = function(arg) {
+  edit.call(
+    this,
+    arg.startPosition.row, arg.startPosition.column,
+    arg.oldEndPosition.row, arg.oldEndPosition.column,
+    arg.newEndPosition.row, arg.newEndPosition.column,
+    arg.startIndex,
+    arg.oldEndIndex,
+    arg.newEndIndex
+  );
+};
 
 Tree.prototype.walk = function() {
   return this.rootNode.walk()
-}
+};
 
 class SyntaxNode {
   constructor(tree) {

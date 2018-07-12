@@ -73,35 +73,30 @@ void Tree::New(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
+#define read_number_from_js(out, value, name)        \
+  if (!(value)->IsUint32()) {                       \
+    Nan::ThrowTypeError(name " must be an integer"); \
+  }                                                  \
+  *(out) = (value)->Uint32Value()
+
+#define read_byte_count_from_js(out, value, name)   \
+  read_number_from_js(out, value, name);            \
+  (*out) *= 2
+
 void Tree::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
-  Local<Object> arg = Local<Object>::Cast(info[0]);
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
 
-  auto start_byte = ByteCountFromJS(arg->Get(Nan::New("startIndex").ToLocalChecked()));
-  if (start_byte.IsNothing()) return;
-
-  auto old_end_byte = ByteCountFromJS(arg->Get(Nan::New("oldEndIndex").ToLocalChecked()));
-  if (old_end_byte.IsNothing()) return;
-
-  auto new_end_byte = ByteCountFromJS(arg->Get(Nan::New("newEndIndex").ToLocalChecked()));
-  if (new_end_byte.IsNothing()) return;
-
-  auto start_position = PointFromJS(arg->Get(Nan::New("startPosition").ToLocalChecked()));
-  if (start_position.IsNothing()) return;
-
-  auto old_end_point = PointFromJS(arg->Get(Nan::New("oldEndPosition").ToLocalChecked()));
-  if (old_end_point.IsNothing()) return;
-
-  auto new_end_point = PointFromJS(arg->Get(Nan::New("newEndPosition").ToLocalChecked()));
-  if (new_end_point.IsNothing()) return;
-
   TSInputEdit edit;
-  edit.start_byte = start_byte.FromJust();
-  edit.old_end_byte = old_end_byte.FromJust();
-  edit.new_end_byte = new_end_byte.FromJust();
-  edit.start_point = start_position.FromJust();
-  edit.old_end_point = old_end_point.FromJust();
-  edit.new_end_point = new_end_point.FromJust();
+  read_number_from_js(&edit.start_point.row, info[0], "startPosition.row");
+  read_byte_count_from_js(&edit.start_point.column, info[1], "startPosition.column");
+  read_number_from_js(&edit.old_end_point.row, info[2], "oldEndPosition.row");
+  read_byte_count_from_js(&edit.old_end_point.column, info[3], "oldEndPosition.column");
+  read_number_from_js(&edit.new_end_point.row, info[4], "newEndPosition.row");
+  read_byte_count_from_js(&edit.new_end_point.column, info[5], "newEndPosition.column");
+  read_byte_count_from_js(&edit.start_byte, info[6], "startIndex");
+  read_byte_count_from_js(&edit.old_end_byte, info[7], "oldEndIndex");
+  read_byte_count_from_js(&edit.new_end_byte, info[8], "newEndIndex");
+
   ts_tree_edit(tree->tree_, &edit);
 
   for (auto &entry : tree->cached_nodes_) {
