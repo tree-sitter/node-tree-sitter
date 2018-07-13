@@ -145,6 +145,11 @@ class SyntaxNode {
     return NodeMethods.previousNamedSibling(this.tree) || unmarshalNode(this.tree);
   }
 
+  hasChanges() {
+    marshalNode(this);
+    return NodeMethods.hasChanges(this.tree);
+  }
+
   hasError() {
     marshalNode(this);
     return NodeMethods.hasError(this.tree);
