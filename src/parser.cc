@@ -181,13 +181,20 @@ Parser::Parser() : parser_(ts_parser_new()), is_parsing_async_(false) {}
 Parser::~Parser() { ts_parser_delete(parser_); }
 
 static bool handle_included_ranges(TSParser *parser, Local<Value> arg) {
+  uint32_t last_included_range_end = 0;
   if (arg->IsArray()) {
     auto js_included_ranges = Local<Array>::Cast(arg);
     vector<TSRange> included_ranges;
     for (unsigned i = 0; i < js_included_ranges->Length(); i++) {
-      auto range = RangeFromJS(js_included_ranges->Get(i));
-      if (!range.IsJust()) return false;
-      included_ranges.push_back(range.FromJust());
+      auto maybe_range = RangeFromJS(js_included_ranges->Get(i));
+      if (!maybe_range.IsJust()) return false;
+      auto range = maybe_range.FromJust();
+      if (range.start_byte < last_included_range_end) {
+        Nan::ThrowRangeError("Overlapping ranges");
+        return false;
+      }
+      last_included_range_end = range.end_byte;
+      included_ranges.push_back(range);
     }
     ts_parser_set_included_ranges(parser, included_ranges.data(), included_ranges.size());
   } else {
@@ -266,12 +273,12 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
 
   const TSTree *old_tree = nullptr;
   if (info.Length() > 1 && info[1]->BooleanValue()) {
-    const TSTree *tree = Tree::UnwrapTree(info[1]);
+    const Tree *tree = Tree::UnwrapTree(info[1]);
     if (!tree) {
       Nan::ThrowTypeError("Second argument must be a tree");
       return;
     }
-    old_tree = tree;
+    old_tree = tree->tree_;
   }
 
   Local<Value> buffer_size = Nan::Null();
@@ -324,11 +331,12 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
 
   const TSTree *old_tree = nullptr;
   if (info.Length() > 2 && info[2]->BooleanValue()) {
-    old_tree = Tree::UnwrapTree(info[2]);
-    if (!old_tree) {
+    const Tree *tree = Tree::UnwrapTree(info[2]);
+    if (!tree) {
       Nan::ThrowTypeError("Second argument must be a tree");
       return;
     }
+    old_tree = tree->tree_;
   }
 
   if (!handle_included_ranges(parser->parser_, info[3])) return;
@@ -376,12 +384,12 @@ void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
 
   TSTree *old_tree = nullptr;
   if (info.Length() > 1 && info[1]->BooleanValue()) {
-    const TSTree *tree = Tree::UnwrapTree(info[1]);
+    const Tree *tree = Tree::UnwrapTree(info[1]);
     if (!tree) {
       Nan::ThrowTypeError("Second argument must be a tree");
       return;
     }
-    old_tree = ts_tree_copy(tree);
+    old_tree = ts_tree_copy(tree->tree_);
   }
 
   if (!handle_included_ranges(parser->parser_, info[2])) return;

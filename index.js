@@ -11,19 +11,29 @@ try {
 
 const {Parser, NodeMethods, Tree, TreeCursor} = binding;
 
-const {rootNode} = Tree.prototype;
+const {rootNode, edit} = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
-    if (!this._nodes) this._nodes = {};
-    rootNode.call(this);
-    return unmarshalNode(this);
+    return rootNode.call(this) || unmarshalNode(this);
   }
-})
+});
 
-Tree.prototype.walk = function () {
+Tree.prototype.edit = function(arg) {
+  edit.call(
+    this,
+    arg.startPosition.row, arg.startPosition.column,
+    arg.oldEndPosition.row, arg.oldEndPosition.column,
+    arg.newEndPosition.row, arg.newEndPosition.column,
+    arg.startIndex,
+    arg.oldEndIndex,
+    arg.newEndIndex
+  );
+};
+
+Tree.prototype.walk = function() {
   return this.rootNode.walk()
-}
+};
 
 class SyntaxNode {
   constructor(tree) {
@@ -64,8 +74,7 @@ class SyntaxNode {
 
   get parent() {
     marshalNode(this);
-    NodeMethods.parent(this.tree);
-    return unmarshalNode(this.tree);
+    return NodeMethods.parent(this.tree) || unmarshalNode(this.tree);
   }
 
   get children() {
@@ -98,50 +107,47 @@ class SyntaxNode {
 
   get firstChild() {
     marshalNode(this);
-    NodeMethods.firstChild(this.tree);
-    return unmarshalNode(this.tree);
+    return NodeMethods.firstChild(this.tree) || unmarshalNode(this.tree);
   }
 
   get firstNamedChild() {
     marshalNode(this);
-    NodeMethods.firstNamedChild(this.tree);
-    return unmarshalNode(this.tree);
+    return NodeMethods.firstNamedChild(this.tree) || unmarshalNode(this.tree);
   }
 
   get lastChild() {
     marshalNode(this);
-    NodeMethods.lastChild(this.tree);
-    return unmarshalNode(this.tree);
+    return NodeMethods.lastChild(this.tree) || unmarshalNode(this.tree);
   }
 
   get lastNamedChild() {
     marshalNode(this);
-    NodeMethods.lastNamedChild(this.tree);
-    return unmarshalNode(this.tree);
+    return NodeMethods.lastNamedChild(this.tree) || unmarshalNode(this.tree);
   }
 
   get nextSibling() {
     marshalNode(this);
-    NodeMethods.nextSibling(this.tree);
-    return unmarshalNode(this.tree);
+    return NodeMethods.nextSibling(this.tree) || unmarshalNode(this.tree);
   }
 
   get nextNamedSibling() {
     marshalNode(this);
-    NodeMethods.nextNamedSibling(this.tree);
-    return unmarshalNode(this.tree);
+    return NodeMethods.nextNamedSibling(this.tree) || unmarshalNode(this.tree);
   }
 
   get previousSibling() {
     marshalNode(this);
-    NodeMethods.previousSibling(this.tree);
-    return unmarshalNode(this.tree);
+    return NodeMethods.previousSibling(this.tree) || unmarshalNode(this.tree);
   }
 
   get previousNamedSibling() {
     marshalNode(this);
-    NodeMethods.previousNamedSibling(this.tree);
-    return unmarshalNode(this.tree);
+    return NodeMethods.previousNamedSibling(this.tree) || unmarshalNode(this.tree);
+  }
+
+  hasChanges() {
+    marshalNode(this);
+    return NodeMethods.hasChanges(this.tree);
   }
 
   hasError() {
@@ -161,72 +167,73 @@ class SyntaxNode {
 
   child(index) {
     marshalNode(this);
-    NodeMethods.child(this.tree, index);
-    return unmarshalNode(this.tree);
+    return NodeMethods.child(this.tree, index) || unmarshalNode(this.tree);
   }
 
   namedChild(index) {
     marshalNode(this);
-    NodeMethods.namedChild(this.tree, index);
-    return unmarshalNode(this.tree);
+    return NodeMethods.namedChild(this.tree, index) || unmarshalNode(this.tree);
   }
 
   firstChildForIndex(index) {
     marshalNode(this);
-    NodeMethods.firstChildForIndex(this.tree, index);
-    return unmarshalNode(this.tree);
+    return NodeMethods.firstChildForIndex(this.tree, index) || unmarshalNode(this.tree);
   }
 
   firstNamedChildForIndex(index) {
     marshalNode(this);
-    NodeMethods.firstNamedChildForIndex(this.tree, index);
-    return unmarshalNode(this.tree);
+    return NodeMethods.firstNamedChildForIndex(this.tree, index) || unmarshalNode(this.tree);
   }
 
   namedDescendantForIndex(start, end) {
     marshalNode(this);
+    let result
     if (end != null) {
-      NodeMethods.namedDescendantForIndex(this.tree, start, end);
+      result = NodeMethods.namedDescendantForIndex(this.tree, start, end);
     } else {
-      NodeMethods.namedDescendantForIndex(this.tree, start, start);
+      result = NodeMethods.namedDescendantForIndex(this.tree, start, start);
     }
-    return unmarshalNode(this.tree);
+    return result || unmarshalNode(this.tree);
   }
 
   descendantForIndex(start, end) {
     marshalNode(this);
+    let result
     if (end != null) {
-      NodeMethods.descendantForIndex(this.tree, start, end);
+      result = NodeMethods.descendantForIndex(this.tree, start, end);
     } else {
-      NodeMethods.descendantForIndex(this.tree, start, start);
+      result = NodeMethods.descendantForIndex(this.tree, start, start);
     }
-    return unmarshalNode(this.tree);
+    return result || unmarshalNode(this.tree);
   }
 
   descendantsOfType(type, start, end) {
     marshalNode(this);
-    const count = NodeMethods.descendantsOfType(this.tree, type, start, end);
-    return unmarshalNodes(this.tree, count);
+    const nodes = NodeMethods.descendantsOfType(this.tree, type, start, end);
+    unmarshalNodes(this.tree, nodes);
+    return nodes
   }
 
   namedDescendantForPosition(start, end) {
     marshalNode(this);
+    let result
     if (end != null) {
-      NodeMethods.namedDescendantForPosition(this.tree, start, end);
+      result = NodeMethods.namedDescendantForPosition(this.tree, start, end);
     } else {
-      NodeMethods.namedDescendantForPosition(this.tree, start, start);
+      result = NodeMethods.namedDescendantForPosition(this.tree, start, start);
     }
-    return unmarshalNode(this.tree);
+    return result || unmarshalNode(this.tree);
   }
 
   descendantForPosition(start, end) {
     marshalNode(this);
+    let result
     if (end != null) {
-      NodeMethods.descendantForPosition(this.tree, start, end);
+      result = NodeMethods.descendantForPosition(this.tree, start, end);
     } else {
-      NodeMethods.descendantForPosition(this.tree, start, start);
+      result = NodeMethods.descendantForPosition(this.tree, start, start);
     }
-    return unmarshalNode(this.tree);
+    return result || unmarshalNode(this.tree);
   }
 
   walk () {
@@ -329,27 +336,25 @@ const NODE_FIELD_COUNT = 6;
 
 function unmarshalNode(tree, offset = 0) {
   const {nodeTransferArray} = binding;
-  const key = `${nodeTransferArray[offset]}${nodeTransferArray[offset + 1]}`
-  if (key === '00') return null;
-  let result = tree._nodes[key];
-  if (!result) {
-    result = new SyntaxNode(tree);
-    tree._nodes[key] = result;
+  if (nodeTransferArray[0] || nodeTransferArray[1]) {
+    const result = new SyntaxNode(tree);
+    for (let i = 0; i < NODE_FIELD_COUNT; i++) {
+      result[i] = nodeTransferArray[offset + i];
+    }
+    tree._cacheNode(result);
+    return result;
   }
-  for (let i = 0; i < NODE_FIELD_COUNT; i++) {
-    result[i] = nodeTransferArray[offset + i];
-  }
-  return result;
+  return null
 }
 
-function unmarshalNodes(tree, count) {
-  const result = new Array(count);
+function unmarshalNodes(tree, nodes) {
   let offset = 0;
-  for (let i = 0; i < count; i++) {
-    result[i] = unmarshalNode(tree, offset)
-    offset += 6
+  for (let i = 0, {length} = nodes; i < length; i++) {
+    if (!nodes[i]) {
+      nodes[i] = unmarshalNode(tree, offset)
+      offset += NODE_FIELD_COUNT
+    }
   }
-  return result
 }
 
 function marshalNode(node) {
