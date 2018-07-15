@@ -1,5 +1,5 @@
 environment:
-  nodejs_version: "6"
+  nodejs_version: "10"
 
 platform:
   - x64
@@ -11,6 +11,10 @@ install:
   - npm install
 
 build: off
+
+test_script:
+  - npm run prebuild
+  - npm run prebuild:upload -u %PREBUILD_UPLOAD%
 
 branches:
   only:

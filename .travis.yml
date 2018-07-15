@@ -5,8 +5,16 @@ language: node_js
 node_js:
   - "node"
 
+os:
+- linux
+- osx
+
 before_install:
   - git submodule update --init --recursive
+
+script:
+  - npm run prebuild
+  - npm run prebuild:upload -u ${PREBUILD_UPLOAD}
 
 branches:
   only:
