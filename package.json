@@ -24,6 +24,7 @@
   "scripts": {
     "install": "prebuild-install || node-gyp rebuild",
     "prebuild": "prebuild --all --strip --verbose",
-    "prebuild:upload": "prebuild --upload-all"
+    "prebuild:upload": "prebuild --upload-all",
+    "test": "echo 'node-tree-sitter'"
   }
 }

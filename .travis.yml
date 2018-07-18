@@ -12,10 +12,18 @@ os:
 before_install:
   - git submodule update --init --recursive
 
-script:
-  - npm run prebuild
-  - npm run prebuild:upload -u ${PREBUILD_UPLOAD}
-
 branches:
   only:
     - master
+    - /^v.*$/
+
+script:
+  - npm test
+
+deploy:
+  provider: script
+  script: npm run prebuild && npm run prebuild:upload -u ${PREBUILD_UPLOAD}
+  skip_cleanup: true
+  on:
+    all_branches: true
+    tags: true
