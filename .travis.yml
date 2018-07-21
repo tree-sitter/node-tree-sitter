@@ -17,9 +17,6 @@ branches:
     - master
     - /^v.*$/
 
-script:
-  - npm test
-
 deploy:
   provider: script
   script: npm run prebuild && npm run prebuild:upload -u ${PREBUILD_UPLOAD}

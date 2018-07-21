@@ -12,9 +12,6 @@ install:
 
 build: off
 
-test_script:
-  - npm test
-
 branches:
   only:
     - master
