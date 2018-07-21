@@ -1,5 +1,5 @@
 environment:
-  nodejs_version: "6"
+  nodejs_version: "10"
 
 platform:
   - x64
@@ -15,3 +15,6 @@ build: off
 branches:
   only:
     - master
+    - /^v.*$/
+
+deploy_script: IF "%APPVEYOR_REPO_TAG%" == "true" (npm run prebuild && npm run prebuild:upload -u %PREBUILD_UPLOAD%)

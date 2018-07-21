@@ -5,9 +5,22 @@ language: node_js
 node_js:
   - "node"
 
+os:
+- linux
+- osx
+
 before_install:
   - git submodule update --init --recursive
 
 branches:
   only:
     - master
+    - /^v.*$/
+
+deploy:
+  provider: script
+  script: npm run prebuild && npm run prebuild:upload -u ${PREBUILD_UPLOAD}
+  skip_cleanup: true
+  on:
+    all_branches: true
+    tags: true
