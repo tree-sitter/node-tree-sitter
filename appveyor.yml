@@ -1,12 +1,14 @@
 environment:
-  nodejs_version: "10"
+  NODEJS_VERSION: "10"
+  PREBUILD_UPLOAD:
+    secure: oNyyLE7/Oq3TUGZPz6DkLFPUuQzc8FiFS1iuPp7LZ2fyOP/UF4Np4NzJmWcXVyY/
 
 platform:
   - x64
   - x86
 
 install:
-  - ps: Install-Product node $env:nodejs_version
+  - ps: Install-Product node $env:NODEJS_VERSION
   - git submodule update --init --recursive
   - npm install
 
@@ -18,3 +20,4 @@ branches:
     - /^v.*$/
 
 deploy_script: IF "%APPVEYOR_REPO_TAG%" == "true" (npm run prebuild && npm run prebuild:upload -u %PREBUILD_UPLOAD%)
+
