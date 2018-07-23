@@ -3,19 +3,19 @@ sudo: false
 language: node_js
 
 node_js:
-  - "node"
+- node
 
 os:
 - linux
 - osx
 
 before_install:
-  - git submodule update --init --recursive
+- git submodule update --init --recursive
 
 branches:
   only:
-    - master
-    - /^v.*$/
+  - master
+  - /^v.*$/
 
 deploy:
   provider: script
@@ -24,3 +24,7 @@ deploy:
   on:
     all_branches: true
     tags: true
+
+env:
+  global:
+    secure: Jn0t44EE07oEY0eUqRAFcbVwf34hAHx6pmWnDHJRBN9XcH3eHo0DFA32TGtbgYy90dChgdKYLWCwbeZzv1nxJiAy/CItCRcfpc4BJAkvxmtoPiFPpkqJl00CRgO+xGselNPgRhdeHeIEYFUcKAzAX7vxB85YTTys3gWV5Zb1SAQ=
