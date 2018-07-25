@@ -280,7 +280,7 @@ Parser.prototype.getLanguage = function(language) {
 };
 
 Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={}) {
-  let getText
+  let getText, treeInput = input
   if (typeof input === 'string') {
     const inputString = input;
     input = (offset, position) => inputString.slice(offset)
@@ -295,8 +295,10 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
     bufferSize,
     includedRanges
   );
-  tree.input = input
-  tree.getText = getText
+  if (tree) {
+    tree.input = treeInput
+    tree.getText = getText
+  }
   return tree
 };
 
@@ -308,11 +310,13 @@ Parser.prototype.parseTextBuffer = function(
   return new Promise(resolve => {
     parseTextBuffer.call(
       this,
-      result => {
+      tree => {
         snapshot.destroy();
-        result.input = buffer
-        result.getText = getTextFromTextBuffer
-        resolve(result);
+        if (tree) {
+          tree.input = buffer
+          tree.getText = getTextFromTextBuffer
+        }
+        resolve(tree);
       },
       snapshot,
       oldTree,
@@ -325,8 +329,10 @@ Parser.prototype.parseTextBuffer = function(
 Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges}={}) {
   const snapshot = buffer.getSnapshot();
   const tree = parseTextBufferSync.call(this, snapshot, oldTree, includedRanges);
-  tree.input = buffer;
-  tree.getText = getTextFromTextBuffer;
+  if (tree) {
+    tree.input = buffer;
+    tree.getText = getTextFromTextBuffer;
+  }
   snapshot.destroy();
   return tree;
 };
