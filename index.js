@@ -40,6 +40,15 @@ class SyntaxNode {
     this.tree = tree;
   }
 
+  inspect() {
+    return 'SyntaxNode {\n' +
+      '  type: ' + this.type + ',\n' +
+      '  startPosition: ' + pointToString(this.startPosition) + ',\n' +
+      '  endPosition: ' + pointToString(this.startPosition) + ',\n' +
+      '  childCount: ' + this.childCount + ',\n' +
+      '}'
+  }
+
   get type() {
     marshalNode(this);
     return NodeMethods.type(this.tree);
@@ -48,6 +57,10 @@ class SyntaxNode {
   get isNamed() {
     marshalNode(this);
     return NodeMethods.isNamed(this.tree);
+  }
+
+  get text() {
+    return this.tree.getText(this);
   }
 
   get startPosition() {
@@ -238,7 +251,9 @@ class SyntaxNode {
 
   walk () {
     marshalNode(this);
-    return NodeMethods.walk(this.tree);
+    const cursor = NodeMethods.walk(this.tree);
+    cursor.tree = this.tree;
+    return cursor;
   }
 }
 
@@ -274,17 +289,26 @@ Parser.prototype.getLanguage = function(language) {
 };
 
 Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={}) {
+  let getText, treeInput = input
   if (typeof input === 'string') {
     const inputString = input;
-    input = (offset) => inputString.slice(offset)
+    input = (offset, position) => inputString.slice(offset)
+    getText = getTextFromString
+  } else {
+    getText = getTextFromFunction
   }
-  return parse.call(
+  const tree = parse.call(
     this,
     input,
     oldTree,
     bufferSize,
     includedRanges
   );
+  if (tree) {
+    tree.input = treeInput
+    tree.getText = getText
+  }
+  return tree
 };
 
 Parser.prototype.parseTextBuffer = function(
@@ -295,9 +319,13 @@ Parser.prototype.parseTextBuffer = function(
   return new Promise(resolve => {
     parseTextBuffer.call(
       this,
-      result => {
+      tree => {
         snapshot.destroy();
-        resolve(result);
+        if (tree) {
+          tree.input = buffer
+          tree.getText = getTextFromTextBuffer
+        }
+        resolve(tree);
       },
       snapshot,
       oldTree,
@@ -310,25 +338,54 @@ Parser.prototype.parseTextBuffer = function(
 Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges}={}) {
   const snapshot = buffer.getSnapshot();
   const tree = parseTextBufferSync.call(this, snapshot, oldTree, includedRanges);
+  if (tree) {
+    tree.input = buffer;
+    tree.getText = getTextFromTextBuffer;
+  }
   snapshot.destroy();
   return tree;
 };
 
 const {startPosition, endPosition} = TreeCursor.prototype;
 
-Object.defineProperty(TreeCursor.prototype, 'startPosition', {
-  get() {
-    startPosition.call(this);
-    return unmarshalPoint();
+Object.defineProperties(TreeCursor.prototype, {
+  startPosition: {
+    get() {
+      startPosition.call(this);
+      return unmarshalPoint();
+    }
+  },
+  endPosition: {
+    get() {
+      endPosition.call(this);
+      return unmarshalPoint();
+    }
+  },
+  nodeText: {
+    get() {
+      return this.tree.getText(this)
+    }
   }
 });
 
-Object.defineProperty(TreeCursor.prototype, 'endPosition', {
-  get() {
-    endPosition.call(this);
-    return unmarshalPoint();
+function getTextFromString (node) {
+  return this.input.substring(node.startIndex, node.endIndex);
+}
+
+function getTextFromFunction ({startIndex, endIndex}) {
+  const {input} = this
+  let result = '';
+  const goalLength = endIndex - startIndex;
+  while (result.length < goalLength) {
+    const text = input(startIndex + result.length);
+    result += text;
   }
-});
+  return result.substr(0, goalLength);
+}
+
+function getTextFromTextBuffer ({startPosition, endPosition}) {
+  return this.input.getTextInRange({start: startPosition, end: endPosition});
+}
 
 const {pointTransferArray} = binding;
 
@@ -368,6 +425,11 @@ function unmarshalPoint() {
   return {row: pointTransferArray[0], column: pointTransferArray[1]};
 }
 
+function pointToString(point) {
+  return `{row: ${point.row}, column: ${point.column}}`;
+}
+
 module.exports = Parser;
 module.exports.Tree = Tree;
 module.exports.SyntaxNode = SyntaxNode;
+module.exports.TreeCursor = TreeCursor;
