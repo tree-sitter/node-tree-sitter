@@ -40,6 +40,15 @@ class SyntaxNode {
     this.tree = tree;
   }
 
+  inspect() {
+    return 'SyntaxNode {\n' +
+      '  type: ' + this.type + ',\n' +
+      '  startPosition: ' + pointToString(this.startPosition) + ',\n' +
+      '  endPosition: ' + pointToString(this.startPosition) + ',\n' +
+      '  childCount: ' + this.childCount + ',\n' +
+      '}'
+  }
+
   get type() {
     marshalNode(this);
     return NodeMethods.type(this.tree);
@@ -414,6 +423,10 @@ function marshalNode(node) {
 
 function unmarshalPoint() {
   return {row: pointTransferArray[0], column: pointTransferArray[1]};
+}
+
+function pointToString(point) {
+  return `{row: ${point.row}, column: ${point.column}}`;
 }
 
 module.exports = Parser;
