@@ -9,6 +9,7 @@ try {
   }
 }
 
+const util = require('util')
 const {Parser, NodeMethods, Tree, TreeCursor} = binding;
 
 const {rootNode, edit} = Tree.prototype;
@@ -40,7 +41,7 @@ class SyntaxNode {
     this.tree = tree;
   }
 
-  inspect() {
+  [util.inspect.custom]() {
     return 'SyntaxNode {\n' +
       '  type: ' + this.type + ',\n' +
       '  startPosition: ' + pointToString(this.startPosition) + ',\n' +
