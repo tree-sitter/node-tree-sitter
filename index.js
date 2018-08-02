@@ -258,24 +258,6 @@ class SyntaxNode {
   }
 }
 
-class StringInput {
-  constructor(string, bufferSize) {
-    this.position = 0;
-    this.string = string;
-    this.bufferSize = Number.isFinite(bufferSize) ? bufferSize : null;
-  }
-
-  seek(position) {
-    this.position = position;
-  }
-
-  read() {
-    const result = this.string.slice(this.position);
-    this.position = this.string.length;
-    return result;
-  }
-}
-
 const {parse, parseTextBuffer, parseTextBufferSync, setLanguage} = Parser.prototype;
 const languageSymbol = Symbol('parser.language');
 
