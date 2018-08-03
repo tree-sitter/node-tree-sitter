@@ -45,7 +45,7 @@ class SyntaxNode {
     return 'SyntaxNode {\n' +
       '  type: ' + this.type + ',\n' +
       '  startPosition: ' + pointToString(this.startPosition) + ',\n' +
-      '  endPosition: ' + pointToString(this.startPosition) + ',\n' +
+      '  endPosition: ' + pointToString(this.endPosition) + ',\n' +
       '  childCount: ' + this.childCount + ',\n' +
       '}'
   }
