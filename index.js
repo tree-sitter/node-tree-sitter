@@ -36,6 +36,44 @@ Tree.prototype.walk = function() {
   return this.rootNode.walk()
 };
 
+Tree.prototype.json = function() {
+  function jsonify(node /*SyntaxNode*/, nodeType /*string*/, startPosition, endPosition) {
+    if(node.children.length === 0) {
+      return {
+          kind: nodeType === node.text ? "predefined_symbol" : nodeType,
+          startPosition: startPosition,
+          endPosition:   endPosition,
+          repr:          node.text
+      } 
+    }
+    const result = {
+      kind: nodeType
+    };
+    for (let i = 0; i < node.children.length; i++) {
+      const c = node.children[i];
+      const nodeId = c.type;
+      const currentTree = jsonify(c, nodeId, c.startPosition, c.endPosition);
+      if(nodeId === currentTree.repr) {
+        /* dont add into tree, because it is symbols like comma, equal etc. */ 
+      } else if(result[nodeId] === undefined) {
+        result[nodeId] = currentTree;
+      } else if(isArray(result[nodeId])) {
+        result[nodeId].push(currentTree)
+      } else {
+        const previousTree = result[nodeId];
+        result[nodeId] = [previousTree, currentTree];
+      }
+    }
+    return result;
+  }
+
+  function isArray(xs) {
+    return xs.length !== undefined;
+  }
+
+  return this.rootNode.children.map((x) => jsonify(x, x.type, x.startPosition, x.endPosition))
+}
+
 class SyntaxNode {
   constructor(tree) {
     this.tree = tree;
