@@ -115,3 +115,32 @@ async function test2() {
   });
 }
 ```
+
+### How to JSONify the tree?
+Use the `json()` method of `Tree`.
+
+```js
+const sourceCode = 'let x = 1; console.log(x);';
+const tree = parser.parse(sourceCode);
+
+const jsonifiedSyntaxTree = tree.json(); // <-- this line
+
+console.log(JSON.stringify(jsonifiedSyntaxTree, null, 2));
+```
+Note: 
+- The property `repr` means **representation** of the current node, and only terminal node will have this property.
+- Symbols or keywords with no description will not be included in the JSON tree. To include it you will need to follow the following steps.
+```js
+// Let say you want to include the equal symbol into the tree
+// Before
+assignment: $ => seq(
+    $.variable , "=", $.expression
+),
+
+// After
+assignment: $ => seq(
+    $.variable, $.equal, $.expression
+),
+
+equal: $ => /=/
+```
