@@ -6,6 +6,9 @@ node tree-sitter
 
 Incremental parsers for node
 
+### Tutorial
+The tutorial is located at `Tutorial.md`.
+
 ### Installation
 
 ```sh
