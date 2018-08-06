@@ -57,7 +57,7 @@ declare module "tree-sitter" {
       previousSibling: SyntaxNode | null;
       previousNamedSibling: SyntaxNode | null;
 
-      isValid(): boolean;
+      isMissing(): boolean;
       hasError(): boolean;
       hasChanges(): boolean;
       toString(): string;
