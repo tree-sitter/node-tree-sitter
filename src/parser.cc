@@ -299,7 +299,7 @@ class ParseWorker : public Nan::AsyncWorker {
 
 public:
   ParseWorker(Nan::Callback *callback, Parser *parser, TextBufferInput *input) :
-    AsyncWorker(callback),
+    AsyncWorker(callback, "tree-sitter.parseTextBuffer"),
     parser_(parser),
     new_tree_(nullptr),
     input_(input) {}
@@ -315,7 +315,7 @@ public:
     parser_->is_parsing_async_ = false;
     delete input_;
     Local<Value> argv[] = {Tree::NewInstance(new_tree_)};
-    callback->Call(1, argv);
+    callback->Call(1, argv, async_resource);
   }
 };
 
@@ -326,7 +326,6 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  auto callback = new Nan::Callback(info[0].As<Function>());
   auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[1].As<Object>());
 
   const TSTree *old_tree = nullptr;
@@ -362,8 +361,9 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
   if (result) {
     delete input;
     Local<Value> argv[] = {Tree::NewInstance(result)};
-    callback->Call(1, argv);
+    info[0].As<Function>()->Call(Nan::Null(), 1, argv);
   } else {
+    auto callback = new Nan::Callback(info[0].As<Function>());
     parser->is_parsing_async_ = true;
     Nan::AsyncQueueWorker(new ParseWorker(
       callback,
