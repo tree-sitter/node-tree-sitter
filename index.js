@@ -298,24 +298,31 @@ Parser.prototype.parseTextBuffer = function(
   buffer, oldTree,
   {syncOperationLimit, includedRanges} = {}
 ) {
+  let tree
+  let resolveTreePromise
+  const treePromise = new Promise(resolve => { resolveTreePromise = resolve })
   const snapshot = buffer.getSnapshot();
-  return new Promise(resolve => {
-    parseTextBuffer.call(
-      this,
-      tree => {
-        snapshot.destroy();
-        if (tree) {
-          tree.input = buffer
-          tree.getText = getTextFromTextBuffer
-        }
-        resolve(tree);
-      },
-      snapshot,
-      oldTree,
-      includedRanges,
-      syncOperationLimit
-    )
-  });
+  parseTextBuffer.call(
+    this,
+    result => {
+      tree = result
+      snapshot.destroy();
+      if (tree) {
+        tree.input = buffer
+        tree.getText = getTextFromTextBuffer
+      }
+      resolveTreePromise(tree);
+    },
+    snapshot,
+    oldTree,
+    includedRanges,
+    syncOperationLimit
+  );
+
+  // If the parse finished synchronously because of the given `syncOperationLimit`,
+  // then return the tree immediately so that callers have the option of continuing
+  // synchronously.
+  return tree || treePromise
 };
 
 Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges}={}) {
