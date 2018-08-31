@@ -80,6 +80,10 @@ void MarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree,
   }
 }
 
+void MarshalNullNode() {
+  memset(transfer_buffer, 0, FIELD_COUNT_PER_NODE * sizeof(transfer_buffer[0]));
+}
+
 static TSNode UnmarshalNode(const Tree *tree) {
   TSNode result = {{0, 0, 0, 0}, nullptr, nullptr};
   result.tree = tree->tree_;
@@ -140,8 +144,10 @@ static void FirstNamedChildForIndex(const Nan::FunctionCallbackInfo<Value> &info
     Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[1]);
     if (byte.IsJust()) {
       MarshalNode(info, tree, ts_node_first_named_child_for_byte(node, byte.FromJust()));
+      return;
     }
   }
+  MarshalNullNode();
 }
 
 static void FirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -152,8 +158,10 @@ static void FirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
     Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[1]);
     if (byte.IsJust()) {
       MarshalNode(info, tree, ts_node_first_child_for_byte(node, byte.FromJust()));
+      return;
     }
   }
+  MarshalNullNode();
 }
 
 static void NamedDescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -167,8 +175,10 @@ static void NamedDescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info
       uint32_t min = maybe_min.FromJust();
       uint32_t max = maybe_max.FromJust();
       MarshalNode(info, tree, ts_node_named_descendant_for_byte_range(node, min, max));
+      return;
     }
   }
+  MarshalNullNode();
 }
 
 static void DescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -182,8 +192,10 @@ static void DescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
       uint32_t min = maybe_min.FromJust();
       uint32_t max = maybe_max.FromJust();
       MarshalNode(info, tree, ts_node_descendant_for_byte_range(node, min, max));
+      return;
     }
   }
+  MarshalNullNode();
 }
 
 static void NamedDescendantForPosition(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -197,8 +209,10 @@ static void NamedDescendantForPosition(const Nan::FunctionCallbackInfo<Value> &i
       TSPoint min = maybe_min.FromJust();
       TSPoint max = maybe_max.FromJust();
       MarshalNode(info, tree, ts_node_named_descendant_for_point_range(node, min, max));
+      return;
     }
   }
+  MarshalNullNode();
 }
 
 static void DescendantForPosition(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -212,8 +226,10 @@ static void DescendantForPosition(const Nan::FunctionCallbackInfo<Value> &info) 
       TSPoint min = maybe_min.FromJust();
       TSPoint max = maybe_max.FromJust();
       MarshalNode(info, tree, ts_node_descendant_for_point_range(node, min, max));
+      return;
     }
   }
+  MarshalNullNode();
 }
 
 static void Type(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -295,7 +311,9 @@ static void Child(const Nan::FunctionCallbackInfo<Value> &info) {
     }
     uint32_t index = info[1]->Uint32Value();
     MarshalNode(info, tree, ts_node_child(node, index));
+    return;
   }
+  MarshalNullNode();
 }
 
 static void NamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -309,7 +327,9 @@ static void NamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
     }
     uint32_t index = info[1]->Uint32Value();
     MarshalNode(info, tree, ts_node_named_child(node, index));
+    return;
   }
+  MarshalNullNode();
 }
 
 static void ChildCount(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -335,7 +355,9 @@ static void FirstChild(const Nan::FunctionCallbackInfo<Value> &info) {
   TSNode node = UnmarshalNode(tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_child(node, 0));
+    return;
   }
+  MarshalNullNode();
 }
 
 static void FirstNamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -343,7 +365,9 @@ static void FirstNamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
   TSNode node = UnmarshalNode(tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_named_child(node, 0));
+    return;
   }
+  MarshalNullNode();
 }
 
 static void LastChild(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -353,8 +377,10 @@ static void LastChild(const Nan::FunctionCallbackInfo<Value> &info) {
     uint32_t child_count = ts_node_child_count(node);
     if (child_count > 0) {
       MarshalNode(info, tree, ts_node_child(node, child_count - 1));
+      return;
     }
   }
+  MarshalNullNode();
 }
 
 static void LastNamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -364,8 +390,10 @@ static void LastNamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
     uint32_t child_count = ts_node_named_child_count(node);
     if (child_count > 0) {
       MarshalNode(info, tree, ts_node_named_child(node, child_count - 1));
+      return;
     }
   }
+  MarshalNullNode();
 }
 
 static void Parent(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -373,7 +401,9 @@ static void Parent(const Nan::FunctionCallbackInfo<Value> &info) {
   TSNode node = UnmarshalNode(tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_parent(node));
+    return;
   }
+  MarshalNullNode();
 }
 
 static void NextSibling(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -381,7 +411,9 @@ static void NextSibling(const Nan::FunctionCallbackInfo<Value> &info) {
   TSNode node = UnmarshalNode(tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_next_sibling(node));
+    return;
   }
+  MarshalNullNode();
 }
 
 static void NextNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -389,7 +421,9 @@ static void NextNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
   TSNode node = UnmarshalNode(tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_next_named_sibling(node));
+    return;
   }
+  MarshalNullNode();
 }
 
 static void PreviousSibling(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -397,7 +431,9 @@ static void PreviousSibling(const Nan::FunctionCallbackInfo<Value> &info) {
   TSNode node = UnmarshalNode(tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_prev_sibling(node));
+    return;
   }
+  MarshalNullNode();
 }
 
 static void PreviousNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -405,7 +441,9 @@ static void PreviousNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
   TSNode node = UnmarshalNode(tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_prev_named_sibling(node));
+    return;
   }
+  MarshalNullNode();
 }
 
 static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
