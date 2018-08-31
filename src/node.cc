@@ -252,16 +252,6 @@ static void IsNamed(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 }
 
-static void Id(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
-
-  if (node.id) {
-    uint64_t result = reinterpret_cast<uint64_t>(node.id);
-    info.GetReturnValue().Set(Nan::New<Number>(result));
-  }
-}
-
 static void StartIndex(const Nan::FunctionCallbackInfo<Value> &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(tree);
@@ -527,6 +517,53 @@ static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
   MarshalNodes(info, tree, found.data(), found.size());
 }
 
+static void Closest(const Nan::FunctionCallbackInfo<Value> &info) {
+  const Tree *tree = Tree::UnwrapTree(info[0]);
+  TSNode node = UnmarshalNode(tree);
+  if (!node.id) return;
+  const TSLanguage *language = ts_tree_language(node.tree);
+
+  if (!info[1]->IsArray()) {
+    Nan::ThrowTypeError("Argument must be an array");
+    return;
+  }
+
+  std::basic_string<TSSymbol> symbols;
+  Local<Array> js_types = Local<Array>::Cast(info[1]);
+  for (unsigned i = 0, n = js_types->Length(); i < n; i++) {
+    Local<Value> js_types_i = js_types->Get(i);
+    if (!js_types_i->IsString()) {
+      if (!info[1]->IsArray()) {
+        Nan::ThrowTypeError("Argument must be an array of strings");
+        return;
+      }
+    }
+    Local<String> js_type = Local<String>::Cast(js_types_i);
+
+    std::string node_type(js_type->Utf8Length() + 1, '\0');
+    js_type->WriteUtf8(&node_type[0]);
+    TSSymbol symbol = ts_language_symbol_for_name(language, node_type.c_str());
+    if (!symbol) {
+      Nan::ThrowTypeError("Invalid node type");
+      return;
+    }
+
+    symbols += symbol;
+  }
+
+  for (;;) {
+    TSNode parent = ts_node_parent(node);
+    if (!parent.id) break;
+    if (symbols.find(ts_node_symbol(parent)) != symbols.npos) {
+      MarshalNode(info, tree, parent);
+      return;
+    }
+    node = parent;
+  }
+
+  MarshalNullNode();
+}
+
 static void Walk(const Nan::FunctionCallbackInfo<Value> &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(tree);
@@ -555,7 +592,6 @@ void Init(Local<Object> exports) {
     {"nextNamedSibling", NextNamedSibling},
     {"previousSibling", PreviousSibling},
     {"previousNamedSibling", PreviousNamedSibling},
-    {"id", Id},
     {"startPosition", StartPosition},
     {"endPosition", EndPosition},
     {"isMissing", IsMissing},
@@ -570,6 +606,7 @@ void Init(Local<Object> exports) {
     {"hasError", HasError},
     {"descendantsOfType", DescendantsOfType},
     {"walk", Walk},
+    {"closest", Closest},
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {

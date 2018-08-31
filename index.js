@@ -250,6 +250,12 @@ class SyntaxNode {
     return result || unmarshalNode(this.tree);
   }
 
+  closest(types) {
+    if (typeof types === 'string') types = [types]
+    marshalNode(this);
+    return NodeMethods.closest(this.tree, types) || unmarshalNode(this.tree);
+  }
+
   walk () {
     marshalNode(this);
     const cursor = NodeMethods.walk(this.tree);
