@@ -221,9 +221,10 @@ class SyntaxNode {
     return result || unmarshalNode(this.tree);
   }
 
-  descendantsOfType(type, start, end) {
+  descendantsOfType(types, start, end) {
     marshalNode(this);
-    const nodes = NodeMethods.descendantsOfType(this.tree, type, start, end);
+    if (typeof types === 'string') types = [types]
+    const nodes = NodeMethods.descendantsOfType(this.tree, types, start, end);
     unmarshalNodes(this.tree, nodes);
     return nodes
   }

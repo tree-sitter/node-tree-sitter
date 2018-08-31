@@ -436,27 +436,48 @@ static void PreviousNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
   MarshalNullNode();
 }
 
+struct SymbolSet {
+  std::basic_string<TSSymbol> symbols;
+  void add(TSSymbol symbol) { symbols += symbol; }
+  bool contains(TSSymbol symbol) { return symbols.find(symbol) != symbols.npos; }
+};
+
+bool symbol_set_from_js(SymbolSet *symbols, const Local<Value> &value, const TSLanguage *language) {
+  if (!value->IsArray()) {
+    Nan::ThrowTypeError("Argument must be a string or array of strings");
+    return false;
+  }
+
+  Local<Array> js_types = Local<Array>::Cast(value);
+  for (unsigned i = 0, n = js_types->Length(); i < n; i++) {
+    Local<Value> js_types_i = js_types->Get(i);
+    if (!js_types_i->IsString()) {
+      Nan::ThrowTypeError("Argument must be a string or array of strings");
+      return false;
+    }
+    Local<String> js_type = Local<String>::Cast(js_types_i);
+
+    std::string node_type(js_type->Utf8Length() + 1, '\0');
+    js_type->WriteUtf8(&node_type[0]);
+    TSSymbol symbol = ts_language_symbol_for_name(language, node_type.c_str());
+    if (!symbol) {
+      Nan::ThrowTypeError("Invalid node type");
+      return false;
+    }
+
+    symbols->add(symbol);
+  }
+
+  return true;
+}
+
 static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(tree);
-
   if (!node.id) return;
 
-  if (!info[1]->IsString()) {
-    Nan::ThrowTypeError("Node type must be a string");
-    return;
-  }
-
-  auto js_node_type = Local<String>::Cast(info[1]);
-  std::string node_type(js_node_type->Utf8Length() + 1, '\0');
-  js_node_type->WriteUtf8(&node_type[0]);
-
-  const TSLanguage *language = ts_tree_language(node.tree);
-  TSSymbol symbol = ts_language_symbol_for_name(language, node_type.c_str());
-  if (!symbol) {
-    Nan::ThrowTypeError("Invalid node type");
-    return;
-  }
+  SymbolSet symbols;
+  if (!symbol_set_from_js(&symbols, info[1], ts_tree_language(node.tree))) return;
 
   TSPoint start_point = {0, 0};
   TSPoint end_point = {UINT32_MAX, UINT32_MAX};
@@ -492,7 +513,7 @@ static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
 
       if (end_point <= ts_node_start_point(descendant)) break;
 
-      if (ts_node_symbol(descendant) == symbol) {
+      if (symbols.contains(ts_node_symbol(descendant))) {
         found.push_back(descendant);
       }
 
@@ -521,40 +542,14 @@ static void Closest(const Nan::FunctionCallbackInfo<Value> &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(tree);
   if (!node.id) return;
-  const TSLanguage *language = ts_tree_language(node.tree);
 
-  if (!info[1]->IsArray()) {
-    Nan::ThrowTypeError("Argument must be an array");
-    return;
-  }
-
-  std::basic_string<TSSymbol> symbols;
-  Local<Array> js_types = Local<Array>::Cast(info[1]);
-  for (unsigned i = 0, n = js_types->Length(); i < n; i++) {
-    Local<Value> js_types_i = js_types->Get(i);
-    if (!js_types_i->IsString()) {
-      if (!info[1]->IsArray()) {
-        Nan::ThrowTypeError("Argument must be an array of strings");
-        return;
-      }
-    }
-    Local<String> js_type = Local<String>::Cast(js_types_i);
-
-    std::string node_type(js_type->Utf8Length() + 1, '\0');
-    js_type->WriteUtf8(&node_type[0]);
-    TSSymbol symbol = ts_language_symbol_for_name(language, node_type.c_str());
-    if (!symbol) {
-      Nan::ThrowTypeError("Invalid node type");
-      return;
-    }
-
-    symbols += symbol;
-  }
+  SymbolSet symbols;
+  if (!symbol_set_from_js(&symbols, info[1], ts_tree_language(node.tree))) return;
 
   for (;;) {
     TSNode parent = ts_node_parent(node);
     if (!parent.id) break;
-    if (symbols.find(ts_node_symbol(parent)) != symbols.npos) {
+    if (symbols.contains(ts_node_symbol(parent))) {
       MarshalNode(info, tree, parent);
       return;
     }
