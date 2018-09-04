@@ -2,7 +2,7 @@ declare module "tree-sitter" {
   class Parser {
     parse(input: string | Parser.Input, previousTree?: Parser.Tree): Parser.Tree;
     getLanguage(): any;
-    setLanguage(language: any);
+    setLanguage(language: any): void;
     getLogger(): Parser.Logger;
     setLogger(logFunc: Parser.Logger): void;
   }
