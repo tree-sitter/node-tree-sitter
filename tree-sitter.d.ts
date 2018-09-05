@@ -39,28 +39,37 @@ declare module "tree-sitter" {
     }
 
     export interface SyntaxNode {
-      isNamed: boolean;
+      tree: Tree;
       type: string;
+      isNamed: boolean;
+      text: string;
       startPosition: Point;
       endPosition: Point;
-      children: Array<SyntaxNode>;
-      namedChildren: Array<SyntaxNode>;
       startIndex: number;
       endIndex: number;
       parent: SyntaxNode | null;
+      children: Array<SyntaxNode>;
+      namedChildren: Array<SyntaxNode>;
+      childCount: number;
+      namedChildCount: number;
       firstChild: SyntaxNode | null;
-      lastChild: SyntaxNode | null;
       firstNamedChild: SyntaxNode | null;
+      lastChild: SyntaxNode | null;
       lastNamedChild: SyntaxNode | null;
       nextSibling: SyntaxNode | null;
       nextNamedSibling: SyntaxNode | null;
       previousSibling: SyntaxNode | null;
       previousNamedSibling: SyntaxNode | null;
 
-      isMissing(): boolean;
-      hasError(): boolean;
       hasChanges(): boolean;
+      hasError(): boolean;
+      isMissing(): boolean;
       toString(): string;
+      child(index: number): SyntaxNode | null;
+      namedChild(index: number): SyntaxNode | null;
+      firstChildForIndex(index: number): SyntaxNode | null;
+      firstNamedChildForIndex(index: number): SyntaxNode | null;
+
       descendantForIndex(index: number): SyntaxNode;
       descendantForIndex(startIndex: number, endIndex: number): SyntaxNode;
       namedDescendantForIndex(index: number): SyntaxNode;
@@ -69,11 +78,15 @@ declare module "tree-sitter" {
       descendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
       namedDescendantForPosition(position: Point): SyntaxNode;
       namedDescendantForPosition(startPosition: Point, endPosition: Point): SyntaxNode;
-      descendantsOfType(type: String, startPosition?: Point, endPosition?: Point): Array<SyntaxNode>;
+      descendantsOfType(types: String | Array<String>, startPosition?: Point, endPosition?: Point): Array<SyntaxNode>;
+
+      closest(types: String | Array<String>): SyntaxNode | null;
+      walk(): TreeCursor;
     }
 
     export interface TreeCursor {
       nodeType: string;
+      nodeText: string;
       nodeIsNamed: boolean;
       startPosition: Point;
       endPosition: Point;
