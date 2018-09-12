@@ -20,7 +20,7 @@ static inline const void *UnmarshalNodeId(const uint32_t *buffer) {
 }
 
 static inline void MarshalNodeId(const void *id, uint32_t *buffer) {
-  memset(buffer, 0, sizeof(id));
+  memset(buffer, 0, sizeof(uint64_t));
   memcpy(buffer, &id, sizeof(id));
 }
 
