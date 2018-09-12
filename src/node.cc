@@ -462,6 +462,11 @@ bool symbol_set_from_js(SymbolSet *symbols, const Local<Value> &value, const TSL
     std::string node_type(js_type->Utf8Length(), '\0');
     js_type->WriteUtf8(&node_type[0]);
 
+    if (node_type == "ERROR") {
+      symbols->add(static_cast<TSSymbol>(-1));
+      continue;
+    }
+
     bool found_symbol = false;
     for (TSSymbol j = 0; j < symbol_count; j++) {
       if (node_type == ts_language_symbol_name(language, j)) {
