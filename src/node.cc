@@ -448,6 +448,8 @@ bool symbol_set_from_js(SymbolSet *symbols, const Local<Value> &value, const TSL
     return false;
   }
 
+  unsigned symbol_count = ts_language_symbol_count(language);
+
   Local<Array> js_types = Local<Array>::Cast(value);
   for (unsigned i = 0, n = js_types->Length(); i < n; i++) {
     Local<Value> js_types_i = js_types->Get(i);
@@ -457,15 +459,21 @@ bool symbol_set_from_js(SymbolSet *symbols, const Local<Value> &value, const TSL
     }
     Local<String> js_type = Local<String>::Cast(js_types_i);
 
-    std::string node_type(js_type->Utf8Length() + 1, '\0');
+    std::string node_type(js_type->Utf8Length(), '\0');
     js_type->WriteUtf8(&node_type[0]);
-    TSSymbol symbol = ts_language_symbol_for_name(language, node_type.c_str());
-    if (!symbol) {
-      Nan::ThrowTypeError("Invalid node type");
-      return false;
+
+    bool found_symbol = false;
+    for (TSSymbol j = 0; j < symbol_count; j++) {
+      if (node_type == ts_language_symbol_name(language, j)) {
+        found_symbol = true;
+        symbols->add(j);
+      }
     }
 
-    symbols->add(symbol);
+    if (!found_symbol) {
+      Nan::ThrowTypeError(("Invalid node type `" + node_type + "`").c_str());
+      return false;
+    }
   }
 
   return true;
