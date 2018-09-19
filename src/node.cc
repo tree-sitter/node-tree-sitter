@@ -457,27 +457,20 @@ bool symbol_set_from_js(SymbolSet *symbols, const Local<Value> &value, const TSL
       Nan::ThrowTypeError("Argument must be a string or array of strings");
       return false;
     }
-    Local<String> js_type = Local<String>::Cast(js_types_i);
 
-    std::string node_type(js_type->Utf8Length(), '\0');
-    js_type->WriteUtf8(&node_type[0]);
+    Local<String> js_node_type = Local<String>::Cast(js_types_i);
+    std::string node_type(js_node_type->Utf8Length(), '\0');
+    js_node_type->WriteUtf8(&node_type[0]);
 
     if (node_type == "ERROR") {
       symbols->add(static_cast<TSSymbol>(-1));
       continue;
     }
 
-    bool found_symbol = false;
     for (TSSymbol j = 0; j < symbol_count; j++) {
       if (node_type == ts_language_symbol_name(language, j)) {
-        found_symbol = true;
         symbols->add(j);
       }
-    }
-
-    if (!found_symbol) {
-      Nan::ThrowTypeError(("Invalid node type `" + node_type + "`").c_str());
-      return false;
     }
   }
 
