@@ -92,21 +92,17 @@ class SyntaxNode {
   }
 
   get children() {
-    const {childCount} = this;
-    const result = new Array(childCount);
-    for (let i = 0; i < childCount; i++) {
-      result[i] = this.child(i);
-    }
-    return result;
+    marshalNode(this);
+    const nodes = NodeMethods.children(this.tree);
+    unmarshalNodes(this.tree, nodes);
+    return nodes
   }
 
   get namedChildren() {
-    const {namedChildCount} = this;
-    const result = new Array(namedChildCount);
-    for (let i = 0; i < namedChildCount; i++) {
-      result[i] = this.namedChild(i);
-    }
-    return result;
+    marshalNode(this);
+    const nodes = NodeMethods.namedChildren(this.tree);
+    unmarshalNodes(this.tree, nodes);
+    return nodes
   }
 
   get childCount() {

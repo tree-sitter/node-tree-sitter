@@ -19,6 +19,7 @@ static const uint32_t FIELD_COUNT_PER_NODE = 6;
 static uint32_t *transfer_buffer = NULL;
 static uint32_t transfer_buffer_length = 0;
 static Nan::Persistent<Object> module_exports;
+static TSTreeCursor scratch_cursor = {{0, 0}, 0, 0};
 
 static inline void setup_transfer_buffer(uint32_t node_count) {
   uint32_t new_length = node_count * FIELD_COUNT_PER_NODE;
@@ -477,6 +478,42 @@ bool symbol_set_from_js(SymbolSet *symbols, const Local<Value> &value, const TSL
   return true;
 }
 
+static void Children(const Nan::FunctionCallbackInfo<Value> &info) {
+  const Tree *tree = Tree::UnwrapTree(info[0]);
+  TSNode node = UnmarshalNode(tree);
+  if (!node.id) return;
+
+  vector<TSNode> result;
+  ts_tree_cursor_reset(&scratch_cursor, node);
+  if (ts_tree_cursor_goto_first_child(&scratch_cursor)) {
+    do {
+      TSNode child = ts_tree_cursor_current_node(&scratch_cursor);
+      result.push_back(child);
+    } while (ts_tree_cursor_goto_next_sibling(&scratch_cursor));
+  }
+
+  MarshalNodes(info, tree, result.data(), result.size());
+}
+
+static void NamedChildren(const Nan::FunctionCallbackInfo<Value> &info) {
+  const Tree *tree = Tree::UnwrapTree(info[0]);
+  TSNode node = UnmarshalNode(tree);
+  if (!node.id) return;
+
+  vector<TSNode> result;
+  ts_tree_cursor_reset(&scratch_cursor, node);
+  if (ts_tree_cursor_goto_first_child(&scratch_cursor)) {
+    do {
+      TSNode child = ts_tree_cursor_current_node(&scratch_cursor);
+      if (ts_node_is_named(child)) {
+        result.push_back(child);
+      }
+    } while (ts_tree_cursor_goto_next_sibling(&scratch_cursor));
+  }
+
+  MarshalNodes(info, tree, result.data(), result.size());
+}
+
 static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(tree);
@@ -501,17 +538,17 @@ static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 
   vector<TSNode> found;
-  TSTreeCursor cursor = ts_tree_cursor_new(node);
+  ts_tree_cursor_reset(&scratch_cursor, node);
   auto already_visited_children = false;
   while (true) {
-    TSNode descendant = ts_tree_cursor_current_node(&cursor);
+    TSNode descendant = ts_tree_cursor_current_node(&scratch_cursor);
 
     if (!already_visited_children) {
       if (ts_node_end_point(descendant) <= start_point) {
-        if (ts_tree_cursor_goto_next_sibling(&cursor)) {
+        if (ts_tree_cursor_goto_next_sibling(&scratch_cursor)) {
           already_visited_children = false;
         } else {
-          if (!ts_tree_cursor_goto_parent(&cursor)) break;
+          if (!ts_tree_cursor_goto_parent(&scratch_cursor)) break;
           already_visited_children = true;
         }
         continue;
@@ -523,24 +560,23 @@ static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
         found.push_back(descendant);
       }
 
-      if (ts_tree_cursor_goto_first_child(&cursor)) {
+      if (ts_tree_cursor_goto_first_child(&scratch_cursor)) {
         already_visited_children = false;
-      } else if (ts_tree_cursor_goto_next_sibling(&cursor)) {
+      } else if (ts_tree_cursor_goto_next_sibling(&scratch_cursor)) {
         already_visited_children = false;
       } else {
-        if (!ts_tree_cursor_goto_parent(&cursor)) break;
+        if (!ts_tree_cursor_goto_parent(&scratch_cursor)) break;
         already_visited_children = true;
       }
     } else {
-      if (ts_tree_cursor_goto_next_sibling(&cursor)) {
+      if (ts_tree_cursor_goto_next_sibling(&scratch_cursor)) {
         already_visited_children = false;
       } else {
-        if (!ts_tree_cursor_goto_parent(&cursor)) break;
+        if (!ts_tree_cursor_goto_parent(&scratch_cursor)) break;
       }
     }
   }
 
-  ts_tree_cursor_delete(&cursor);
   MarshalNodes(info, tree, found.data(), found.size());
 }
 
@@ -583,6 +619,8 @@ void Init(Local<Object> exports) {
     {"parent", Parent},
     {"child", Child},
     {"namedChild", NamedChild},
+    {"children", Children},
+    {"namedChildren", NamedChildren},
     {"childCount", ChildCount},
     {"namedChildCount", NamedChildCount},
     {"firstChild", FirstChild},
