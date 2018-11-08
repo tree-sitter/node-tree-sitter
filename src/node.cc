@@ -16,10 +16,10 @@ using namespace v8;
 
 static const uint32_t FIELD_COUNT_PER_NODE = 6;
 
-static uint32_t *transfer_buffer = NULL;
+static uint32_t *transfer_buffer = nullptr;
 static uint32_t transfer_buffer_length = 0;
 static Nan::Persistent<Object> module_exports;
-static TSTreeCursor scratch_cursor = {{0, 0}, 0, 0};
+static TSTreeCursor scratch_cursor = {nullptr, nullptr, {0, 0}};
 
 static inline void setup_transfer_buffer(uint32_t node_count) {
   uint32_t new_length = node_count * FIELD_COUNT_PER_NODE;
