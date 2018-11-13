@@ -4,6 +4,8 @@
 #include <v8.h>
 #include "./util.h"
 #include "./conversions.h"
+#include "./node.h"
+#include "./tree.h"
 
 namespace node_tree_sitter {
 
@@ -31,6 +33,7 @@ void TreeCursor::Init(v8::Local<v8::Object> exports) {
     {"gotoFirstChild", GotoFirstChild},
     {"gotoFirstChildForIndex", GotoFirstChildForIndex},
     {"gotoNextSibling", GotoNextSibling},
+    {"currentNode", CurrentNode},
   };
 
   for (size_t i = 0; i < length_of_array(getters); i++) {
@@ -110,6 +113,14 @@ void TreeCursor::EndPosition(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
   TransferPoint(ts_node_end_point(node));
+}
+
+void TreeCursor::CurrentNode(const Nan::FunctionCallbackInfo<Value> &info) {
+  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
+  Local<String> key = Nan::New<String>("tree").ToLocalChecked();
+  const Tree *tree = Tree::UnwrapTree(info.This()->Get(key));
+  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
+  node_methods::MarshalNode(info, tree, node);
 }
 
 void TreeCursor::NodeType(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {

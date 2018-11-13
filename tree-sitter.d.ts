@@ -92,6 +92,7 @@ declare module "tree-sitter" {
       endPosition: Point;
       startIndex: number;
       endIndex: number;
+      readonly currentNode: SyntaxNode
 
       gotoParent(): boolean;
       gotoFirstChild(): boolean;
