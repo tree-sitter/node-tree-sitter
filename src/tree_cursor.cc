@@ -34,6 +34,7 @@ void TreeCursor::Init(v8::Local<v8::Object> exports) {
     {"gotoFirstChildForIndex", GotoFirstChildForIndex},
     {"gotoNextSibling", GotoNextSibling},
     {"currentNode", CurrentNode},
+    {"reset", Reset},
   };
 
   for (size_t i = 0; i < length_of_array(getters); i++) {
@@ -121,6 +122,14 @@ void TreeCursor::CurrentNode(const Nan::FunctionCallbackInfo<Value> &info) {
   const Tree *tree = Tree::UnwrapTree(info.This()->Get(key));
   TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
   node_methods::MarshalNode(info, tree, node);
+}
+
+void TreeCursor::Reset(const Nan::FunctionCallbackInfo<Value> &info) {
+  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
+  Local<String> key = Nan::New<String>("tree").ToLocalChecked();
+  const Tree *tree = Tree::UnwrapTree(info.This()->Get(key));
+  TSNode node = node_methods::UnmarshalNode(tree);
+  ts_tree_cursor_reset(&cursor->cursor_, node);
 }
 
 void TreeCursor::NodeType(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {

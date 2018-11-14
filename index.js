@@ -339,7 +339,7 @@ Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges
   return tree;
 };
 
-const {startPosition, endPosition, currentNode} = TreeCursor.prototype;
+const {startPosition, endPosition, currentNode, reset} = TreeCursor.prototype;
 
 Object.defineProperties(TreeCursor.prototype, {
   currentNode: {
@@ -365,6 +365,11 @@ Object.defineProperties(TreeCursor.prototype, {
     }
   }
 });
+
+TreeCursor.prototype.reset = function(node) {
+  marshalNode(node);
+  reset.call(this);
+}
 
 function getTextFromString (node) {
   return this.input.substring(node.startIndex, node.endIndex);
