@@ -85,7 +85,7 @@ void MarshalNullNode() {
   memset(transfer_buffer, 0, FIELD_COUNT_PER_NODE * sizeof(transfer_buffer[0]));
 }
 
-static TSNode UnmarshalNode(const Tree *tree) {
+TSNode UnmarshalNode(const Tree *tree) {
   TSNode result = {{0, 0, 0, 0}, nullptr, nullptr};
   result.tree = tree->tree_;
   if (!result.tree) {

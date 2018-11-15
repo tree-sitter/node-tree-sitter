@@ -12,6 +12,7 @@ namespace node_methods {
 
 void Init(v8::Local<v8::Object>);
 void MarshalNode(const Nan::FunctionCallbackInfo<v8::Value> &info, const Tree *, TSNode);
+TSNode UnmarshalNode(const Tree *tree);
 
 static inline const void *UnmarshalNodeId(const uint32_t *buffer) {
   const void *result;
