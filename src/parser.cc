@@ -9,6 +9,7 @@
 #include "./tree.h"
 #include "./util.h"
 #include "text-buffer-snapshot-wrapper.h"
+#include <cmath>
 
 namespace node_tree_sitter {
 
@@ -342,7 +343,10 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
 
   size_t operation_limit = 0;
   if (info[4]->BooleanValue()) {
-    if (info[4]->IsUint32()) {
+    double number = info[4]->NumberValue();
+    if (number > 0 && !std::isfinite(number)) {
+      operation_limit = SIZE_MAX;
+    } else if (info[4]->IsUint32()) {
       operation_limit = info[4]->Uint32Value();
     } else {
       Nan::ThrowTypeError("The `syncOperationLimit` option must be a positive integer.");
