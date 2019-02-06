@@ -1,6 +1,6 @@
 #include "./tree_cursor.h"
 #include <nan.h>
-#include <tree_sitter/runtime.h>
+#include <tree_sitter/api.h>
 #include <v8.h>
 #include "./util.h"
 #include "./conversions.h"

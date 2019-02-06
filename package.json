@@ -19,12 +19,16 @@
     "prebuild-install": "^5.0.0"
   },
   "devDependencies": {
-    "prebuild": "^7.6.0"
+    "prebuild": "^7.6.0",
+    "chai": "3.5.x",
+    "mocha": "^5.2.0",
+    "superstring": "^2.3.5",
+    "tree-sitter-javascript": "0.13.x"
   },
   "scripts": {
     "install": "prebuild-install || node-gyp rebuild",
     "prebuild": "prebuild --all --strip --verbose",
     "prebuild:upload": "prebuild --upload-all",
-    "test": "echo 'node-tree-sitter'"
+    "test": "mocha"
   }
 }

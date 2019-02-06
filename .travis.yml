@@ -1,13 +1,23 @@
-sudo: false
-
 language: node_js
 
 node_js:
 - node
 
-os:
-- linux
-- osx
+matrix:
+  include:
+  - os: osx
+  - os: linux
+    compiler: gcc
+    env:
+      - CXX="g++-4.9"
+      - CC="gcc-4.9"
+    addons:
+      apt:
+        sources:
+        - ubuntu-toolchain-r-test
+        packages:
+        - gcc-4.9
+        - g++-4.9
 
 before_install:
 - git submodule update --init --recursive
