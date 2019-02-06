@@ -4,10 +4,10 @@ out
 build
 
 vendor/tree-sitter/**/*
-!vendor/tree-sitter/src/runtime/*
-!vendor/tree-sitter/include/**/*
-!vendor/tree-sitter/externals/utf8proc/*
-!vendor/tree-sitter/project.gyp
+!vendor/tree-sitter/lib/src/*
+!vendor/tree-sitter/lib/include/tree_sitter/*.h
+!vendor/tree-sitter/lib/utf8proc/*.c
+!vendor/tree-sitter/lib/utf8proc/*.h
 
 .travis.yml
 appveyor.yml

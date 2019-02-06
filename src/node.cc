@@ -1,6 +1,6 @@
 #include "./node.h"
 #include <nan.h>
-#include <tree_sitter/runtime.h>
+#include <tree_sitter/api.h>
 #include <vector>
 #include <v8.h>
 #include "./util.h"

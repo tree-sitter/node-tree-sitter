@@ -2,7 +2,7 @@
 #include <string>
 #include <v8.h>
 #include <nan.h>
-#include <tree_sitter/runtime.h>
+#include <tree_sitter/api.h>
 
 namespace node_tree_sitter {
 

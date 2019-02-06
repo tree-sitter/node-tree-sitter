@@ -1,6 +1,6 @@
 #include "./node.h"
 #include <nan.h>
-#include <tree_sitter/runtime.h>
+#include <tree_sitter/api.h>
 #include <v8.h>
 #include "./conversions.h"
 #include <cmath>

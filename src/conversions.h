@@ -3,7 +3,7 @@
 
 #include <nan.h>
 #include <v8.h>
-#include <tree_sitter/runtime.h>
+#include <tree_sitter/api.h>
 
 namespace node_tree_sitter {
 

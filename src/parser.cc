@@ -448,9 +448,9 @@ void Parser::PrintDotGraphs(const Nan::FunctionCallbackInfo<Value> &info) {
   Local<Boolean> value = Local<Boolean>::Cast(info[0]);
 
   if (value->IsBoolean() && value->BooleanValue()) {
-    ts_parser_print_dot_graphs(parser->parser_, stderr);
+    ts_parser_print_dot_graphs(parser->parser_, 2);
   } else {
-    ts_parser_print_dot_graphs(parser->parser_, nullptr);
+    ts_parser_print_dot_graphs(parser->parser_, -1);
   }
 
   info.GetReturnValue().Set(info.This());

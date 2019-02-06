@@ -4,7 +4,7 @@
 #include <nan.h>
 #include <v8.h>
 #include <node_object_wrap.h>
-#include <tree_sitter/runtime.h>
+#include <tree_sitter/api.h>
 #include "./tree.h"
 
 namespace node_tree_sitter {
