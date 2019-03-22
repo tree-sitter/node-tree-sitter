@@ -299,7 +299,7 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
 
 Parser.prototype.parseTextBuffer = function(
   buffer, oldTree,
-  {syncOperationLimit, includedRanges} = {}
+  {syncTimeoutMicros, includedRanges} = {}
 ) {
   let tree
   let resolveTreePromise
@@ -319,12 +319,12 @@ Parser.prototype.parseTextBuffer = function(
     snapshot,
     oldTree,
     includedRanges,
-    syncOperationLimit
+    syncTimeoutMicros
   );
 
-  // If the parse finished synchronously because of the given `syncOperationLimit`,
-  // then return the tree immediately so that callers have the option of continuing
-  // synchronously.
+  // If the parse finished synchronously within the time specified by the
+  // `syncTimeoutMicros` parameter, then return the tree immediately
+  // so that callers have the option of continuing synchronously.
   return tree || treePromise
 };
 

@@ -42,9 +42,6 @@
         "vendor/tree-sitter/lib/include",
         "vendor/tree-sitter/lib/utf8proc",
       ],
-      'defines': [
-        'UTF8PROC_STATIC',
-      ],
       "cflags": [
         "-std=c99"
       ]
