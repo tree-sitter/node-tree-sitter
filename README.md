@@ -71,7 +71,7 @@ tree.edit({
   newEndPosition: {row: 0, column: 5},
 });
 
-const newTree = parser.parse(newCode, tree);
+const newTree = parser.parse(newSourceCode, tree);
 ```
 
 ### Parsing Text From a Custom Data Structure
