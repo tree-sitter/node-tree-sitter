@@ -327,8 +327,6 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[1].As<Object>());
-
   const TSTree *old_tree = nullptr;
   if (info.Length() > 2 && info[2]->BooleanValue()) {
     const Tree *tree = Tree::UnwrapTree(info[2]);
@@ -341,40 +339,49 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
 
   if (!handle_included_ranges(parser->parser_, info[3])) return;
 
-  size_t operation_limit = 0;
+  auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[1].As<Object>());
+  auto input = new TextBufferInput(snapshot->slices());
+
+  // If a `syncTimeoutMicros` option is passed, parse synchronously
+  // for the given amount of time before queuing an async task.
   if (info[4]->BooleanValue()) {
-    double number = info[4]->NumberValue();
-    if (number > 0 && !std::isfinite(number)) {
-      operation_limit = SIZE_MAX;
+    double js_sync_timeout = info[4]->NumberValue();
+    size_t sync_timeout;
+
+    // If the timeout is `Infinity`, then parse synchronously with no timeout.
+    if (js_sync_timeout > 0 && !std::isfinite(js_sync_timeout)) {
+      sync_timeout = 0;
     } else if (info[4]->IsUint32()) {
-      operation_limit = info[4]->Uint32Value();
+      sync_timeout = info[4]->Uint32Value();
     } else {
-      Nan::ThrowTypeError("The `syncOperationLimit` option must be a positive integer.");
+      Nan::ThrowTypeError("The `syncTimeoutMicros` option must be a positive integer.");
+      return;
+    }
+
+    // Logging is disabled for this method, because we can't call the
+    // logging callback from an async worker.
+    TSLogger logger = ts_parser_logger(parser->parser_);
+    ts_parser_set_timeout_micros(parser->parser_, sync_timeout);
+    ts_parser_set_logger(parser->parser_, TSLogger{0, 0});
+    TSTree *result = ts_parser_parse(parser->parser_, old_tree, input->input());
+    ts_parser_set_timeout_micros(parser->parser_, 0);
+    ts_parser_set_logger(parser->parser_, logger);
+
+    if (result) {
+      delete input;
+      Local<Value> argv[] = {Tree::NewInstance(result)};
+      info[0].As<Function>()->Call(Nan::Null(), 1, argv);
       return;
     }
   }
 
-  auto input = new TextBufferInput(snapshot->slices());
-  TSLogger logger = ts_parser_logger(parser->parser_);
-  ts_parser_set_operation_limit(parser->parser_, operation_limit);
-  ts_parser_set_logger(parser->parser_, TSLogger{0, 0});
-  TSTree *result = ts_parser_parse(parser->parser_, old_tree, input->input());
-  ts_parser_set_operation_limit(parser->parser_, SIZE_MAX);
-  ts_parser_set_logger(parser->parser_, logger);
-
-  if (result) {
-    delete input;
-    Local<Value> argv[] = {Tree::NewInstance(result)};
-    info[0].As<Function>()->Call(Nan::Null(), 1, argv);
-  } else {
-    auto callback = new Nan::Callback(info[0].As<Function>());
-    parser->is_parsing_async_ = true;
-    Nan::AsyncQueueWorker(new ParseWorker(
-      callback,
-      parser,
-      input
-    ));
-  }
+  auto callback = new Nan::Callback(info[0].As<Function>());
+  parser->is_parsing_async_ = true;
+  Nan::AsyncQueueWorker(new ParseWorker(
+    callback,
+    parser,
+    input
+  ));
 }
 
 void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -383,8 +390,6 @@ void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
     Nan::ThrowError("Parser is in use");
     return;
   }
-
-  auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[0].As<Object>());
 
   TSTree *old_tree = nullptr;
   if (info.Length() > 1 && info[1]->BooleanValue()) {
@@ -398,6 +403,7 @@ void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
 
   if (!handle_included_ranges(parser->parser_, info[2])) return;
 
+  auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[0].As<Object>());
   TextBufferInput input(snapshot->slices());
   TSTree *result = ts_parser_parse(parser->parser_, old_tree, input.input());
   info.GetReturnValue().Set(Tree::NewInstance(result));
