@@ -19,7 +19,7 @@ describe("Tree", () => {
       tree = parser.parse(input);
       assert.equal(
         tree.rootNode.toString(),
-        "(program (expression_statement (binary_expression (identifier) (identifier))))"
+        "(program (expression_statement (binary_expression left: (identifier) right: (identifier))))"
       );
 
       const sumNode = tree.rootNode.firstChild.firstChild;
@@ -42,7 +42,7 @@ describe("Tree", () => {
       tree = parser.parse(input, tree);
       assert.equal(
         tree.rootNode.toString(),
-        "(program (expression_statement (binary_expression (binary_expression (identifier) (identifier)) (identifier))))"
+        "(program (expression_statement (binary_expression left: (binary_expression left: (identifier) right: (identifier)) right: (identifier))))"
       );
     });
 
@@ -52,7 +52,7 @@ describe("Tree", () => {
       tree = parser.parse(input);
       assert.equal(
         tree.rootNode.toString(),
-        "(program (expression_statement (binary_expression (identifier) (identifier))))"
+        "(program (expression_statement (binary_expression left: (identifier) right: (identifier))))"
       );
 
       const variableNode = tree.rootNode.firstChild.firstChild.lastChild;
@@ -66,7 +66,7 @@ describe("Tree", () => {
       tree = parser.parse(input, tree);
       assert.equal(
         tree.rootNode.toString(),
-        "(program (expression_statement (binary_expression (binary_expression (identifier) (identifier)) (identifier))))"
+        "(program (expression_statement (binary_expression left: (binary_expression left: (identifier) right: (identifier)) right: (identifier))))"
       );
     });
   });
@@ -112,7 +112,7 @@ describe("Tree", () => {
 
       assert.equal(
         tree1.rootNode.toString(),
-        "(program (expression_statement (binary_expression (identifier) (identifier))))"
+        "(program (expression_statement (binary_expression left: (identifier) right: (identifier))))"
       );
 
       sourceCode = "abc + defg + hij";
@@ -128,7 +128,7 @@ describe("Tree", () => {
       const tree2 = parser.parse(sourceCode, tree1);
       assert.equal(
         tree2.rootNode.toString(),
-        "(program (expression_statement (binary_expression (binary_expression (identifier) (identifier)) (identifier))))"
+        "(program (expression_statement (binary_expression left: (binary_expression left: (identifier) right: (identifier)) right: (identifier))))"
       );
 
       const ranges = tree1.getChangedRanges(tree2);

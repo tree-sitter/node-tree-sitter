@@ -55,7 +55,11 @@ static void MarshalNodes(const Nan::FunctionCallbackInfo<Value> &info,
       *(p++) = node.context[1];
       *(p++) = node.context[2];
       *(p++) = node.context[3];
-      result->Set(i, Nan::Null());
+      if (node.id) {
+        result->Set(i, Nan::New(ts_node_symbol(node)));
+      } else {
+        result->Set(i, Nan::Null());
+      }
     } else {
       assert(!cache_entry->second->node.IsNearDeath());
       result->Set(i, Nan::New(cache_entry->second->node));
@@ -75,6 +79,9 @@ void MarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree,
     *(p++) = node.context[1];
     *(p++) = node.context[2];
     *(p++) = node.context[3];
+    if (node.id) {
+      info.GetReturnValue().Set(Nan::New(ts_node_symbol(node)));
+    }
   } else {
     assert(!cache_entry->second->node.IsNearDeath());
     info.GetReturnValue().Set(Nan::New(cache_entry->second->node));
@@ -240,6 +247,16 @@ static void Type(const Nan::FunctionCallbackInfo<Value> &info) {
   if (node.id) {
     const char *result = ts_node_type(node);
     info.GetReturnValue().Set(Nan::New(result).ToLocalChecked());
+  }
+}
+
+static void TypeId(const Nan::FunctionCallbackInfo<Value> &info) {
+  const Tree *tree = Tree::UnwrapTree(info[0]);
+  TSNode node = UnmarshalNode(tree);
+
+  if (node.id) {
+    TSSymbol result = ts_node_symbol(node);
+    info.GetReturnValue().Set(Nan::New(result));
   }
 }
 
@@ -580,6 +597,47 @@ static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
   MarshalNodes(info, tree, found.data(), found.size());
 }
 
+static void ChildNodesForFieldId(const Nan::FunctionCallbackInfo<Value> &info) {
+  const Tree *tree = Tree::UnwrapTree(info[0]);
+  TSNode node = UnmarshalNode(tree);
+  if (!node.id) return;
+
+  if (!info[1]->IsUint32()) {
+    Nan::ThrowTypeError("Second argument must be an integer");
+    return;
+  }
+  uint32_t field_id = info[1]->Uint32Value();
+
+  vector<TSNode> result;
+  ts_tree_cursor_reset(&scratch_cursor, node);
+  if (ts_tree_cursor_goto_first_child(&scratch_cursor)) {
+    do {
+      TSNode child = ts_tree_cursor_current_node(&scratch_cursor);
+      if (ts_tree_cursor_current_field_id(&scratch_cursor) == field_id) {
+        result.push_back(child);
+      }
+    } while (ts_tree_cursor_goto_next_sibling(&scratch_cursor));
+  }
+
+  MarshalNodes(info, tree, result.data(), result.size());
+}
+
+static void ChildNodeForFieldId(const Nan::FunctionCallbackInfo<Value> &info) {
+  const Tree *tree = Tree::UnwrapTree(info[0]);
+  TSNode node = UnmarshalNode(tree);
+
+  if (node.id) {
+    if (!info[1]->IsUint32()) {
+      Nan::ThrowTypeError("Second argument must be an integer");
+      return;
+    }
+    uint32_t field_id = info[1]->Uint32Value();
+    MarshalNode(info, tree, ts_node_child_by_field_id(node, field_id));
+    return;
+  }
+  MarshalNullNode();
+}
+
 static void Closest(const Nan::FunctionCallbackInfo<Value> &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(tree);
@@ -615,6 +673,7 @@ void Init(Local<Object> exports) {
     {"startIndex", StartIndex},
     {"endIndex", EndIndex},
     {"type", Type},
+    {"typeId", TypeId},
     {"isNamed", IsNamed},
     {"parent", Parent},
     {"child", Child},
@@ -646,6 +705,8 @@ void Init(Local<Object> exports) {
     {"descendantsOfType", DescendantsOfType},
     {"walk", Walk},
     {"closest", Closest},
+    {"childNodeForFieldId", ChildNodeForFieldId},
+    {"childNodesForFieldId", ChildNodesForFieldId},
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {

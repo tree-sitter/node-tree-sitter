@@ -162,7 +162,7 @@ describe("Parser", () => {
 
         assert.equal(
           tree.rootNode.toString(),
-          '(program (expression_statement (call_expression (identifier) (arguments))) (expression_statement (identifier)))'
+          '(program (expression_statement (call_expression function: (identifier) arguments: (arguments))) (expression_statement (identifier)))'
         );
       })
     })
@@ -220,7 +220,7 @@ describe("Parser", () => {
       }, /Parser is in use/);
 
       const tree = await treePromise;
-      assert.equal(tree.rootNode.toString(), "(program (expression_statement (binary_expression (binary_expression (identifier) (identifier)) (identifier))))");
+      assert.equal(tree.rootNode.toString(), "(program (expression_statement (binary_expression left: (binary_expression left: (identifier) right: (identifier)) right: (identifier))))");
 
       parser.parse('a');
       parser.setLanguage(JavaScript);
@@ -281,7 +281,7 @@ describe("Parser", () => {
 
         assert.equal(
           tree.rootNode.toString(),
-          '(program (expression_statement (call_expression (identifier) (arguments))) (expression_statement (identifier)))'
+          '(program (expression_statement (call_expression function: (identifier) arguments: (arguments))) (expression_statement (identifier)))'
         );
       })
     })
@@ -294,7 +294,7 @@ describe("Parser", () => {
       const tree = parser.parseTextBufferSync(buffer);
       assert.equal(
         tree.rootNode.toString(),
-        "(program (expression_statement (binary_expression (identifier) (identifier))))"
+        "(program (expression_statement (binary_expression left: (identifier) right: (identifier))))"
       );
     });
 

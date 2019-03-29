@@ -6,6 +6,7 @@
       "sources": [
         "src/binding.cc",
         "src/conversions.cc",
+        "src/language.cc",
         "src/logger.cc",
         "src/node.cc",
         "src/parser.cc",
