@@ -379,6 +379,7 @@ function getTextFromTextBuffer ({startPosition, endPosition}) {
 const {pointTransferArray} = binding;
 
 const NODE_FIELD_COUNT = 6;
+const ERROR_TYPE_ID = 0xFFFF
 
 function unmarshalNode(value, tree, offset = 0) {
   if (typeof value === 'object') {
@@ -386,7 +387,9 @@ function unmarshalNode(value, tree, offset = 0) {
     return node;
   } else {
     const nodeTypeId = value;
-    const NodeClass = tree.language.nodeSubclasses[nodeTypeId];
+    const NodeClass = nodeTypeId === ERROR_TYPE_ID
+      ? SyntaxNode
+      : tree.language.nodeSubclasses[nodeTypeId];
     const {nodeTransferArray} = binding;
     if (nodeTransferArray[0] || nodeTransferArray[1]) {
       const result = new NodeClass(tree);
@@ -430,7 +433,7 @@ function pointToString(point) {
 function initializeLanguageNodeClasses(language) {
   const nodeTypeNamesById = binding.getNodeTypeNamesById(language);
   const nodeFieldNamesById = binding.getNodeFieldNamesById(language);
-  const nodeTypeInfo = language.nodeTypeInfo;
+  const nodeTypeInfo = language.nodeTypeInfo || [];
 
   const nodeSubclasses = [];
   for (let id = 0, n = nodeTypeNamesById.length; id < n; id++) {

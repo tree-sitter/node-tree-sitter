@@ -12,18 +12,32 @@ describe("Node", () => {
 
   describe("subclasses", () => {
     it("generates a subclass for each node type", () => {
-      const tree = parser.parse("function foo(a, b) { return a + b; }");
+      const tree = parser.parse(`
+        class A {
+          @autobind
+          @something
+          b(c, d) {
+            return c + d;
+          }
+        }
+      `);
 
-      const functionNode = tree.rootNode.child(0)
-      assert.deepEqual(functionNode.fields, ['bodyNode', 'nameNode', 'parametersNode'])
-      assert.equal(functionNode.constructor.name, 'FunctionDeclarationNode');
-      assert.equal(functionNode.nameNode.text, 'foo');
+      const classNode = tree.rootNode.firstChild;
+      assert.deepEqual(classNode.fields, ['bodyNode', 'decoratorNodes', 'nameNode'])
 
-      const paramsNode = functionNode.parametersNode;
+      const methodNode = classNode.bodyNode.firstNamedChild;
+      assert.equal(methodNode.constructor.name, 'MethodDefinitionNode');
+      assert.equal(methodNode.nameNode.text, 'b');
+      assert.deepEqual(methodNode.fields, ['bodyNode', 'decoratorNodes', 'nameNode', 'parametersNode'])
+
+      const decoratorNodes = methodNode.decoratorNodes;
+      assert.deepEqual(decoratorNodes.map(_ => _.text), ['@autobind', '@something'])
+
+      const paramsNode = methodNode.parametersNode;
       assert.equal(paramsNode.constructor.name, 'FormalParametersNode');
       assert.equal(paramsNode.namedChildren.length, 2);
 
-      const bodyNode = functionNode.bodyNode;
+      const bodyNode = methodNode.bodyNode;
       assert.equal(bodyNode.constructor.name, 'StatementBlockNode');
 
       const returnNode = bodyNode.namedChildren[0];
@@ -33,8 +47,8 @@ describe("Node", () => {
       const binaryNode = returnNode.argumentNode;
       assert.equal(binaryNode.constructor.name, 'BinaryExpressionNode');
 
-      assert.equal(binaryNode.leftNode.text, 'a')
-      assert.equal(binaryNode.rightNode.text, 'b')
+      assert.equal(binaryNode.leftNode.text, 'c')
+      assert.equal(binaryNode.rightNode.text, 'd')
       assert.equal(binaryNode.operatorNode.type, '+')
     })
   });
