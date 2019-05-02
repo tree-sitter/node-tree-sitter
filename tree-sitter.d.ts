@@ -1,6 +1,14 @@
 declare module "tree-sitter" {
   class Parser {
-    parse(input: string | Parser.Input, previousTree?: Parser.Tree): Parser.Tree;
+    parse(
+      input: string | Parser.Input,
+      previousTree?: Parser.Tree
+    ): Parser.Tree;
+    parseTextBuffer(
+      input: any,
+      previousTree?: Parser.Tree
+    ): Promise<Parser.Tree>;
+    parseTextBufferSync(input: any, previousTree?: Parser.Tree): Parser.Tree;
     getLanguage(): any;
     setLanguage(language: any): void;
     getLogger(): Parser.Logger;
@@ -14,8 +22,10 @@ declare module "tree-sitter" {
     };
 
     export type Range = {
-      start: Point;
-      end: Point;
+      startIndex: number;
+      endIndex: number;
+      startPosition: Point;
+      endPosition: Point;
     };
 
     export type Edit = {
