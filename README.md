@@ -111,7 +111,7 @@ Using a background thread can introduce a slight delay, so you may want to allow
 async function test2() {
   const buffer = new TextBuffer('const x= 1; console.log(x);');
   const newTree = await parser.parseTextBuffer(buffer, oldTree, {
-    syncOperationCount: 1000
+    syncTimeoutMicros: 1000
   });
 }
 ```

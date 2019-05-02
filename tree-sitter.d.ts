@@ -6,9 +6,17 @@ declare module "tree-sitter" {
     ): Parser.Tree;
     parseTextBuffer(
       input: any,
-      previousTree?: Parser.Tree
-    ): Promise<Parser.Tree>;
-    parseTextBufferSync(input: any, previousTree?: Parser.Tree): Parser.Tree;
+      previousTree?: Parser.Tree,
+      {
+        syncTimeoutMicros,
+        includedRanges,
+      }?: { syncTimeoutMicros?: number; includedRanges?: Parser.Range[] }
+    ): Parser.Tree | Promise<Parser.Tree>
+    parseTextBufferSync(
+      input: any,
+      previousTree?: Parser.Tree,
+      { includedRanges }?: { includedRanges?: Parser.Range[] }
+    ): Parser.Tree
     getLanguage(): any;
     setLanguage(language: any): void;
     getLogger(): Parser.Logger;
