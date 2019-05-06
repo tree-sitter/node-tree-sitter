@@ -5,6 +5,7 @@
 #include <v8.h>
 #include <nan.h>
 #include "./conversions.h"
+#include "./language.h"
 #include "./logger.h"
 #include "./tree.h"
 #include "./util.h"
@@ -228,34 +229,11 @@ void Parser::SetLanguage(const Nan::FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  if (!info[0]->IsObject()) {
-    Nan::ThrowTypeError("Invalid language object");
-    return;
+  const TSLanguage *language = language_methods::UnwrapLanguage(info[0]);
+  if (language) {
+    ts_parser_set_language(parser->parser_, language);
+    info.GetReturnValue().Set(info.This());
   }
-
-  Local<Object> arg = Local<Object>::Cast(info[0]);
-  if (arg->InternalFieldCount() != 1) {
-    Nan::ThrowTypeError("Invalid language object");
-    return;
-  }
-
-  TSLanguage *language = (TSLanguage *)Nan::GetInternalFieldPointer(arg, 0);
-  if (!language) {
-    Nan::ThrowTypeError("Invalid language object");
-    return;
-  }
-
-  if (ts_language_version(language) != TREE_SITTER_LANGUAGE_VERSION) {
-    std::string message = "Incompatible language version. Expected " +
-      std::to_string(TREE_SITTER_LANGUAGE_VERSION) + ". Got " +
-      std::to_string(ts_language_version(language));
-    Nan::ThrowError(Nan::RangeError(message.c_str()));
-    return;
-  }
-
-  ts_parser_set_language(parser->parser_, language);
-
-  info.GetReturnValue().Set(info.This());
 }
 
 void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {

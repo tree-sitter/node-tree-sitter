@@ -10,6 +10,49 @@ describe("Node", () => {
     parser = new Parser().setLanguage(JavaScript);
   });
 
+  describe("subclasses", () => {
+    it("generates a subclass for each node type", () => {
+      const tree = parser.parse(`
+        class A {
+          @autobind
+          @something
+          b(c, d) {
+            return c + d;
+          }
+        }
+      `);
+
+      const classNode = tree.rootNode.firstChild;
+      assert.deepEqual(classNode.fields, ['bodyNode', 'decoratorNodes', 'nameNode'])
+
+      const methodNode = classNode.bodyNode.firstNamedChild;
+      assert.equal(methodNode.constructor.name, 'MethodDefinitionNode');
+      assert.equal(methodNode.nameNode.text, 'b');
+      assert.deepEqual(methodNode.fields, ['bodyNode', 'decoratorNodes', 'nameNode', 'parametersNode'])
+
+      const decoratorNodes = methodNode.decoratorNodes;
+      assert.deepEqual(decoratorNodes.map(_ => _.text), ['@autobind', '@something'])
+
+      const paramsNode = methodNode.parametersNode;
+      assert.equal(paramsNode.constructor.name, 'FormalParametersNode');
+      assert.equal(paramsNode.namedChildren.length, 2);
+
+      const bodyNode = methodNode.bodyNode;
+      assert.equal(bodyNode.constructor.name, 'StatementBlockNode');
+
+      const returnNode = bodyNode.namedChildren[0];
+      assert.deepEqual(returnNode.fields, ['argumentNode'])
+      assert.equal(returnNode.constructor.name, 'ReturnStatementNode');
+
+      const binaryNode = returnNode.argumentNode;
+      assert.equal(binaryNode.constructor.name, 'BinaryExpressionNode');
+
+      assert.equal(binaryNode.leftNode.text, 'c')
+      assert.equal(binaryNode.rightNode.text, 'd')
+      assert.equal(binaryNode.operatorNode.type, '+')
+    })
+  });
+
   describe(".children", () => {
     it("returns an array of child nodes", () => {
       const tree = parser.parse("x10 + 1000");
@@ -319,7 +362,7 @@ describe("Node", () => {
       const node = tree.rootNode;
       assert.equal(
         node.toString(),
-        '(program (expression_statement (binary_expression (number) (binary_expression (number) (ERROR) (number)))))'
+        '(program (expression_statement (binary_expression left: (number) right: (binary_expression left: (number) (ERROR) right: (number)))))'
       );
 
       const sum = node.firstChild.firstChild;
@@ -336,7 +379,7 @@ describe("Node", () => {
       const node = tree.rootNode;
       assert.equal(
         node.toString(),
-        "(program (expression_statement (parenthesized_expression (binary_expression (number) (yield_expression (MISSING))))))"
+        "(program (expression_statement (parenthesized_expression value: (binary_expression left: (number) right: (MISSING identifier)))))"
       );
 
       const sum = node.firstChild.firstChild.firstNamedChild;
@@ -344,7 +387,7 @@ describe("Node", () => {
       assert(sum.hasError());
       assert(!sum.children[0].isMissing());
       assert(!sum.children[1].isMissing());
-      assert(sum.children[2].firstChild.isMissing());
+      assert(sum.children[2].isMissing());
     });
   });
 

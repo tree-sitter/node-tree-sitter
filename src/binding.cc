@@ -1,5 +1,6 @@
 #include <node.h>
 #include <v8.h>
+#include "./language.h"
 #include "./node.h"
 #include "./parser.h"
 #include "./tree.h"
@@ -13,6 +14,7 @@ using namespace v8;
 void InitAll(Local<Object> exports) {
   InitConversions(exports);
   node_methods::Init(exports);
+  language_methods::Init(exports);
   Parser::Init(exports);
   Tree::Init(exports);
   TreeCursor::Init(exports);
