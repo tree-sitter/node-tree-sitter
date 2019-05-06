@@ -17,15 +17,20 @@ const TSLanguage *UnwrapLanguage(const v8::Local<v8::Value> &value) {
     if (arg->InternalFieldCount() == 1) {
       const TSLanguage *language = (const TSLanguage *)Nan::GetInternalFieldPointer(arg, 0);
       if (language) {
-        if (ts_language_version(language) == TREE_SITTER_LANGUAGE_VERSION) {
-          return language;
+        uint16_t version = ts_language_version(language);
+        if (
+          version < TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION ||
+          version > TREE_SITTER_LANGUAGE_VERSION
+        ) {
+          std::string message =
+            "Incompatible language version. Compatible range: " +
+            std::to_string(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION) + " - " +
+            std::to_string(TREE_SITTER_LANGUAGE_VERSION) + ". Got: " +
+            std::to_string(ts_language_version(language));
+          Nan::ThrowError(Nan::RangeError(message.c_str()));
+          return nullptr;
         }
-
-        std::string message = "Incompatible language version. Expected " +
-          std::to_string(TREE_SITTER_LANGUAGE_VERSION) + ". Got " +
-          std::to_string(ts_language_version(language));
-        Nan::ThrowError(Nan::RangeError(message.c_str()));
-        return nullptr;
+        return language;
       }
     }
   }
