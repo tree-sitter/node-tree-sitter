@@ -10,3 +10,4 @@ tree_sitter
 node_modules
 .vagrant
 package-lock.json
+prebuilds
