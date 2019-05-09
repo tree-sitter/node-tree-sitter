@@ -24,6 +24,7 @@ void TreeCursor::Init(v8::Local<v8::Object> exports) {
     {"endIndex", EndIndex},
     {"nodeType", NodeType},
     {"nodeIsNamed", NodeIsNamed},
+    {"currentFieldName", CurrentFieldName},
   };
 
   FunctionPair methods[] = {
@@ -141,7 +142,16 @@ void TreeCursor::NodeType(v8::Local<v8::String> prop, const Nan::PropertyCallbac
 void TreeCursor::NodeIsNamed(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
+
   info.GetReturnValue().Set(Nan::New(ts_node_is_named(node)));
+}
+
+void TreeCursor::CurrentFieldName(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
+  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
+  const char *field_name = ts_tree_cursor_current_field_name(&cursor->cursor_);
+  if (field_name) {
+    info.GetReturnValue().Set(Nan::New(field_name).ToLocalChecked());
+  }
 }
 
 void TreeCursor::StartIndex(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {

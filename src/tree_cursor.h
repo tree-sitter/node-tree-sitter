@@ -29,6 +29,7 @@ class TreeCursor : public Nan::ObjectWrap {
 
   static void NodeType(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void NodeIsNamed(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  static void CurrentFieldName(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void StartIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
   static void EndIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
 
