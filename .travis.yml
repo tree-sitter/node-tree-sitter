@@ -7,17 +7,14 @@ matrix:
   include:
   - os: osx
   - os: linux
-    compiler: gcc
     env:
-      - CXX="g++-4.9"
-      - CC="gcc-4.9"
+      - CXX=clang++
+      - CC=clang
     addons:
       apt:
-        sources:
-        - ubuntu-toolchain-r-test
         packages:
-        - gcc-4.9
-        - g++-4.9
+        - build-essential
+        - clang-3.3
 
 before_install:
 - git submodule update --init --recursive
