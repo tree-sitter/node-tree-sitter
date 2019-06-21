@@ -63,7 +63,7 @@ static void GetNodeFieldNamesById(const Nan::FunctionCallbackInfo<Value> &info) 
 
   auto result = Nan::New<Array>();
   uint32_t length = ts_language_field_count(language);
-  for (uint32_t i = 0; i < length; i++) {
+  for (uint32_t i = 0; i < length + 1; i++) {
     const char *name = ts_language_field_name_for_id(language, i);
     if (name) {
       result->Set(i, Nan::New(name).ToLocalChecked());
