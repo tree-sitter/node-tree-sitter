@@ -41,10 +41,9 @@ describe("Node", () => {
       assert.equal(bodyNode.constructor.name, 'StatementBlockNode');
 
       const returnNode = bodyNode.namedChildren[0];
-      assert.deepEqual(returnNode.fields, ['argumentNode'])
       assert.equal(returnNode.constructor.name, 'ReturnStatementNode');
 
-      const binaryNode = returnNode.argumentNode;
+      const binaryNode = returnNode.firstNamedChild;
       assert.equal(binaryNode.constructor.name, 'BinaryExpressionNode');
 
       assert.equal(binaryNode.leftNode.text, 'c')
@@ -379,7 +378,7 @@ describe("Node", () => {
       const node = tree.rootNode;
       assert.equal(
         node.toString(),
-        "(program (expression_statement (parenthesized_expression value: (binary_expression left: (number) right: (MISSING identifier)))))"
+        "(program (expression_statement (parenthesized_expression (binary_expression left: (number) right: (MISSING identifier)))))"
       );
 
       const sum = node.firstChild.firstChild.firstNamedChild;
