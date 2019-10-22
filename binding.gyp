@@ -41,7 +41,6 @@
       "include_dirs": [
         "vendor/tree-sitter/lib/src",
         "vendor/tree-sitter/lib/include",
-        "vendor/tree-sitter/lib/utf8proc",
       ],
       "cflags": [
         "-std=c99"
