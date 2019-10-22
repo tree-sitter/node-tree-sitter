@@ -19,10 +19,10 @@
     "prebuild-install": "^5.0.0"
   },
   "devDependencies": {
-    "prebuild": "^7.6.0",
     "chai": "3.5.x",
     "mocha": "^5.2.0",
-    "superstring": "^2.3.5",
+    "prebuild": "^7.6.0",
+    "superstring": "^2.4.1",
     "tree-sitter-javascript": "git://github.com/tree-sitter/tree-sitter-javascript.git#master"
   },
   "scripts": {

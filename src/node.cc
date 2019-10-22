@@ -27,7 +27,8 @@ static inline void setup_transfer_buffer(uint32_t node_count) {
     transfer_buffer_length = new_length;
     transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
     auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
-    Nan::New(module_exports)->Set(
+    Nan::Set(
+      Nan::New(module_exports),
       Nan::New("nodeTransferArray").ToLocalChecked(),
       Uint32Array::New(js_transfer_buffer, 0, transfer_buffer_length)
     );
@@ -56,13 +57,12 @@ static void MarshalNodes(const Nan::FunctionCallbackInfo<Value> &info,
       *(p++) = node.context[2];
       *(p++) = node.context[3];
       if (node.id) {
-        result->Set(i, Nan::New(ts_node_symbol(node)));
+        Nan::Set(result, i, Nan::New(ts_node_symbol(node)));
       } else {
-        result->Set(i, Nan::Null());
+        Nan::Set(result, i, Nan::Null());
       }
     } else {
-      assert(!cache_entry->second->node.IsNearDeath());
-      result->Set(i, Nan::New(cache_entry->second->node));
+      Nan::Set(result, i, Nan::New(cache_entry->second->node));
     }
   }
   info.GetReturnValue().Set(result);
@@ -83,7 +83,6 @@ void MarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree,
       info.GetReturnValue().Set(Nan::New(ts_node_symbol(node)));
     }
   } else {
-    assert(!cache_entry->second->node.IsNearDeath());
     info.GetReturnValue().Set(Nan::New(cache_entry->second->node));
   }
 }
@@ -317,7 +316,7 @@ static void Child(const Nan::FunctionCallbackInfo<Value> &info) {
       Nan::ThrowTypeError("Second argument must be an integer");
       return;
     }
-    uint32_t index = info[1]->Uint32Value();
+    uint32_t index = Nan::To<uint32_t>(info[1]).FromJust();
     MarshalNode(info, tree, ts_node_child(node, index));
     return;
   }
@@ -333,7 +332,7 @@ static void NamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
       Nan::ThrowTypeError("Second argument must be an integer");
       return;
     }
-    uint32_t index = info[1]->Uint32Value();
+    uint32_t index = Nan::To<uint32_t>(info[1]).FromJust();
     MarshalNode(info, tree, ts_node_named_child(node, index));
     return;
   }
@@ -470,26 +469,37 @@ bool symbol_set_from_js(SymbolSet *symbols, const Local<Value> &value, const TSL
 
   Local<Array> js_types = Local<Array>::Cast(value);
   for (unsigned i = 0, n = js_types->Length(); i < n; i++) {
-    Local<Value> js_types_i = js_types->Get(i);
-    if (!js_types_i->IsString()) {
-      Nan::ThrowTypeError("Argument must be a string or array of strings");
-      return false;
-    }
+    Local<Value> js_node_type_value;
+    if (Nan::Get(js_types, i).ToLocal(&js_node_type_value)) {
+      Local<String> js_node_type;
+      if (Nan::To<String>(js_node_type_value).ToLocal(&js_node_type)) {
+        std::string node_type(js_node_type->Utf8Length(Isolate::GetCurrent()), '\0');
+        js_node_type->WriteUtf8(
 
-    Local<String> js_node_type = Local<String>::Cast(js_types_i);
-    std::string node_type(js_node_type->Utf8Length(), '\0');
-    js_node_type->WriteUtf8(&node_type[0]);
+          // Nan doesn't wrap this functionality
+          #if NODE_MAJOR_VERSION >= 12
+                Isolate::GetCurrent(),
+          #endif
 
-    if (node_type == "ERROR") {
-      symbols->add(static_cast<TSSymbol>(-1));
-      continue;
-    }
+          &node_type[0]
+        );
 
-    for (TSSymbol j = 0; j < symbol_count; j++) {
-      if (node_type == ts_language_symbol_name(language, j)) {
-        symbols->add(j);
+        if (node_type == "ERROR") {
+          symbols->add(static_cast<TSSymbol>(-1));
+        } else {
+          for (TSSymbol j = 0; j < symbol_count; j++) {
+            if (node_type == ts_language_symbol_name(language, j)) {
+              symbols->add(j);
+            }
+          }
+        }
+
+        continue;
       }
     }
+
+    Nan::ThrowTypeError("Argument must be a string or array of strings");
+    return false;
   }
 
   return true;
@@ -542,13 +552,13 @@ static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
   TSPoint start_point = {0, 0};
   TSPoint end_point = {UINT32_MAX, UINT32_MAX};
 
-  if (info[2]->BooleanValue()) {
+  if (info.Length() > 2 && info[2]->IsObject()) {
     auto maybe_start_point = PointFromJS(info[2]);
     if (maybe_start_point.IsNothing()) return;
     start_point = maybe_start_point.FromJust();
   }
 
-  if (info[3]->BooleanValue()) {
+  if (info.Length() > 3 && info[3]->IsObject()) {
     auto maybe_end_point = PointFromJS(info[3]);
     if (maybe_end_point.IsNothing()) return;
     end_point = maybe_end_point.FromJust();
@@ -602,11 +612,12 @@ static void ChildNodesForFieldId(const Nan::FunctionCallbackInfo<Value> &info) {
   TSNode node = UnmarshalNode(tree);
   if (!node.id) return;
 
-  if (!info[1]->IsUint32()) {
+  auto maybe_field_id = Nan::To<uint32_t>(info[1]);
+  if (!maybe_field_id.IsJust()) {
     Nan::ThrowTypeError("Second argument must be an integer");
     return;
   }
-  uint32_t field_id = info[1]->Uint32Value();
+  uint32_t field_id = maybe_field_id.FromJust();
 
   vector<TSNode> result;
   ts_tree_cursor_reset(&scratch_cursor, node);
@@ -627,11 +638,12 @@ static void ChildNodeForFieldId(const Nan::FunctionCallbackInfo<Value> &info) {
   TSNode node = UnmarshalNode(tree);
 
   if (node.id) {
-    if (!info[1]->IsUint32()) {
+    auto maybe_field_id = Nan::To<uint32_t>(info[1]);
+    if (!maybe_field_id.IsJust()) {
       Nan::ThrowTypeError("Second argument must be an integer");
       return;
     }
-    uint32_t field_id = info[1]->Uint32Value();
+    uint32_t field_id = maybe_field_id.FromJust();
     MarshalNode(info, tree, ts_node_child_by_field_id(node, field_id));
     return;
   }
@@ -710,16 +722,17 @@ void Init(Local<Object> exports) {
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
-    result->Set(
+    Nan::Set(
+      result,
       Nan::New(methods[i].name).ToLocalChecked(),
-      Nan::New<FunctionTemplate>(methods[i].callback)->GetFunction()
+      Nan::GetFunction(Nan::New<FunctionTemplate>(methods[i].callback)).ToLocalChecked()
     );
   }
 
   module_exports.Reset(exports);
   setup_transfer_buffer(1);
 
-  exports->Set(Nan::New("NodeMethods").ToLocalChecked(), result);
+  Nan::Set(exports, Nan::New("NodeMethods").ToLocalChecked(), result);
 }
 
 }  // namespace node_methods

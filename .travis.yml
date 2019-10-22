@@ -2,19 +2,11 @@ language: node_js
 
 node_js:
 - 10
+- 12
 
-matrix:
-  include:
-  - os: osx
-  - os: linux
-    env:
-      - CXX=clang++
-      - CC=clang
-    addons:
-      apt:
-        packages:
-        - build-essential
-        - clang-3.3
+os:
+- osx
+- linux
 
 before_install:
 - git submodule update --init --recursive

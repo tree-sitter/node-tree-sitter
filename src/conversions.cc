@@ -29,7 +29,7 @@ void InitConversions(Local<Object> exports) {
 
   point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
   auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
-  exports->Set(Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
+  Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
 }
 
 void TransferPoint(const TSPoint &point) {
@@ -39,10 +39,10 @@ void TransferPoint(const TSPoint &point) {
 
 Local<Object> RangeToJS(const TSRange &range) {
   Local<Object> result = Nan::New<Object>();
-  result->Set(Nan::New(start_position_key), PointToJS(range.start_point));
-  result->Set(Nan::New(start_index_key), ByteCountToJS(range.start_byte));
-  result->Set(Nan::New(end_position_key), PointToJS(range.end_point));
-  result->Set(Nan::New(end_index_key), ByteCountToJS(range.end_byte));
+  Nan::Set(result, Nan::New(start_position_key), PointToJS(range.start_point));
+  Nan::Set(result, Nan::New(start_index_key), ByteCountToJS(range.start_byte));
+  Nan::Set(result, Nan::New(end_position_key), PointToJS(range.end_point));
+  Nan::Set(result, Nan::New(end_index_key), ByteCountToJS(range.end_byte));
   return result;
 }
 
@@ -56,8 +56,13 @@ Nan::Maybe<TSRange> RangeFromJS(const Local<Value> &arg) {
 
   Local<Object> js_range = Local<Object>::Cast(arg);
 
-  #define INIT(field, key, Type) { \
-    auto field = Type(js_range->Get(Nan::New(key))); \
+  #define INIT(field, key, Convert) { \
+    auto value = Nan::Get(js_range, Nan::New(key)); \
+    if (value.IsEmpty()) { \
+      Nan::ThrowTypeError("Range must be a {startPosition, endPosition, startIndex, endIndex} object"); \
+      return Nan::Nothing<TSRange>(); \
+    } \
+    auto field = Convert(value.ToLocalChecked()); \
     if (field.IsJust()) { \
       result.field = field.FromJust(); \
     } else { \
@@ -77,41 +82,48 @@ Nan::Maybe<TSRange> RangeFromJS(const Local<Value> &arg) {
 
 Local<Object> PointToJS(const TSPoint &point) {
   Local<Object> result = Nan::New<Object>();
-  result->Set(Nan::New(row_key), Nan::New<Number>(point.row));
-  result->Set(Nan::New(column_key), ByteCountToJS(point.column));
+  Nan::Set(result, Nan::New(row_key), Nan::New<Number>(point.row));
+  Nan::Set(result, Nan::New(column_key), ByteCountToJS(point.column));
   return result;
 }
 
 Nan::Maybe<TSPoint> PointFromJS(const Local<Value> &arg) {
-  if (!arg->IsObject()) {
+  Local<Object> js_point;
+  if (!arg->IsObject() || !Nan::To<Object>(arg).ToLocal(&js_point)) {
     Nan::ThrowTypeError("Point must be a {row, column} object");
     return Nan::Nothing<TSPoint>();
   }
 
-  Local<Object> js_point = Local<Object>::Cast(arg);
-  Local<Value> js_row = js_point->Get(Nan::New(row_key));
-  if (!js_row->IsNumber()) {
+  Local<Value> js_row;
+  if (!Nan::Get(js_point, Nan::New(row_key)).ToLocal(&js_row)) {
+    Nan::ThrowTypeError("Point must be a {row, column} object");
+    return Nan::Nothing<TSPoint>();
+  }
+
+  Local<Value> js_column;
+  if (!Nan::Get(js_point, Nan::New(column_key)).ToLocal(&js_column)) {
+    Nan::ThrowTypeError("Point must be a {row, column} object");
+    return Nan::Nothing<TSPoint>();
+  }
+
+  uint32_t row;
+  if (!std::isfinite(Nan::To<double>(js_row).FromMaybe(0))) {
+    row = UINT32_MAX;
+  } else if (js_row->IsNumber()) {
+    row = Nan::To<uint32_t>(js_row).FromJust();
+  } else {
     Nan::ThrowTypeError("Point.row must be a number");
     return Nan::Nothing<TSPoint>();
   }
 
-  Local<Value> js_column = js_point->Get(Nan::New(column_key));
-  if (!js_column->IsNumber()) {
+  uint32_t column;
+  if (!std::isfinite(Nan::To<double>(js_column).FromMaybe(0))) {
+    column = UINT32_MAX;
+  } else if (js_column->IsNumber()) {
+    column = Nan::To<uint32_t>(js_column).FromMaybe(0) * BYTES_PER_CHARACTER;
+  } else {
     Nan::ThrowTypeError("Point.column must be a number");
     return Nan::Nothing<TSPoint>();
-  }
-
-  uint32_t row, column;
-  if (std::isfinite(js_row->NumberValue())) {
-    row = static_cast<uint32_t>(js_row->Int32Value());
-  } else {
-    row = UINT32_MAX;
-  }
-
-  if (std::isfinite(js_column->NumberValue())) {
-    column = static_cast<uint32_t>(js_column->Int32Value()) * BYTES_PER_CHARACTER;
-  } else {
-    column = UINT32_MAX;
   }
 
   return Nan::Just<TSPoint>({row, column});
@@ -122,12 +134,13 @@ Local<Number> ByteCountToJS(uint32_t byte_count) {
 }
 
 Nan::Maybe<uint32_t> ByteCountFromJS(const v8::Local<v8::Value> &arg) {
-  if (!arg->IsUint32()) {
+  auto result = Nan::To<uint32_t>(arg);
+  if (!arg->IsNumber()) {
     Nan::ThrowTypeError("Character index must be a number");
     return Nan::Nothing<uint32_t>();
   }
 
-  return Nan::Just<uint32_t>(arg->Uint32Value() * BYTES_PER_CHARACTER);
+  return Nan::Just<uint32_t>(result.FromJust() * BYTES_PER_CHARACTER);
 }
 
 }  // namespace node_tree_sitter

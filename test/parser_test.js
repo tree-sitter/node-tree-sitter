@@ -100,7 +100,7 @@ describe("Parser", () => {
 
     it("reads from the given input", () => {
       const parts = ["first", "_", "second", "_", "third"];
-      const tree = parser.parse(() => parts.shift());
+      const tree = parser.parse((index) => parts.shift());
       assert.equal(tree.rootNode.toString(), "(program (expression_statement (identifier)))");
     });
 

@@ -210,7 +210,7 @@ describe("Node", () => {
   describe(".descendantForPosition(min, max)", () => {
     it("returns the smallest node that spans the given range", () => {
       const tree = parser.parse("x10 + 1000");
-      const sumNode = tree.rootNode.firstChild;
+      const sumNode = tree.rootNode.firstChild.firstChild;
 
       assert.equal(
         "identifier",
@@ -227,11 +227,11 @@ describe("Node", () => {
 
       assert.throws(() => {
         sumNode.descendantForPosition(1, {});
-      }, /Point.row must be a number/);
+      }, /Point must be a {row, column} object/);
 
       assert.throws(() => {
         sumNode.descendantForPosition();
-      }, /Point must be a .* object/);
+      }, /Point must be a {row, column} object/);
     });
   });
 
