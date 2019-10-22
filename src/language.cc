@@ -48,9 +48,9 @@ static void GetNodeTypeNamesById(const Nan::FunctionCallbackInfo<Value> &info) {
     const char *name = ts_language_symbol_name(language, i);
     TSSymbolType type = ts_language_symbol_type(language, i);
     if (type == TSSymbolTypeRegular) {
-      result->Set(i, Nan::New(name).ToLocalChecked());
+      Nan::Set(result, i, Nan::New(name).ToLocalChecked());
     } else {
-      result->Set(i, Nan::Null());
+      Nan::Set(result, i, Nan::Null());
     }
   }
 
@@ -66,23 +66,25 @@ static void GetNodeFieldNamesById(const Nan::FunctionCallbackInfo<Value> &info) 
   for (uint32_t i = 0; i < length + 1; i++) {
     const char *name = ts_language_field_name_for_id(language, i);
     if (name) {
-      result->Set(i, Nan::New(name).ToLocalChecked());
+      Nan::Set(result, i, Nan::New(name).ToLocalChecked());
     } else {
-      result->Set(i, Nan::Null());
+      Nan::Set(result, i, Nan::Null());
     }
   }
   info.GetReturnValue().Set(result);
 }
 
 void Init(Local<Object> exports) {
-  exports->Set(
+  Nan::Set(
+    exports,
     Nan::New("getNodeTypeNamesById").ToLocalChecked(),
-    Nan::New<FunctionTemplate>(GetNodeTypeNamesById)->GetFunction()
+    Nan::GetFunction(Nan::New<FunctionTemplate>(GetNodeTypeNamesById)).ToLocalChecked()
   );
 
-  exports->Set(
+  Nan::Set(
+    exports,
     Nan::New("getNodeFieldNamesById").ToLocalChecked(),
-    Nan::New<FunctionTemplate>(GetNodeFieldNamesById)->GetFunction()
+    Nan::GetFunction(Nan::New<FunctionTemplate>(GetNodeFieldNamesById)).ToLocalChecked()
   );
 }
 

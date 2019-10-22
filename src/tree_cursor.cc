@@ -49,8 +49,8 @@ void TreeCursor::Init(v8::Local<v8::Object> exports) {
     Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
   }
 
-  Local<Function> constructor_local = tpl->GetFunction();
-  exports->Set(class_name, constructor_local);
+  Local<Function> constructor_local = Nan::GetFunction(tpl).ToLocalChecked();
+  Nan::Set(exports, class_name, constructor_local);
   constructor.Reset(Nan::Persistent<Function>(constructor_local));
 }
 
@@ -87,10 +87,12 @@ void TreeCursor::GotoFirstChild(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void TreeCursor::GotoFirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  if (!info[0]->IsUint32()) {
+  auto maybe_index = Nan::To<uint32_t>(info[0]);
+  if (maybe_index.IsNothing()) {
     Nan::ThrowTypeError("Argument must be an integer");
+    return;
   }
-  uint32_t goal_byte = info[0]->Uint32Value() * 2;
+  uint32_t goal_byte = maybe_index.FromJust() * 2;
   int64_t child_index = ts_tree_cursor_goto_first_child_for_byte(&cursor->cursor_, goal_byte);
   if (child_index < 0) {
     info.GetReturnValue().Set(Nan::Null());
@@ -120,7 +122,7 @@ void TreeCursor::EndPosition(const Nan::FunctionCallbackInfo<Value> &info) {
 void TreeCursor::CurrentNode(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   Local<String> key = Nan::New<String>("tree").ToLocalChecked();
-  const Tree *tree = Tree::UnwrapTree(info.This()->Get(key));
+  const Tree *tree = Tree::UnwrapTree(Nan::Get(info.This(), key).ToLocalChecked());
   TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
   node_methods::MarshalNode(info, tree, node);
 }
@@ -128,7 +130,7 @@ void TreeCursor::CurrentNode(const Nan::FunctionCallbackInfo<Value> &info) {
 void TreeCursor::Reset(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   Local<String> key = Nan::New<String>("tree").ToLocalChecked();
-  const Tree *tree = Tree::UnwrapTree(info.This()->Get(key));
+  const Tree *tree = Tree::UnwrapTree(Nan::Get(info.This(), key).ToLocalChecked());
   TSNode node = node_methods::UnmarshalNode(tree);
   ts_tree_cursor_reset(&cursor->cursor_, node);
 }

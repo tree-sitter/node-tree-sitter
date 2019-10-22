@@ -34,11 +34,11 @@ void Tree::Init(Local<Object> exports) {
     Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
   }
 
-  Local<Function> ctor = tpl->GetFunction();
+  Local<Function> ctor = Nan::GetFunction(tpl).ToLocalChecked();
 
   constructor_template.Reset(tpl);
   constructor.Reset(ctor);
-  exports->Set(class_name, ctor);
+  Nan::Set(exports, class_name, ctor);
 }
 
 Tree::Tree(TSTree *tree) : tree_(tree) {}
@@ -53,7 +53,7 @@ Tree::~Tree() {
 Local<Value> Tree::NewInstance(TSTree *tree) {
   if (tree) {
     Local<Object> self;
-    MaybeLocal<Object> maybe_self = Nan::New(constructor)->NewInstance(Nan::GetCurrentContext());
+    MaybeLocal<Object> maybe_self = Nan::NewInstance(Nan::New(constructor));
     if (maybe_self.ToLocal(&self)) {
       (new Tree(tree))->Wrap(self);
       return self;
@@ -69,15 +69,15 @@ const Tree *Tree::UnwrapTree(const Local<Value> &value) {
   return ObjectWrap::Unwrap<Tree>(js_tree);
 }
 
-void Tree::New(const Nan::FunctionCallbackInfo<Value> &info) {
-  info.GetReturnValue().Set(Nan::Null());
-}
+void Tree::New(const Nan::FunctionCallbackInfo<Value> &info) {}
 
 #define read_number_from_js(out, value, name)        \
-  if (!(value)->IsUint32()) {                       \
+  maybe_number = Nan::To<uint32_t>(value);           \
+  if (maybe_number.IsNothing()) {                    \
     Nan::ThrowTypeError(name " must be an integer"); \
+    return;                                          \
   }                                                  \
-  *(out) = (value)->Uint32Value()
+  *(out) = maybe_number.FromJust();
 
 #define read_byte_count_from_js(out, value, name)   \
   read_number_from_js(out, value, name);            \
@@ -87,6 +87,7 @@ void Tree::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
 
   TSInputEdit edit;
+  Nan::Maybe<uint32_t> maybe_number = Nan::Nothing<uint32_t>();
   read_number_from_js(&edit.start_point.row, info[0], "startPosition.row");
   read_byte_count_from_js(&edit.start_point.column, info[1], "startPosition.column");
   read_number_from_js(&edit.old_end_point.row, info[2], "oldEndPosition.row");
@@ -104,13 +105,16 @@ void Tree::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
     TSNode node;
     node.id = entry.first;
     for (unsigned i = 0; i < 4; i++) {
-      node.context[i] = js_node->Get(i + 2)->Uint32Value();
+      Local<Value> node_field;
+      if (Nan::Get(js_node, i + 2).ToLocal(&node_field)) {
+        node.context[i] = Nan::To<uint32_t>(node_field).FromMaybe(0);
+      }
     }
 
     ts_node_edit(&node, &edit);
 
     for (unsigned i = 0; i < 4; i++) {
-      js_node->Set(i + 2, Nan::New(node.context[i]));
+      Nan::Set(js_node, i + 2, Nan::New(node.context[i]));
     }
   }
 
@@ -135,7 +139,7 @@ void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
 
   Local<Array> result = Nan::New<Array>();
   for (size_t i = 0; i < range_count; i++) {
-    result->Set(i, RangeToJS(ranges[i]));
+    Nan::Set(result, i, RangeToJS(ranges[i]));
   }
 
   info.GetReturnValue().Set(result);
@@ -197,7 +201,6 @@ void Tree::PrintDotGraph(const Nan::FunctionCallbackInfo<Value> &info) {
 
 static void FinalizeNode(const v8::WeakCallbackInfo<Tree::NodeCacheEntry> &info) {
   Tree::NodeCacheEntry *cache_entry = info.GetParameter();
-  assert(cache_entry->node.IsNearDeath());
   assert(!cache_entry->node.IsEmpty());
   cache_entry->node.Reset();
   if (cache_entry->tree) {
@@ -211,16 +214,18 @@ void Tree::CacheNode(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
   Local<Object> js_node = Local<Object>::Cast(info[0]);
 
+  Local<Value> js_node_field1, js_node_field2;
+  if (!Nan::Get(js_node, 0).ToLocal(&js_node_field1)) return;
+  if (!Nan::Get(js_node, 1).ToLocal(&js_node_field2)) return;
   uint32_t key_parts[2] = {
-    js_node->Get(0)->Uint32Value(),
-    js_node->Get(1)->Uint32Value(),
+    Nan::To<uint32_t>(js_node_field1).FromMaybe(0),
+    Nan::To<uint32_t>(js_node_field2).FromMaybe(0)
   };
   const void *key = UnmarshalNodeId(key_parts);
 
   auto cache_entry = new NodeCacheEntry{tree, key, {}};
   cache_entry->node.Reset(info.GetIsolate(), js_node);
   cache_entry->node.SetWeak(cache_entry, &FinalizeNode, Nan::WeakCallbackType::kParameter);
-  cache_entry->node.MarkIndependent();
 
   assert(!tree->cached_nodes_.count(key));
 
