@@ -473,12 +473,18 @@ bool symbol_set_from_js(SymbolSet *symbols, const Local<Value> &value, const TSL
     if (Nan::Get(js_types, i).ToLocal(&js_node_type_value)) {
       Local<String> js_node_type;
       if (Nan::To<String>(js_node_type_value).ToLocal(&js_node_type)) {
-        std::string node_type(js_node_type->Utf8Length(Isolate::GetCurrent()), '\0');
+        auto length = js_node_type->Utf8Length(
+          #if NODE_MAJOR_VERSION >= 12
+            Isolate::GetCurrent()
+          #endif
+        );
+
+        std::string node_type(length, '\0');
         js_node_type->WriteUtf8(
 
           // Nan doesn't wrap this functionality
           #if NODE_MAJOR_VERSION >= 12
-                Isolate::GetCurrent(),
+            Isolate::GetCurrent(),
           #endif
 
           &node_type[0]

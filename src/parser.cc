@@ -73,7 +73,7 @@ class CallbackInput {
 
       // Nan doesn't wrap this functionality
       #if NODE_MAJOR_VERSION >= 12
-            Isolate::GetCurrent(),
+        Isolate::GetCurrent(),
       #endif
 
       reader->buffer.data(),
