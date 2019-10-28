@@ -27,5 +27,7 @@ deploy:
     tags: true
 
 env:
+  CC: clang
+  CXX: clang++
   global:
     secure: Jn0t44EE07oEY0eUqRAFcbVwf34hAHx6pmWnDHJRBN9XcH3eHo0DFA32TGtbgYy90dChgdKYLWCwbeZzv1nxJiAy/CItCRcfpc4BJAkvxmtoPiFPpkqJl00CRgO+xGselNPgRhdeHeIEYFUcKAzAX7vxB85YTTys3gWV5Zb1SAQ=
