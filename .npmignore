@@ -4,10 +4,8 @@ out
 build
 
 vendor/tree-sitter/**/*
-!vendor/tree-sitter/lib/src/*
-!vendor/tree-sitter/lib/include/tree_sitter/*.h
-!vendor/tree-sitter/lib/utf8proc/*.c
-!vendor/tree-sitter/lib/utf8proc/*.h
+!vendor/tree-sitter/lib/src/**/*.{c,h}
+!vendor/tree-sitter/lib/include/tree_sitter/api.h
 
 .travis.yml
 appveyor.yml
