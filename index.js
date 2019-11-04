@@ -277,6 +277,7 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
   } else {
     getText = getTextFromFunction
   }
+
   const tree = parse.call(
     this,
     input,

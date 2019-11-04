@@ -1,5 +1,4 @@
-#include <node.h>
-#include <v8.h>
+#include <napi.h>
 #include "./language.h"
 #include "./node.h"
 #include "./parser.h"
@@ -10,18 +9,18 @@
 
 namespace node_tree_sitter {
 
-using namespace v8;
+using namespace Napi;
 
-void InitAll(Local<Object> exports) {
+Object Init(Env env, Object exports) {
   InitConversions(exports);
-  node_methods::Init(exports);
-  language_methods::Init(exports);
-  Parser::Init(exports);
-  Query::Init(exports);
+  InitNode(exports);
+  InitLanguage(exports);
+  InitParser(exports);
+  InitTreeCursor(exports);
   Tree::Init(exports);
-  TreeCursor::Init(exports);
+  return exports;
 }
 
-NODE_MODULE(tree_sitter_runtime_binding, InitAll)
+NODE_API_MODULE(NODE_GYP_MODULE_NAME, Init)
 
 }  // namespace node_tree_sitter

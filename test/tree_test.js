@@ -147,7 +147,7 @@ describe("Tree", () => {
 
       assert.throws(() => {
         tree1.getChangedRanges({});
-      }, /Argument must be a tree/);
+      }, /Invalid argument/);
     })
   });
 
