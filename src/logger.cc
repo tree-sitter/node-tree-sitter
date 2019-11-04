@@ -1,34 +1,34 @@
 #include "./logger.h"
 #include <string>
-#include <v8.h>
-#include <nan.h>
+#include <napi.h>
 #include <tree_sitter/api.h>
 
 namespace node_tree_sitter {
 
-using namespace v8;
+using namespace Napi;
 using std::string;
 
 void Logger::Log(void *payload, TSLogType type, const char *message_str) {
   Logger *debugger = (Logger *)payload;
-  Local<Function> fn = Nan::New(debugger->func);
-  if (!fn->IsFunction())
-    return;
+  Function fn = debugger->func.Value();
+  if (!fn.IsFunction()) return;
+  Env env = fn.Env();
 
   string message(message_str);
   string param_sep = " ";
   size_t param_sep_pos = message.find(param_sep, 0);
 
-  Local<String> type_name = Nan::New((type == TSLogTypeParse) ? "parse" : "lex").ToLocalChecked();
-  Local<String> name = Nan::New(message.substr(0, param_sep_pos)).ToLocalChecked();
-  Local<Object> params = Nan::New<Object>();
+  String type_name = String::New(
+    env,
+    type == TSLogTypeParse ? "parse" : "lex"
+  );
+  String name = String::New(env, message.substr(0, param_sep_pos));
+  Object params = Object::New(env);
 
   while (param_sep_pos != string::npos) {
     size_t key_pos = param_sep_pos + param_sep.size();
     size_t value_sep_pos = message.find(":", key_pos);
-
-    if (value_sep_pos == string::npos)
-      break;
+    if (value_sep_pos == string::npos) break;
 
     size_t val_pos = value_sep_pos + 1;
     param_sep = ", ";
@@ -36,29 +36,30 @@ void Logger::Log(void *payload, TSLogType type, const char *message_str) {
 
     string key = message.substr(key_pos, (value_sep_pos - key_pos));
     string value = message.substr(val_pos, (param_sep_pos - val_pos));
-    Nan::Set(params, Nan::New(key).ToLocalChecked(), Nan::New(value).ToLocalChecked());
+    params[key] = String::New(env, value);
   }
 
-  Local<Value> argv[3] = { name, params, type_name };
-  TryCatch try_catch(Isolate::GetCurrent());
-  Nan::Call(fn, fn->CreationContext()->Global(), 3, argv);
-  if (try_catch.HasCaught()) {
-    Local<Value> log_argv[2] = {
-      Nan::New("Error in debug callback:").ToLocalChecked(),
-      try_catch.Exception()
-    };
-
-    Local<Object> console = Local<Object>::Cast(Nan::Get(fn->CreationContext()->Global(), Nan::New("console").ToLocalChecked()).ToLocalChecked());
-    Local<Function> error_fn = Local<Function>::Cast(Nan::Get(console, Nan::New("error").ToLocalChecked()).ToLocalChecked());
-    Nan::Call(error_fn, console, 2, log_argv);
+  fn({ name, params, type_name });
+  if (env.IsExceptionPending()) {
+    Error error = env.GetAndClearPendingException();
+    Value console = env.Global()["console"];
+    if (console.IsObject()) {
+      Value console_error_fn = console.ToObject()["error"];
+      if (console_error_fn.IsFunction()) {
+        console_error_fn.As<Function>()({
+          String::New(env, "Error in debug callback:"),
+          error.Value()
+        });
+      }
+    }
   }
 }
 
-TSLogger Logger::Make(Local<Function> func) {
+TSLogger Logger::Make(Function func) {
   TSLogger result;
   Logger *logger = new Logger();
-  logger->func.Reset(Nan::Persistent<Function>(func));
-  result.payload = (void *)logger;
+  logger->func.Reset(func, 1);
+  result.payload = static_cast<void *>(logger);
   result.log = Log;
   return result;
 }
