@@ -16,6 +16,7 @@
   "types": "tree-sitter.d.ts",
   "dependencies": {
     "nan": "^2.14.0",
+    "node-addon-api": "git+https://github.com/nodejs/node-addon-api.git",
     "prebuild-install": "^6.0.1"
   },
   "devDependencies": {
