@@ -178,7 +178,9 @@ describe("Parser", () => {
       const sourceCode = "[" + "0,".repeat(elementCount) + "]";
       const buffer = new TextBuffer(sourceCode)
 
-      const tree = await parser.parseTextBuffer(buffer);
+      const promise = parser.parseTextBuffer(buffer);
+      assert.equal(promise.constructor, Promise);
+      const tree = await promise;
       const arrayNode = tree.rootNode.firstChild.firstChild;
       assert.equal(arrayNode.type, "array");
       assert.equal(arrayNode.namedChildCount, elementCount);

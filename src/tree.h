@@ -1,43 +1,40 @@
 #ifndef NODE_TREE_SITTER_TREE_H_
 #define NODE_TREE_SITTER_TREE_H_
 
-#include <v8.h>
-#include <nan.h>
-#include <node_object_wrap.h>
+#include <napi.h>
 #include <unordered_map>
 #include <tree_sitter/api.h>
 
 namespace node_tree_sitter {
 
-class Tree : public Nan::ObjectWrap {
+class Tree : public Napi::ObjectWrap<Tree> {
  public:
-  static void Init(v8::Local<v8::Object> exports);
-  static v8::Local<v8::Value> NewInstance(TSTree *);
-  static const Tree *UnwrapTree(const v8::Local<v8::Value> &);
+  static void Init(Napi::Object &);
+  static Napi::Value NewInstance(Napi::Env, TSTree *);
+  static const Tree *UnwrapTree(const Napi::Value &);
+  Tree(const Napi::CallbackInfo& info);
+  ~Tree();
 
   struct NodeCacheEntry {
     Tree *tree;
     const void *key;
-    v8::Persistent<v8::Object> node;
+    Napi::ObjectReference node;
   };
 
   TSTree *tree_;
   std::unordered_map<const void *, NodeCacheEntry *> cached_nodes_;
 
  private:
-  explicit Tree(TSTree *);
-  ~Tree();
 
-  static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void Edit(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void RootNode(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void PrintDotGraph(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void GetEditedRange(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void GetChangedRanges(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void CacheNode(const Nan::FunctionCallbackInfo<v8::Value> &);
+  Napi::Value New(const Napi::CallbackInfo &);
+  Napi::Value Edit(const Napi::CallbackInfo &);
+  Napi::Value RootNode(const Napi::CallbackInfo &);
+  Napi::Value PrintDotGraph(const Napi::CallbackInfo &);
+  Napi::Value GetEditedRange(const Napi::CallbackInfo &);
+  Napi::Value GetChangedRanges(const Napi::CallbackInfo &);
+  Napi::Value CacheNode(const Napi::CallbackInfo &);
 
-  static Nan::Persistent<v8::Function> constructor;
-  static Nan::Persistent<v8::FunctionTemplate> constructor_template;
+  static Napi::FunctionReference constructor;
 };
 
 }  // namespace node_tree_sitter
