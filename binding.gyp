@@ -10,8 +10,11 @@
         "src/logger.cc",
         "src/node.cc",
         "src/parser.cc",
+        "src/query.cc",
+        "src/query_cursor.cc",
         "src/tree.cc",
         "src/tree_cursor.cc",
+        "src/util.cc",
       ],
       "include_dirs": [
         "vendor/tree-sitter/lib/include",

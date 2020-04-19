@@ -11,7 +11,7 @@ try {
 
 const vm = require('vm');
 const util = require('util')
-const {Parser, NodeMethods, Tree, TreeCursor} = binding;
+const {Query, QueryCursor, Parser, NodeMethods, Tree, TreeCursor} = binding;
 
 const {rootNode, edit} = Tree.prototype;
 
@@ -357,6 +357,15 @@ TreeCursor.prototype.reset = function(node) {
   reset.call(this);
 }
 
+const {exec} = QueryCursor.prototype;
+
+QueryCursor.prototype.exec = function(query, tree, cb) {
+  exec.call(this, query, tree, (patternName, nodeTypeId) => {
+    const node = unmarshalNode(nodeTypeId, tree);
+    cb(patternName, node);
+  });
+}
+
 function getTextFromString (node) {
   return this.input.substring(node.startIndex, node.endIndex);
 }
@@ -490,6 +499,8 @@ function camelCase(name, upperCase) {
 }
 
 module.exports = Parser;
+module.exports.Query = Query;
+module.exports.QueryCursor = QueryCursor;
 module.exports.Tree = Tree;
 module.exports.SyntaxNode = SyntaxNode;
 module.exports.TreeCursor = TreeCursor;
