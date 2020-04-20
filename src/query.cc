@@ -33,6 +33,60 @@ Query::Query(TSQuery *query) : query_(query) {}
 
 Query::~Query() {
   ts_query_delete(query_);
+  for (auto &entry : cached_predicates_) {
+    entry.second->Reset();
+    delete entry.second;
+  }
+}
+
+Local<Array> Query::GetPredicates(uint32_t pattern_index) {
+  const auto &entry = cached_predicates_.find(pattern_index);
+  if (entry != cached_predicates_.end()) {
+    return Nan::New(*entry->second);
+  }
+
+  uint32_t predicates_len;
+  const TSQueryPredicateStep *predicates = ts_query_predicates_for_pattern(
+      query_, pattern_index, &predicates_len);
+
+  Local<Array> js_predicates = Nan::New<Array>();
+
+  if (predicates_len > 0) {
+    Local<Array> js_predicate = Nan::New<Array>();
+
+    size_t a_index = 0;
+    size_t p_index = 0;
+    for (size_t i = 0; i < predicates_len; i++) {
+      const TSQueryPredicateStep predicate = predicates[i];
+      uint32_t len;
+      switch (predicate.type) {
+        case TSQueryPredicateStepTypeCapture:
+          Nan::Set(js_predicate, p_index++,
+              Nan::New<String>(
+                ts_query_capture_name_for_id(query_, predicate.value_id, &len)
+              ).ToLocalChecked());
+          break;
+        case TSQueryPredicateStepTypeString:
+          Nan::Set(js_predicate, p_index++,
+              Nan::New<String>(
+                ts_query_string_value_for_id(query_, predicate.value_id, &len)
+              ).ToLocalChecked());
+          break;
+        case TSQueryPredicateStepTypeDone:
+          Nan::Set(js_predicates, a_index++, js_predicate);
+          js_predicate = Nan::New<Array>();
+          p_index = 0;
+          break;
+      }
+    }
+  }
+
+  Persistent<Array> *persistent = new Persistent<Array>();
+  persistent->Reset(Isolate::GetCurrent(), js_predicates);
+
+  cached_predicates_[pattern_index] = persistent;
+
+  return js_predicates;
 }
 
 Local<Value> Query::NewInstance(TSQuery *query) {
@@ -47,7 +101,7 @@ Local<Value> Query::NewInstance(TSQuery *query) {
   return Nan::Null();
 }
 
-const Query *Query::UnwrapQuery(const Local<Value> &value) {
+Query *Query::UnwrapQuery(const Local<Value> &value) {
   if (!value->IsObject()) return nullptr;
   Local<Object> js_query = Local<Object>::Cast(value);
   if (!Nan::New(constructor_template)->HasInstance(js_query)) return nullptr;

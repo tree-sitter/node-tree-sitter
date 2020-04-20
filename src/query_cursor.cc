@@ -82,7 +82,7 @@ void QueryCursor::New(const Nan::FunctionCallbackInfo<Value> &info) {
 void QueryCursor::Exec(const Nan::FunctionCallbackInfo<Value> &info) {
   QueryCursor *query_cursor = ObjectWrap::Unwrap<QueryCursor>(info.This());
 
-  const Query *query = Query::UnwrapQuery(info[0]);
+  Query *query = Query::UnwrapQuery(info[0]);
   const Tree *tree = Tree::UnwrapTree(info[1]);
 
   if (query == nullptr) {
@@ -102,27 +102,42 @@ void QueryCursor::Exec(const Nan::FunctionCallbackInfo<Value> &info) {
 
   Local<Function> callback = Nan::To<Function>(info[2]).ToLocalChecked();
 
+  TSQuery       *ts_query        = query->query_;
+  TSQueryCursor *ts_query_cursor = query_cursor->query_cursor_;
+
   ts_query_cursor_exec(
-      query_cursor->query_cursor_,
-      query->query_,
+      ts_query_cursor,
+      ts_query,
       ts_tree_root_node(tree->tree_));
 
   TSQueryMatch match;
 
-  while (ts_query_cursor_next_match(query_cursor->query_cursor_, &match)) {
+  while (ts_query_cursor_next_match(ts_query_cursor, &match)) {
+
+    Local<Array> js_predicates = query->GetPredicates(match.pattern_index);
+
+    printf("match { pattern_index = %i, capture_count = %i, len = %i }\n",
+        match.pattern_index,
+        match.capture_count,
+        js_predicates->Length());
+
     for (uint16_t i = 0; i < match.capture_count; i++) {
       uint32_t capture_name_len = 0;
-      const char *capture_name = ts_query_capture_name_for_id(query->query_, match.captures[0].index, &capture_name_len);
+      const char *capture_name = ts_query_capture_name_for_id(ts_query, match.captures[0].index, &capture_name_len);
       const char *string = ts_node_string(match.captures[i].node);
+
       TSNode node = match.captures[i].node;
+
       Local<String> js_pattern_name = Nan::New<String>(capture_name).ToLocalChecked();
       Local<Value> js_node = node_methods::GetMarshalNode(info, tree, node);
-      int argc = 2;
+
       Local<Value> argv[] = {
         js_pattern_name,
         js_node,
+        js_predicates,
       };
-      Nan::Call(callback, info.This(), argc, argv);
+
+      Nan::Call(callback, info.This(), length_of_array(argv), argv);
     }
   }
 }
