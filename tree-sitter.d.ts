@@ -1,6 +1,6 @@
 declare module "tree-sitter" {
   class Parser {
-    parse(input: string | Parser.Input, previousTree?: Parser.Tree): Parser.Tree;
+    parse(input: string | Parser.Input, previousTree?: Parser.Tree, options?: {bufferSize?: number, includedRanges?: Parser.Range[]}): Parser.Tree;
     getLanguage(): any;
     setLanguage(language: any): void;
     getLogger(): Parser.Logger;
