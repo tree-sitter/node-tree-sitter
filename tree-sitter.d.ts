@@ -14,8 +14,10 @@ declare module "tree-sitter" {
     };
 
     export type Range = {
-      start: Point;
-      end: Point;
+      startIndex: number,
+      endIndex: number,
+      startPosition: Point,
+      endPosition: Point
     };
 
     export type Edit = {
