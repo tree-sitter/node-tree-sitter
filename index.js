@@ -37,6 +37,10 @@ Tree.prototype.walk = function() {
   return this.rootNode.walk()
 };
 
+Tree.prototype.getLanguage = function() {
+  return this.language;
+};
+
 class SyntaxNode {
   constructor(tree) {
     this.tree = tree;

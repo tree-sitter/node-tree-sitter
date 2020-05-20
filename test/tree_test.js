@@ -305,6 +305,15 @@ describe("Tree", () => {
       assert(!cursor.gotoParent());
     })
   });
+
+  describe(".getLanguage()", () => {
+    it('returns the tree\'s language', () => {
+      const tree = parser.parse('var count = 42');
+
+      const language = tree.getLanguage();
+      assert.deepEqual(language, JavaScript);
+    });
+  });
 });
 
 function assertCursorState(cursor, params) {
