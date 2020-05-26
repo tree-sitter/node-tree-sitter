@@ -13,6 +13,14 @@ namespace node_tree_sitter {
 using namespace v8;
 using node_methods::UnmarshalNodeId;
 
+const char *query_error_names[] = {
+  "TSQueryErrorNone",
+  "TSQueryErrorSyntax",
+  "TSQueryErrorNodeType",
+  "TSQueryErrorField",
+  "TSQueryErrorCapture",
+};
+
 Nan::Persistent<Function> Query::constructor;
 Nan::Persistent<FunctionTemplate> Query::constructor_template;
 
@@ -149,11 +157,11 @@ void Query::New(const Nan::FunctionCallbackInfo<Value> &info) {
       language, source, source_len, &error_offset, &error_type);
 
   if (error_offset > 0) {
-    std::string message =
-      "Query error of type " +
-      std::to_string(error_type) +
-      " at offset " +
-      std::to_string(error_offset);
+    const char *error_name = query_error_names[error_type];
+    std::string message = "Query error of type ";
+    message += error_name;
+    message += " at position ";
+    message += std::to_string(error_offset);
     Nan::ThrowError(message.c_str());
     return;
   }
