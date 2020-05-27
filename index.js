@@ -360,9 +360,9 @@ TreeCursor.prototype.reset = function(node) {
 const {exec} = Query.prototype;
 
 Query.prototype.exec = function(tree, cb) {
-  exec.call(this, tree, (patternName, nodeTypeId, predicates) => {
+  exec.call(this, tree, (patternIndex, captureIndex, captureName, nodeTypeId, predicates) => {
     const node = unmarshalNode(nodeTypeId, tree);
-    cb(patternName, node, predicates);
+    cb(patternIndex, captureIndex, captureName, node, predicates);
   });
 }
 

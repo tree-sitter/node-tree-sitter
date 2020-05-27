@@ -100,6 +100,8 @@ Local<Array> Query::GetPredicates(uint32_t pattern_index) {
           break;
       }
     }
+
+    js_predicate->SetIntegrityLevel(Nan::GetCurrentContext(), v8::IntegrityLevel::kFrozen);
   }
 
   Persistent<Array> *persistent = new Persistent<Array>();
@@ -225,17 +227,23 @@ void Query::Exec(const Nan::FunctionCallbackInfo<Value> &info) {
         js_predicates->Length());
 
     for (uint16_t i = 0; i < match.capture_count; i++) {
+      const TSQueryCapture &capture = match.captures[i];
+
       uint32_t capture_name_len = 0;
-      const char *capture_name = ts_query_capture_name_for_id(ts_query, match.captures[0].index, &capture_name_len);
-      const char *string = ts_node_string(match.captures[i].node);
+      const char *capture_name = ts_query_capture_name_for_id(
+          ts_query, capture.index, &capture_name_len);
 
-      TSNode node = match.captures[i].node;
+      TSNode node = capture.node;
 
-      Local<String> js_pattern_name = Nan::New<String>(capture_name).ToLocalChecked();
+      Local<Number> js_pattern_index = Nan::New(match.pattern_index);
+      Local<Number> js_capture_index = Nan::New(capture.index);
+      Local<String> js_capture_name = Nan::New(capture_name).ToLocalChecked();
       Local<Value> js_node = node_methods::GetMarshalNode(info, tree, node);
 
       Local<Value> argv[] = {
-        js_pattern_name,
+        js_pattern_index,
+        js_capture_index,
+        js_capture_name,
         js_node,
         js_predicates,
       };
