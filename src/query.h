@@ -24,7 +24,11 @@ class Query : public Nan::ObjectWrap {
   ~Query();
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Exec(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Matches(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Captures(const Nan::FunctionCallbackInfo<v8::Value> &);
 
+  static TSQueryCursor *ts_query_cursor;
   static Nan::Persistent<v8::Function> constructor;
   static Nan::Persistent<v8::FunctionTemplate> constructor_template;
 };
