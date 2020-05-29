@@ -38,7 +38,7 @@ describe("Query", () => {
       cursor.exec(query, tree, (patternName, node) => {
         console.log(patternName, node);
       });
-      assert.deepEqual(formatMatches(matches), [
+      assert.deepEqual(formatMatches(tree, matches), [
         { pattern: 0, captures: [{ name: "fn-def", text: "one" }] },
         { pattern: 1, captures: [{ name: "fn-ref", text: "two" }] },
         { pattern: 0, captures: [{ name: "fn-def", text: "three" }] },
@@ -54,7 +54,7 @@ describe("Query", () => {
         (call_expression function: (identifier) @fn-ref)
       `);
       const matches = query.matches(tree.rootNode);
-      assert.deepEqual(formatMatches(matches), [
+      assert.deepEqual(formatMatches(tree, matches), [
         { pattern: 0, captures: [{ name: "fn-def", text: "one" }] },
         { pattern: 1, captures: [{ name: "fn-ref", text: "two" }] },
         { pattern: 0, captures: [{ name: "fn-def", text: "three" }] },
@@ -69,7 +69,7 @@ describe("Query", () => {
         { row: 1, column: 1 },
         { row: 3, column: 1 }
       );
-      assert.deepEqual(formatMatches(matches), [
+      assert.deepEqual(formatMatches(tree, matches), [
         { pattern: 0, captures: [{ name: "element", text: "d" }] },
         { pattern: 0, captures: [{ name: "element", text: "e" }] },
         { pattern: 0, captures: [{ name: "element", text: "f" }] },
@@ -104,7 +104,7 @@ describe("Query", () => {
       `);
 
       const captures = query.captures(tree.rootNode);
-      assert.deepEqual(formatCaptures(captures), [
+      assert.deepEqual(formatCaptures(tree, captures), [
         { name: "method.def", text: "bc" },
         { name: "delimiter", text: ":" },
         { name: "method.alias", text: "de" },
@@ -137,7 +137,7 @@ describe("Query", () => {
       `);
 
       const captures = query.captures(tree.rootNode);
-      assert.deepEqual(formatCaptures(captures), [
+      assert.deepEqual(formatCaptures(tree, captures), [
         { name: "variable", text: "ab" },
         { name: "variable", text: "require" },
         { name: "function.builtin", text: "require" },
@@ -167,7 +167,7 @@ describe("Query", () => {
       `);
 
       const captures = query.captures(tree.rootNode);
-      assert.deepEqual(formatCaptures(captures), [
+      assert.deepEqual(formatCaptures(tree, captures), [
         { name: "id1", text: "ghi" },
         { name: "id2", text: "ghi" },
       ]);
@@ -185,7 +185,7 @@ describe("Query", () => {
       `);
 
       const captures = query.captures(tree.rootNode);
-      assert.deepEqual(formatCaptures(captures), [
+      assert.deepEqual(formatCaptures(tree, captures), [
         { name: "func", text: "a", setProperties: { foo: null, bar: "baz" } },
         {
           name: "prop",
@@ -198,18 +198,18 @@ describe("Query", () => {
   });
 });
 
-function formatMatches(matches) {
+function formatMatches(tree, matches) {
   return matches.map(({ pattern, captures }) => ({
     pattern,
-    captures: formatCaptures(captures),
+    captures: formatCaptures(tree, captures),
   }));
 }
 
-function formatCaptures(captures) {
+function formatCaptures(tree, captures) {
   return captures.map((c) => {
     const node = c.node;
     delete c.node;
-    c.text = node.text;
+    c.text = tree.getText(node);
     return c;
   });
 }
