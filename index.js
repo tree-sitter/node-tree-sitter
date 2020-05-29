@@ -376,7 +376,12 @@ TreeCursor.prototype.reset = function(node) {
   reset.call(this);
 }
 
-const {exec} = Query.prototype;
+
+/*
+ * Query
+ */
+
+const {exec, matches, captures} = Query.prototype;
 
 Query.prototype.exec = function(tree, cb) {
   exec.call(this, tree, (patternIndex, captureIndex, captureName, nodeTypeId, predicates) => {
@@ -384,6 +389,38 @@ Query.prototype.exec = function(tree, cb) {
     cb(patternIndex, captureIndex, captureName, node, predicates);
   });
 }
+
+Query.prototype.matches = function(rootNode) {
+  const {tree} = rootNode;
+
+  marshalNode(rootNode);
+  const results = matches.call(this, tree);
+  const nodes = unmarshalNodes(results.nodes, tree);
+
+  for (let i = 0; i < results.matches.length; i++) {
+    const match = results.matches[i];
+    for (let j = 0; j < match.captures.length; j++) {
+      const capture = match.captures[j];
+      capture.node = nodes[i];
+    }
+  }
+  return results.matches
+}
+
+// FIXME: not implemented
+Query.prototype.captures = function(rootNode) {
+  const {tree} = rootNode;
+
+  marshalNode(rootNode);
+  const results = matches.call(this, tree);
+
+  return results;
+}
+
+
+/*
+ * Other functions
+ */
 
 function getTextFromString (node) {
   return this.input.substring(node.startIndex, node.endIndex);
@@ -409,37 +446,58 @@ const {pointTransferArray} = binding;
 const NODE_FIELD_COUNT = 6;
 const ERROR_TYPE_ID = 0xFFFF
 
-function unmarshalNode(value, tree, offset = 0) {
+function getID(buffer, offset) {
+  const low  = BigInt(buffer[offset]);
+  const high = BigInt(buffer[offset + 1]);
+  return (high << 32n) + low;
+}
+
+function unmarshalNode(value, tree, offset = 0, cache) {
+  /* case 1: node from the tree cache */
   if (typeof value === 'object') {
     const node = value;
     return node;
-  } else {
-    const nodeTypeId = value;
-    const NodeClass = nodeTypeId === ERROR_TYPE_ID
-      ? SyntaxNode
-      : tree.language.nodeSubclasses[nodeTypeId];
-    const {nodeTransferArray} = binding;
-    if (nodeTransferArray[0] || nodeTransferArray[1]) {
-      const result = new NodeClass(tree);
-      for (let i = 0; i < NODE_FIELD_COUNT; i++) {
-        result[i] = nodeTransferArray[offset + i];
-      }
-      tree._cacheNode(result);
-      return result;
-    }
+  }
+
+  /* case 2: node being transferred */
+  const nodeTypeId = value;
+  const NodeClass = nodeTypeId === ERROR_TYPE_ID
+    ? SyntaxNode
+    : tree.language.nodeSubclasses[nodeTypeId];
+
+  const {nodeTransferArray} = binding;
+  const id = getID(nodeTransferArray, offset)
+  if (id === 0n) {
     return null
   }
+
+  let cachedResult;
+  if (cache && (cachedResult = cache.get(id)))
+    return cachedResult;
+
+  const result = new NodeClass(tree);
+  for (let i = 0; i < NODE_FIELD_COUNT; i++) {
+    result[i] = nodeTransferArray[offset + i];
+  }
+
+  tree._cacheNode(result);
+  if (cache)
+    cache.set(id, result);
+  return result;
 }
 
 function unmarshalNodes(nodes, tree) {
+  const cache = new Map();
+
   let offset = 0;
   for (let i = 0, {length} = nodes; i < length; i++) {
-    const node = unmarshalNode(nodes[i], tree, offset);
+    const node = unmarshalNode(nodes[i], tree, offset, cache);
     if (node !== nodes[i]) {
       nodes[i] = node;
       offset += NODE_FIELD_COUNT
     }
   }
+
   return nodes;
 }
 
