@@ -9,9 +9,13 @@ try {
   }
 }
 
-const vm = require('vm');
 const util = require('util')
 const {Query, Parser, NodeMethods, Tree, TreeCursor} = binding;
+
+
+/*
+ * Tree
+ */
 
 const {rootNode, edit} = Tree.prototype;
 
