@@ -41,6 +41,11 @@ Tree.prototype.walk = function() {
   return this.rootNode.walk()
 };
 
+
+/*
+ * Node
+ */
+
 class SyntaxNode {
   constructor(tree) {
     this.tree = tree;
@@ -245,6 +250,11 @@ class SyntaxNode {
   }
 }
 
+
+/*
+ * Parser
+ */
+
 const {parse, parseTextBuffer, parseTextBufferSync, setLanguage} = Parser.prototype;
 const languageSymbol = Symbol('parser.language');
 
@@ -328,6 +338,11 @@ Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges
   snapshot.destroy();
   return tree;
 };
+
+
+/*
+ * TreeCursor
+ */
 
 const {startPosition, endPosition, currentNode, reset} = TreeCursor.prototype;
 
