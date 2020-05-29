@@ -43,6 +43,15 @@ static inline bool operator<=(const TSPoint &left, const TSPoint &right) {
 
 static void MarshalNodes(const Nan::FunctionCallbackInfo<Value> &info,
                          const Tree *tree, const TSNode *nodes, uint32_t node_count) {
+  info.GetReturnValue().Set(GetMarshalNodes(info, tree, nodes, node_count));
+}
+
+void MarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, TSNode node) {
+  info.GetReturnValue().Set(GetMarshalNode(info, tree, node));
+}
+
+Local<Value> GetMarshalNodes(const Nan::FunctionCallbackInfo<Value> &info,
+                         const Tree *tree, const TSNode *nodes, uint32_t node_count) {
   auto result = Nan::New<Array>();
   setup_transfer_buffer(node_count);
   uint32_t *p = transfer_buffer;
@@ -65,26 +74,7 @@ static void MarshalNodes(const Nan::FunctionCallbackInfo<Value> &info,
       Nan::Set(result, i, Nan::New(cache_entry->second->node));
     }
   }
-  info.GetReturnValue().Set(result);
-}
-
-void MarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, TSNode node) {
-  const auto &cache_entry = tree->cached_nodes_.find(node.id);
-  if (cache_entry == tree->cached_nodes_.end()) {
-    setup_transfer_buffer(1);
-    uint32_t *p = transfer_buffer;
-    MarshalNodeId(node.id, p);
-    p += 2;
-    *(p++) = node.context[0];
-    *(p++) = node.context[1];
-    *(p++) = node.context[2];
-    *(p++) = node.context[3];
-    if (node.id) {
-      info.GetReturnValue().Set(Nan::New(ts_node_symbol(node)));
-    }
-  } else {
-    info.GetReturnValue().Set(Nan::New(cache_entry->second->node));
-  }
+  return result;
 }
 
 Local<Value> GetMarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, TSNode node) {
