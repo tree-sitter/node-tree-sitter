@@ -397,22 +397,35 @@ Query.prototype.matches = function(rootNode) {
   const results = matches.call(this, tree);
   const nodes = unmarshalNodes(results.nodes, tree);
 
+  let nodeIndex = 0;
   for (let i = 0; i < results.matches.length; i++) {
     const match = results.matches[i];
     for (let j = 0; j < match.captures.length; j++) {
       const capture = match.captures[j];
-      capture.node = nodes[i];
+      capture.node = nodes[nodeIndex++];
     }
   }
-  return results.matches
+
+  return results.matches;
 }
 
-// FIXME: not implemented
 Query.prototype.captures = function(rootNode) {
   const {tree} = rootNode;
 
   marshalNode(rootNode);
-  const results = matches.call(this, tree);
+  const {matches, nodes: marshalledNodes} = captures.call(this, tree);
+  const nodes = unmarshalNodes(marshalledNodes, tree);
+
+  const results = [];
+  let nodeIndex = 0;
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    for (let j = 0; j < match.captures.length; j++) {
+      const capture = match.captures[j];
+      capture.node = nodes[nodeIndex++];
+      results.push(capture);
+    }
+  }
 
   return results;
 }

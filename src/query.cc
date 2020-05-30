@@ -211,7 +211,6 @@ void Query::Exec(const Nan::FunctionCallbackInfo<Value> &info) {
   Local<Function> callback = Nan::To<Function>(info[1]).ToLocalChecked();
 
   TSQuery *ts_query = query->query_;
-
   ts_query_cursor_exec(
       ts_query_cursor,
       ts_query,
@@ -265,7 +264,6 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
 
   TSNode rootNode = node_methods::UnmarshalNode(tree);
   TSQuery *ts_query = query->query_;
-
   ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
 
   Local<String> js_matches_string = Nan::New("matches").ToLocalChecked();
@@ -277,10 +275,9 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
   Local<String> js_node_string = Nan::New("node").ToLocalChecked();
 
   Local<Array> js_matches = Nan::New<Array>();
-  uint32_t match_index = 0;
-  TSQueryMatch match;
-
+  unsigned match_index = 0;
   vector<TSNode> nodes;
+  TSQueryMatch match;
 
   while (ts_query_cursor_next_match(ts_query_cursor, &match)) {
     Local<Array> js_predicates = query->GetPredicates(match.pattern_index);
@@ -317,7 +314,79 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(result);
 }
 
-void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {}
+void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
+  Query *query = Query::UnwrapQuery(info.This());
+  const Tree *tree = Tree::UnwrapTree(info[0]);
+
+  if (query == nullptr) {
+    Nan::ThrowError("Missing argument query");
+    return;
+  }
+
+  if (tree == nullptr) {
+    Nan::ThrowError("Missing argument tree");
+    return;
+  }
+
+  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSQuery *ts_query = query->query_;
+  ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
+
+  Local<String> js_matches_string = Nan::New("matches").ToLocalChecked();
+  Local<String> js_nodes_string = Nan::New("nodes").ToLocalChecked();
+  Local<String> js_pattern_string = Nan::New("pattern").ToLocalChecked();
+  Local<String> js_capture_index_string = Nan::New("captureIndex").ToLocalChecked();
+  Local<String> js_captures_string = Nan::New("captures").ToLocalChecked();
+  Local<String> js_predicates_string = Nan::New("predicates").ToLocalChecked();
+  Local<String> js_name_string = Nan::New("name").ToLocalChecked();
+  Local<String> js_node_string = Nan::New("node").ToLocalChecked();
+
+  Local<Array> js_matches = Nan::New<Array>();
+  unsigned match_index = 0;
+  vector<TSNode> nodes;
+  TSQueryMatch match;
+  uint32_t capture_index;
+
+  while (ts_query_cursor_next_capture(
+    ts_query_cursor,
+    &match,
+    &capture_index
+  )) {
+
+    Local<Array> js_predicates = query->GetPredicates(match.pattern_index);
+    Local<Array> js_captures = Nan::New<Array>();
+
+    for (uint16_t i = 0; i < match.capture_count; i++) {
+      const TSQueryCapture &capture = match.captures[i];
+
+      uint32_t capture_name_len = 0;
+      const char *capture_name = ts_query_capture_name_for_id(
+          ts_query, capture.index, &capture_name_len);
+
+      TSNode node = capture.node;
+      nodes.push_back(node);
+
+      Local<Object> js_capture = Nan::New<Object>();
+      Nan::Set(js_capture, js_name_string, Nan::New(capture_name).ToLocalChecked());
+      Nan::Set(js_capture, js_node_string, Nan::Null());
+      Nan::Set(js_captures, i, js_capture);
+    }
+
+    Local<Object> js_match = Nan::New<Object>();
+    Nan::Set(js_match, js_pattern_string,  Nan::New(match.pattern_index));
+    Nan::Set(js_match, js_capture_index_string, Nan::New(capture_index));
+    Nan::Set(js_match, js_captures_string, js_captures);
+    Nan::Set(js_match, js_predicates_string, js_predicates);
+    Nan::Set(js_matches, match_index++, js_match);
+  }
+
+  auto js_nodes = node_methods::GetMarshalNodes(info, tree, nodes.data(), nodes.size());
+
+  auto result = Nan::New<Object>();
+  Nan::Set(result, js_matches_string, js_matches);
+  Nan::Set(result, js_nodes_string, js_nodes);
+  info.GetReturnValue().Set(result);
+}
 
 
 }  // namespace node_tree_sitter
