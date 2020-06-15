@@ -187,8 +187,6 @@ void Query::GetPredicates(const Nan::FunctionCallbackInfo<Value> &info) {
             break;
         }
       }
-
-      js_predicate->SetIntegrityLevel(Nan::GetCurrentContext(), v8::IntegrityLevel::kFrozen);
     }
 
     Nan::Set(js_predicates, pattern_index, js_pattern_predicates);
