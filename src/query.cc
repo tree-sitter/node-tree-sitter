@@ -36,9 +36,10 @@ void Query::Init(Local<Object> exports) {
   tpl->SetClassName(class_name);
 
   FunctionPair methods[] = {
-    {"exec", Exec},
-    {"matches", Matches},
-    {"captures", Captures},
+    {"_exec", Exec},
+    {"_matches", Matches},
+    {"_captures", Captures},
+    {"_getPredicates", GetPredicates},
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
@@ -56,62 +57,6 @@ Query::Query(TSQuery *query) : query_(query) {}
 
 Query::~Query() {
   ts_query_delete(query_);
-  for (auto &entry : cached_predicates_) {
-    entry.second->Reset();
-    delete entry.second;
-  }
-}
-
-Local<Array> Query::GetPredicates(uint32_t pattern_index) {
-  const auto &entry = cached_predicates_.find(pattern_index);
-  if (entry != cached_predicates_.end()) {
-    return Nan::New(*entry->second);
-  }
-
-  uint32_t predicates_len;
-  const TSQueryPredicateStep *predicates = ts_query_predicates_for_pattern(
-      query_, pattern_index, &predicates_len);
-
-  Local<Array> js_predicates = Nan::New<Array>();
-
-  if (predicates_len > 0) {
-    Local<Array> js_predicate = Nan::New<Array>();
-
-    size_t a_index = 0;
-    size_t p_index = 0;
-    for (size_t i = 0; i < predicates_len; i++) {
-      const TSQueryPredicateStep predicate = predicates[i];
-      uint32_t len;
-      switch (predicate.type) {
-        case TSQueryPredicateStepTypeCapture:
-          Nan::Set(js_predicate, p_index++,
-              Nan::New<String>(
-                ts_query_capture_name_for_id(query_, predicate.value_id, &len)
-              ).ToLocalChecked());
-          break;
-        case TSQueryPredicateStepTypeString:
-          Nan::Set(js_predicate, p_index++,
-              Nan::New<String>(
-                ts_query_string_value_for_id(query_, predicate.value_id, &len)
-              ).ToLocalChecked());
-          break;
-        case TSQueryPredicateStepTypeDone:
-          Nan::Set(js_predicates, a_index++, js_predicate);
-          js_predicate = Nan::New<Array>();
-          p_index = 0;
-          break;
-      }
-    }
-
-    js_predicate->SetIntegrityLevel(Nan::GetCurrentContext(), v8::IntegrityLevel::kFrozen);
-  }
-
-  Persistent<Array> *persistent = new Persistent<Array>();
-  persistent->Reset(Isolate::GetCurrent(), js_predicates);
-
-  cached_predicates_[pattern_index] = persistent;
-
-  return js_predicates;
 }
 
 Local<Value> Query::NewInstance(TSQuery *query) {
@@ -183,9 +128,73 @@ void Query::New(const Nan::FunctionCallbackInfo<Value> &info) {
     return;
   }
 
+  auto self = info.This();
+
   Query *query_wrapper = new Query(query);
-  query_wrapper->Wrap(info.This());
-  info.GetReturnValue().Set(info.This());
+  query_wrapper->Wrap(self);
+
+  auto init =
+    Nan::To<Function>(
+      Nan::Get(self, Nan::New<String>("_init").ToLocalChecked()).ToLocalChecked()
+    ).ToLocalChecked();
+  Nan::Call(init, self, 0, nullptr);
+
+  info.GetReturnValue().Set(self);
+}
+
+void Query::GetPredicates(const Nan::FunctionCallbackInfo<Value> &info) {
+  Query *query = Query::UnwrapQuery(info.This());
+  auto ts_query = query->query_;
+
+  auto pattern_len = ts_query_pattern_count(ts_query);
+
+  Local<Array> js_predicates = Nan::New<Array>();
+
+  for (size_t pattern_index = 0; pattern_index < pattern_len; pattern_index++) {
+    uint32_t predicates_len;
+    const TSQueryPredicateStep *predicates = ts_query_predicates_for_pattern(
+        ts_query, pattern_index, &predicates_len);
+
+    Local<Array> js_pattern_predicates = Nan::New<Array>();
+
+    if (predicates_len > 0) {
+      Local<Array> js_predicate = Nan::New<Array>();
+
+      size_t a_index = 0;
+      size_t p_index = 0;
+      for (size_t i = 0; i < predicates_len; i++) {
+        const TSQueryPredicateStep predicate = predicates[i];
+        uint32_t len;
+        switch (predicate.type) {
+          case TSQueryPredicateStepTypeCapture:
+            Nan::Set(js_predicate, p_index++, Nan::New(TSQueryPredicateStepTypeCapture));
+            Nan::Set(js_predicate, p_index++,
+                Nan::New<String>(
+                  ts_query_capture_name_for_id(ts_query, predicate.value_id, &len)
+                ).ToLocalChecked());
+            break;
+          case TSQueryPredicateStepTypeString:
+            Nan::Set(js_predicate, p_index++, Nan::New(TSQueryPredicateStepTypeString));
+            Nan::Set(js_predicate, p_index++,
+                Nan::New<String>(
+                  ts_query_string_value_for_id(ts_query, predicate.value_id, &len)
+                ).ToLocalChecked());
+            break;
+          case TSQueryPredicateStepTypeDone:
+            Nan::Set(js_pattern_predicates, a_index++, js_predicate);
+            js_predicate = Nan::New<Array>();
+            p_index = 0;
+            break;
+        }
+      }
+
+      js_predicate->SetIntegrityLevel(Nan::GetCurrentContext(), v8::IntegrityLevel::kFrozen);
+    }
+
+    Nan::Set(js_predicates, pattern_index, js_pattern_predicates);
+  }
+
+  info.GetReturnValue().Set(js_predicates);
 }
 
 void Query::Exec(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -219,7 +228,6 @@ void Query::Exec(const Nan::FunctionCallbackInfo<Value> &info) {
   TSQueryMatch match;
 
   while (ts_query_cursor_next_match(ts_query_cursor, &match)) {
-    Local<Array> js_predicates = query->GetPredicates(match.pattern_index);
 
     for (uint16_t i = 0; i < match.capture_count; i++) {
       const TSQueryCapture &capture = match.captures[i];
@@ -240,7 +248,6 @@ void Query::Exec(const Nan::FunctionCallbackInfo<Value> &info) {
         js_capture_index,
         js_capture_name,
         js_node,
-        js_predicates,
       };
 
       Nan::Call(callback, info.This(), length_of_array(argv), argv);
@@ -270,7 +277,6 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
   Local<String> js_nodes_string = Nan::New("nodes").ToLocalChecked();
   Local<String> js_pattern_string = Nan::New("pattern").ToLocalChecked();
   Local<String> js_captures_string = Nan::New("captures").ToLocalChecked();
-  Local<String> js_predicates_string = Nan::New("predicates").ToLocalChecked();
   Local<String> js_name_string = Nan::New("name").ToLocalChecked();
   Local<String> js_node_string = Nan::New("node").ToLocalChecked();
 
@@ -280,7 +286,6 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
   TSQueryMatch match;
 
   while (ts_query_cursor_next_match(ts_query_cursor, &match)) {
-    Local<Array> js_predicates = query->GetPredicates(match.pattern_index);
     Local<Array> js_captures = Nan::New<Array>();
 
     for (uint16_t i = 0; i < match.capture_count; i++) {
@@ -302,7 +307,6 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
     Local<Object> js_match = Nan::New<Object>();
     Nan::Set(js_match, js_pattern_string,  Nan::New(match.pattern_index));
     Nan::Set(js_match, js_captures_string, js_captures);
-    Nan::Set(js_match, js_predicates_string, js_predicates);
     Nan::Set(js_matches, match_index++, js_match);
   }
 
@@ -337,7 +341,6 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
   Local<String> js_pattern_string = Nan::New("pattern").ToLocalChecked();
   Local<String> js_capture_index_string = Nan::New("captureIndex").ToLocalChecked();
   Local<String> js_captures_string = Nan::New("captures").ToLocalChecked();
-  Local<String> js_predicates_string = Nan::New("predicates").ToLocalChecked();
   Local<String> js_name_string = Nan::New("name").ToLocalChecked();
   Local<String> js_node_string = Nan::New("node").ToLocalChecked();
 
@@ -353,7 +356,6 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
     &capture_index
   )) {
 
-    Local<Array> js_predicates = query->GetPredicates(match.pattern_index);
     Local<Array> js_captures = Nan::New<Array>();
 
     for (uint16_t i = 0; i < match.capture_count; i++) {
@@ -376,7 +378,6 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
     Nan::Set(js_match, js_pattern_string,  Nan::New(match.pattern_index));
     Nan::Set(js_match, js_capture_index_string, Nan::New(capture_index));
     Nan::Set(js_match, js_captures_string, js_captures);
-    Nan::Set(js_match, js_predicates_string, js_predicates);
     Nan::Set(js_matches, match_index++, js_match);
   }
 

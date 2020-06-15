@@ -14,10 +14,8 @@ class Query : public Nan::ObjectWrap {
   static void Init(v8::Local<v8::Object> exports);
   static v8::Local<v8::Value> NewInstance(TSQuery *);
   static Query *UnwrapQuery(const v8::Local<v8::Value> &);
-  v8::Local<v8::Array> GetPredicates(uint32_t pattern_index);
 
   TSQuery *query_;
-  std::unordered_map<uint32_t, v8::Persistent<v8::Array>*> cached_predicates_;
 
  private:
   explicit Query(TSQuery *);
@@ -27,6 +25,7 @@ class Query : public Nan::ObjectWrap {
   static void Exec(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Matches(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Captures(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void GetPredicates(const Nan::FunctionCallbackInfo<v8::Value> &);
 
   static TSQueryCursor *ts_query_cursor;
   static Nan::Persistent<v8::Function> constructor;

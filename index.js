@@ -381,49 +381,182 @@ TreeCursor.prototype.reset = function(node) {
  * Query
  */
 
-const {exec, matches, captures} = Query.prototype;
+const {_exec, _matches, _captures} = Query.prototype;
+
+const PREDICATE_STEP_TYPE = {
+  DONE: 0,
+  CAPTURE: 1,
+  STRING: 2,
+}
+
+Query.prototype._init = function() {
+  /*
+   * Initializa predicate functions
+   * format: [type1, value1, type2, value2, ...]
+   */
+  const predicateDescriptions = this._getPredicates();
+  const patternCount = predicateDescriptions.length;
+
+  const setProperties = new Array(patternCount);
+  const assertedProperties = new Array(patternCount);
+  const refutedProperties = new Array(patternCount);
+  const predicates = new Array(patternCount);
+
+  const FIRST  = 0
+  const SECOND = 2
+  const THIRD  = 4
+
+  for (let i = 0; i < predicateDescriptions.length; i++) {
+    predicates[i] = [];
+
+    for (let j = 0; j < predicateDescriptions[i].length; j++) {
+
+      const steps = predicateDescriptions[i][j];
+      const stepsLength = steps.length / 2;
+
+      if (steps[FIRST] !== PREDICATE_STEP_TYPE.STRING) {
+        throw new Error('Predicates must begin with a literal value');
+      }
+
+      const operator = steps[FIRST + 1];
+
+      let isPositive = true;
+
+      switch (operator) {
+        case 'not-eq?':
+          isPositive = false;
+        case 'eq?':
+          if (stepsLength !== 3) throw new Error(
+            `Wrong number of arguments to \`#eq?\` predicate. Expected 2, got ${stepsLength - 1}`
+          );
+          if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
+            `First argument of \`#eq?\` predicate must be a capture. Got "${steps[SECOND + 1]}"`
+          );
+          if (steps[THIRD] === PREDICATE_STEP_TYPE.CAPTURE) {
+            const captureName1 = steps[SECOND + 1];
+            const captureName2 = steps[THIRD  + 1];
+            predicates[i].push(function(captures) {
+              let node1, node2
+              for (const c of captures) {
+                if (c.name === captureName1) node1 = c.node;
+                if (c.name === captureName2) node2 = c.node;
+              }
+              return (node1.text === node2.text) === isPositive;
+            });
+          } else {
+            const captureName = steps[SECOND + 1];
+            const stringValue = steps[THIRD  + 1];
+            predicates[i].push(function(captures) {
+              for (const c of captures) {
+                if (c.name === captureName) {
+                  return (c.node.text === stringValue) === isPositive;
+                };
+              }
+              return false;
+            });
+          }
+          break;
+
+        case 'match?':
+          if (stepsLength !== 3) throw new Error(
+            `Wrong number of arguments to \`#match?\` predicate. Expected 2, got ${stepsLength - 1}.`
+          );
+          if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
+            `First argument of \`#match?\` predicate must be a capture. Got "${steps[SECOND + 1]}".`
+          );
+          if (steps[THIRD] !== PREDICATE_STEP_TYPE.STRING) throw new Error(
+            `Second argument of \`#match?\` predicate must be a string. Got @${steps[THIRD + 1]}.`
+          );
+          const captureName = steps[SECOND + 1];
+          const regex = new RegExp(steps[THIRD + 1]);
+          predicates[i].push(function(captures) {
+            for (const c of captures) {
+              if (c.name === captureName) return regex.test(c.node.text);
+            }
+            return false;
+          });
+          break;
+
+        case 'set!':
+          if (stepsLength < 2 || stepsLength > 3) throw new Error(
+            `Wrong number of arguments to \`#set!\` predicate. Expected 1 or 2. Got ${stepsLength - 1}.`
+          );
+          if (steps.some((s, i) => (i % 2 !== 1) && s !== PREDICATE_STEP_TYPE.STRING)) throw new Error(
+            `Arguments to \`#set!\` predicate must be a strings.".`
+          );
+          if (!setProperties[i]) setProperties[i] = {};
+          setProperties[i][steps[SECOND + 1]] = steps[THIRD] ? steps[THIRD + 1] : null;
+          break;
+
+        case 'is?':
+        case 'is-not?':
+          if (stepsLength < 2 || stepsLength > 3) throw new Error(
+            `Wrong number of arguments to \`#${operator}\` predicate. Expected 1 or 2. Got ${stepsLength - 1}.`
+          );
+          if (steps.some((s, i) => (i % 2 !== 1) && s !== PREDICATE_STEP_TYPE.STRING)) throw new Error(
+            `Arguments to \`#${operator}\` predicate must be a strings.".`
+          );
+          const properties = operator === 'is?' ? assertedProperties : refutedProperties;
+          if (!properties[i]) properties[i] = {};
+          properties[i][steps[SECOND]] = steps[THIRD] ? steps[THIRD + 1] : null;
+          break;
+
+        default:
+          throw new Error(`Unknown query predicate \`#${steps[FIRST + 1]}\``);
+      }
+    }
+  }
+
+  this.predicates = Object.freeze(predicates);
+  this.setProperties = Object.freeze(setProperties);
+  this.assertedProperties = Object.freeze(assertedProperties);
+  this.refutedProperties = Object.freeze(refutedProperties);
+}
 
 Query.prototype.exec = function(tree, cb) {
-  exec.call(this, tree, (patternIndex, captureIndex, captureName, nodeTypeId, predicates) => {
+  _exec.call(this, tree, (patternIndex, captureIndex, captureName, nodeTypeId, predicates) => {
     const node = unmarshalNode(nodeTypeId, tree);
     cb(patternIndex, captureIndex, captureName, node, predicates);
   });
 }
 
 Query.prototype.matches = function(rootNode) {
-  const {tree} = rootNode;
-
   marshalNode(rootNode);
-  const results = matches.call(this, tree);
-  const nodes = unmarshalNodes(results.nodes, tree);
-
-  let nodeIndex = 0;
-  for (let i = 0; i < results.matches.length; i++) {
-    const match = results.matches[i];
-    for (let j = 0; j < match.captures.length; j++) {
-      const capture = match.captures[j];
-      capture.node = nodes[nodeIndex++];
-    }
-  }
-
-  return results.matches;
+  const returned = _matches.call(this, rootNode.tree);
+  return filterMatches(this, rootNode.tree, returned);
 }
 
 Query.prototype.captures = function(rootNode) {
-  const {tree} = rootNode;
-
   marshalNode(rootNode);
-  const {matches, nodes: marshalledNodes} = captures.call(this, tree);
-  const nodes = unmarshalNodes(marshalledNodes, tree);
+  const returned = _captures.call(this, rootNode.tree);
+  const matches = filterMatches(this, rootNode.tree, returned);
+  return matches.reduce((previous, current) => previous.concat(current.captures), [])
+}
 
+function filterMatches(query, tree, returned) {
+  const nodes = unmarshalNodes(returned.nodes, tree);
   const results = [];
+
   let nodeIndex = 0;
-  for (let i = 0; i < matches.length; i++) {
-    const match = matches[i];
-    for (let j = 0; j < match.captures.length; j++) {
-      const capture = match.captures[j];
+  for (let i = 0; i < returned.matches.length; i++) {
+    const match = returned.matches[i];
+    const captures = match.captures;
+    const pattern = match.pattern;
+
+    for (let j = 0; j < captures.length; j++) {
+      const capture = captures[j];
       capture.node = nodes[nodeIndex++];
-      results.push(capture);
+    }
+
+    if (query.predicates[pattern].every(p => p(captures))) {
+      const result = {pattern, captures};
+      const setProperties = query.setProperties[pattern];
+      const assertedProperties = query.assertedProperties[pattern];
+      const refutedProperties = query.refutedProperties[pattern];
+      if (setProperties) result.setProperties = setProperties;
+      if (assertedProperties) result.assertedProperties = assertedProperties;
+      if (refutedProperties) result.refutedProperties = refutedProperties;
+      results.push(result);
     }
   }
 
