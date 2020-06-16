@@ -36,7 +36,6 @@ void Query::Init(Local<Object> exports) {
   tpl->SetClassName(class_name);
 
   FunctionPair methods[] = {
-    {"_exec", Exec},
     {"_matches", Matches},
     {"_captures", Captures},
     {"_getPredicates", GetPredicates},
@@ -193,64 +192,6 @@ void Query::GetPredicates(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 
   info.GetReturnValue().Set(js_predicates);
-}
-
-void Query::Exec(const Nan::FunctionCallbackInfo<Value> &info) {
-
-  Query *query = Query::UnwrapQuery(info.This());
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-
-  if (query == nullptr) {
-    Nan::ThrowError("Missing argument query");
-    return;
-  }
-
-  if (tree == nullptr) {
-    Nan::ThrowError("Missing argument tree");
-    return;
-  }
-
-  if (!info[1]->IsFunction()) {
-    Nan::ThrowError("Missing argument callback");
-    return;
-  }
-
-  Local<Function> callback = Nan::To<Function>(info[1]).ToLocalChecked();
-
-  TSQuery *ts_query = query->query_;
-  ts_query_cursor_exec(
-      ts_query_cursor,
-      ts_query,
-      ts_tree_root_node(tree->tree_));
-
-  TSQueryMatch match;
-
-  while (ts_query_cursor_next_match(ts_query_cursor, &match)) {
-
-    for (uint16_t i = 0; i < match.capture_count; i++) {
-      const TSQueryCapture &capture = match.captures[i];
-
-      uint32_t capture_name_len = 0;
-      const char *capture_name = ts_query_capture_name_for_id(
-          ts_query, capture.index, &capture_name_len);
-
-      TSNode node = capture.node;
-
-      Local<Number> js_pattern_index = Nan::New(match.pattern_index);
-      Local<Number> js_capture_index = Nan::New(capture.index);
-      Local<String> js_capture_name = Nan::New(capture_name).ToLocalChecked();
-      Local<Value> js_node = node_methods::GetMarshalNode(info, tree, node);
-
-      Local<Value> argv[] = {
-        js_pattern_index,
-        js_capture_index,
-        js_capture_name,
-        js_node,
-      };
-
-      Nan::Call(callback, info.This(), length_of_array(argv), argv);
-    }
-  }
 }
 
 void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {

@@ -25,27 +25,6 @@ describe("Query", () => {
     });
   });
 
-  describe(".exec", () => {
-    // XXX: fix setting up this test
-    it.skip("works", () => {
-      const tree = parser.parse("function one() { two(); function three() {} }");
-      const query = new Query(JavaScript, `
-        (function_declaration name: (identifier) @fn-def)
-        (call_expression function: (identifier) @fn-ref)
-      `);
-      const matches = [];
-      const cursor = new QueryCursor();
-      cursor.exec(query, tree, (patternName, node) => {
-        console.log(patternName, node);
-      });
-      assert.deepEqual(formatMatches(tree, matches), [
-        { pattern: 0, captures: [{ name: "fn-def", text: "one" }] },
-        { pattern: 1, captures: [{ name: "fn-ref", text: "two" }] },
-        { pattern: 0, captures: [{ name: "fn-def", text: "three" }] },
-      ]);
-    });
-  });
-
   describe(".matches", () => {
     it("returns all of the matches for the given query", () => {
       const tree = parser.parse("function one() { two(); function three() {} }");

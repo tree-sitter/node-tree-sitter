@@ -22,7 +22,6 @@ class Query : public Nan::ObjectWrap {
   ~Query();
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void Exec(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Matches(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Captures(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GetPredicates(const Nan::FunctionCallbackInfo<v8::Value> &);

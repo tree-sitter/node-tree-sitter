@@ -381,7 +381,7 @@ TreeCursor.prototype.reset = function(node) {
  * Query
  */
 
-const {_exec, _matches, _captures} = Query.prototype;
+const {_matches, _captures} = Query.prototype;
 
 const PREDICATE_STEP_TYPE = {
   DONE: 0,
@@ -513,13 +513,6 @@ Query.prototype._init = function() {
   this.setProperties = Object.freeze(setProperties);
   this.assertedProperties = Object.freeze(assertedProperties);
   this.refutedProperties = Object.freeze(refutedProperties);
-}
-
-Query.prototype.exec = function(tree, cb) {
-  _exec.call(this, tree, (patternIndex, captureIndex, captureName, nodeTypeId, predicates) => {
-    const node = unmarshalNode(nodeTypeId, tree);
-    cb(patternIndex, captureIndex, captureName, node, predicates);
-  });
 }
 
 Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POINT) {
