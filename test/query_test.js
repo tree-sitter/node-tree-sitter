@@ -78,7 +78,7 @@ describe("Query", () => {
     });
   });
 
-  describe.skip(".captures", () => {
+  describe(".captures", () => {
     it("returns all of the captures for the given query, in order", () => {
       const tree = parser.parse(`
         a({
