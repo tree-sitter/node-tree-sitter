@@ -61,7 +61,7 @@ describe("Query", () => {
       ]);
     });
 
-    it.skip("can search in a specified ranges", () => {
+    it("can search in a specified ranges", () => {
       const tree = parser.parse("[a, b,\nc, d,\ne, f,\ng, h]");
       const query = new Query(JavaScript, "(identifier) @element");
       const matches = query.matches(

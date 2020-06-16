@@ -256,6 +256,10 @@ void Query::Exec(const Nan::FunctionCallbackInfo<Value> &info) {
 void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
   Query *query = Query::UnwrapQuery(info.This());
   const Tree *tree = Tree::UnwrapTree(info[0]);
+  uint32_t start_row    = Nan::To<uint32_t>(info[1]).ToChecked();
+  uint32_t start_column = Nan::To<uint32_t>(info[2]).ToChecked() << 1;
+  uint32_t end_row      = Nan::To<uint32_t>(info[3]).ToChecked();
+  uint32_t end_column   = Nan::To<uint32_t>(info[4]).ToChecked() << 1;
 
   if (query == nullptr) {
     Nan::ThrowError("Missing argument query");
@@ -267,8 +271,11 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  TSNode rootNode = node_methods::UnmarshalNode(tree);
   TSQuery *ts_query = query->query_;
+  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSPoint start_point = {start_row, start_column};
+  TSPoint end_point = {end_row, end_column};
+  ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
   ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
 
   Local<String> js_matches_string = Nan::New("matches").ToLocalChecked();
@@ -319,6 +326,10 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
 void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
   Query *query = Query::UnwrapQuery(info.This());
   const Tree *tree = Tree::UnwrapTree(info[0]);
+  uint32_t start_row    = Nan::To<uint32_t>(info[1]).ToChecked();
+  uint32_t start_column = Nan::To<uint32_t>(info[2]).ToChecked() << 1;
+  uint32_t end_row      = Nan::To<uint32_t>(info[3]).ToChecked();
+  uint32_t end_column   = Nan::To<uint32_t>(info[4]).ToChecked() << 1;
 
   if (query == nullptr) {
     Nan::ThrowError("Missing argument query");
@@ -330,8 +341,11 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
     return;
   }
 
-  TSNode rootNode = node_methods::UnmarshalNode(tree);
   TSQuery *ts_query = query->query_;
+  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSPoint start_point = {start_row, start_column};
+  TSPoint end_point = {end_row, end_column};
+  ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
   ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
 
   Local<String> js_matches_string = Nan::New("matches").ToLocalChecked();

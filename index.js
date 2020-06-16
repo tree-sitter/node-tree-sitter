@@ -389,6 +389,8 @@ const PREDICATE_STEP_TYPE = {
   STRING: 2,
 }
 
+const ZERO_POINT = { row: 0, column: 0 };
+
 Query.prototype._init = function() {
   /*
    * Initializa predicate functions
@@ -520,9 +522,12 @@ Query.prototype.exec = function(tree, cb) {
   });
 }
 
-Query.prototype.matches = function(rootNode) {
+Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POINT) {
   marshalNode(rootNode);
-  const returned = _matches.call(this, rootNode.tree);
+  const returned = _matches.call(this, rootNode.tree,
+    start.row, start.column,
+    end.row, end.column
+  );
   const nodes = unmarshalNodes(returned.nodes, rootNode.tree);
   const results = [];
 
@@ -552,9 +557,12 @@ Query.prototype.matches = function(rootNode) {
   return results;
 }
 
-Query.prototype.captures = function(rootNode) {
+Query.prototype.captures = function(rootNode, start = ZERO_POINT, end = ZERO_POINT) {
   marshalNode(rootNode);
-  const returned = _captures.call(this, rootNode.tree);
+  const returned = _captures.call(this, rootNode.tree,
+    start.row, start.column,
+    end.row, end.column
+  );
   const nodes = unmarshalNodes(returned.nodes, rootNode.tree);
   const results = [];
 
