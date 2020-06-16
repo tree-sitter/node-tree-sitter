@@ -517,22 +517,25 @@ Query.prototype._init = function() {
 
 Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POINT) {
   marshalNode(rootNode);
-  const returned = _matches.call(this, rootNode.tree,
+  const [returnedMatches, returnedNodes] = _matches.call(this, rootNode.tree,
     start.row, start.column,
     end.row, end.column
   );
-  const nodes = unmarshalNodes(returned.nodes, rootNode.tree);
+  const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
   const results = [];
 
   let nodeIndex = 0;
-  for (let i = 0; i < returned.matches.length; i++) {
-    const match = returned.matches[i];
-    const captures = match.captures;
-    const pattern = match.pattern;
+  for (let i = 0; i < returnedMatches.length; i++) {
+    const match = returnedMatches[i];
+    const [pattern, captures] = match;
 
     for (let j = 0; j < captures.length; j++) {
       const capture = captures[j];
-      capture.node = nodes[nodeIndex++];
+      const name = capture;
+      captures[j] = {
+        name,
+        node: nodes[nodeIndex++],
+      }
     }
 
     if (this.predicates[pattern].every(p => p(captures))) {
@@ -552,26 +555,29 @@ Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POIN
 
 Query.prototype.captures = function(rootNode, start = ZERO_POINT, end = ZERO_POINT) {
   marshalNode(rootNode);
-  const returned = _captures.call(this, rootNode.tree,
+  const [returnedMatches, returnedNodes] = _captures.call(this, rootNode.tree,
     start.row, start.column,
     end.row, end.column
   );
-  const nodes = unmarshalNodes(returned.nodes, rootNode.tree);
+  const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
   const results = [];
 
   let nodeIndex = 0;
-  for (let i = 0; i < returned.matches.length; i++) {
-    const match = returned.matches[i];
-    const captures = match.captures;
-    const pattern = match.pattern;
+  for (let i = 0; i < returnedMatches.length; i++) {
+    const match = returnedMatches[i];
+    const [pattern, captureIndex, captures] = match;
 
     for (let j = 0; j < captures.length; j++) {
       const capture = captures[j];
-      capture.node = nodes[nodeIndex++];
+      const name = capture;
+      captures[j] = {
+        name,
+        node: nodes[nodeIndex++],
+      }
     }
 
     if (this.predicates[pattern].every(p => p(captures))) {
-      const result = match.captures[match.captureIndex];
+      const result = captures[captureIndex];
       const setProperties = this.setProperties[pattern];
       const assertedProperties = this.assertedProperties[pattern];
       const refutedProperties = this.refutedProperties[pattern];

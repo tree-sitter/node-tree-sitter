@@ -244,23 +244,21 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
       TSNode node = capture.node;
       nodes.push_back(node);
 
-      Local<Object> js_capture = Nan::New<Object>();
-      Nan::Set(js_capture, js_name_string, Nan::New(capture_name).ToLocalChecked());
-      Nan::Set(js_capture, js_node_string, Nan::Null());
+      Local<Value> js_capture = Nan::New(capture_name).ToLocalChecked();
       Nan::Set(js_captures, i, js_capture);
     }
 
-    Local<Object> js_match = Nan::New<Object>();
-    Nan::Set(js_match, js_pattern_string,  Nan::New(match.pattern_index));
-    Nan::Set(js_match, js_captures_string, js_captures);
+    Local<Object> js_match = Nan::New<Array>();
+    Nan::Set(js_match, 0,  Nan::New(match.pattern_index));
+    Nan::Set(js_match, 1, js_captures);
     Nan::Set(js_matches, match_index++, js_match);
   }
 
   auto js_nodes = node_methods::GetMarshalNodes(info, tree, nodes.data(), nodes.size());
 
-  auto result = Nan::New<Object>();
-  Nan::Set(result, js_matches_string, js_matches);
-  Nan::Set(result, js_nodes_string, js_nodes);
+  auto result = Nan::New<Array>();
+  Nan::Set(result, 0, js_matches);
+  Nan::Set(result, 1, js_nodes);
   info.GetReturnValue().Set(result);
 }
 
@@ -289,14 +287,6 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
   ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
   ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
 
-  Local<String> js_matches_string = Nan::New("matches").ToLocalChecked();
-  Local<String> js_nodes_string = Nan::New("nodes").ToLocalChecked();
-  Local<String> js_pattern_string = Nan::New("pattern").ToLocalChecked();
-  Local<String> js_capture_index_string = Nan::New("captureIndex").ToLocalChecked();
-  Local<String> js_captures_string = Nan::New("captures").ToLocalChecked();
-  Local<String> js_name_string = Nan::New("name").ToLocalChecked();
-  Local<String> js_node_string = Nan::New("node").ToLocalChecked();
-
   Local<Array> js_matches = Nan::New<Array>();
   unsigned match_index = 0;
   vector<TSNode> nodes;
@@ -321,24 +311,22 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
       TSNode node = capture.node;
       nodes.push_back(node);
 
-      Local<Object> js_capture = Nan::New<Object>();
-      Nan::Set(js_capture, js_name_string, Nan::New(capture_name).ToLocalChecked());
-      Nan::Set(js_capture, js_node_string, Nan::Null());
+      Local<Value> js_capture = Nan::New(capture_name).ToLocalChecked();
       Nan::Set(js_captures, i, js_capture);
     }
 
-    Local<Object> js_match = Nan::New<Object>();
-    Nan::Set(js_match, js_pattern_string,  Nan::New(match.pattern_index));
-    Nan::Set(js_match, js_capture_index_string, Nan::New(capture_index));
-    Nan::Set(js_match, js_captures_string, js_captures);
+    Local<Object> js_match = Nan::New<Array>();
+    Nan::Set(js_match, 0, Nan::New(match.pattern_index));
+    Nan::Set(js_match, 1, Nan::New(capture_index));
+    Nan::Set(js_match, 2, js_captures);
     Nan::Set(js_matches, match_index++, js_match);
   }
 
   auto js_nodes = node_methods::GetMarshalNodes(info, tree, nodes.data(), nodes.size());
 
-  auto result = Nan::New<Object>();
-  Nan::Set(result, js_matches_string, js_matches);
-  Nan::Set(result, js_nodes_string, js_nodes);
+  auto result = Nan::New<Array>();
+  Nan::Set(result, 0, js_matches);
+  Nan::Set(result, 1, js_nodes);
   info.GetReturnValue().Set(result);
 }
 
