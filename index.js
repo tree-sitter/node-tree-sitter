@@ -498,7 +498,7 @@ Query.prototype._init = function() {
           );
           const properties = operator === 'is?' ? assertedProperties : refutedProperties;
           if (!properties[i]) properties[i] = {};
-          properties[i][steps[SECOND]] = steps[THIRD] ? steps[THIRD + 1] : null;
+          properties[i][steps[SECOND + 1]] = steps[THIRD] ? steps[THIRD + 1] : null;
           break;
 
         default:
@@ -523,18 +523,7 @@ Query.prototype.exec = function(tree, cb) {
 Query.prototype.matches = function(rootNode) {
   marshalNode(rootNode);
   const returned = _matches.call(this, rootNode.tree);
-  return filterMatches(this, rootNode.tree, returned);
-}
-
-Query.prototype.captures = function(rootNode) {
-  marshalNode(rootNode);
-  const returned = _captures.call(this, rootNode.tree);
-  const matches = filterMatches(this, rootNode.tree, returned);
-  return matches.reduce((previous, current) => previous.concat(current.captures), [])
-}
-
-function filterMatches(query, tree, returned) {
-  const nodes = unmarshalNodes(returned.nodes, tree);
+  const nodes = unmarshalNodes(returned.nodes, rootNode.tree);
   const results = [];
 
   let nodeIndex = 0;
@@ -548,11 +537,43 @@ function filterMatches(query, tree, returned) {
       capture.node = nodes[nodeIndex++];
     }
 
-    if (query.predicates[pattern].every(p => p(captures))) {
+    if (this.predicates[pattern].every(p => p(captures))) {
       const result = {pattern, captures};
-      const setProperties = query.setProperties[pattern];
-      const assertedProperties = query.assertedProperties[pattern];
-      const refutedProperties = query.refutedProperties[pattern];
+      const setProperties = this.setProperties[pattern];
+      const assertedProperties = this.assertedProperties[pattern];
+      const refutedProperties = this.refutedProperties[pattern];
+      if (setProperties) result.setProperties = setProperties;
+      if (assertedProperties) result.assertedProperties = assertedProperties;
+      if (refutedProperties) result.refutedProperties = refutedProperties;
+      results.push(result);
+    }
+  }
+
+  return results;
+}
+
+Query.prototype.captures = function(rootNode) {
+  marshalNode(rootNode);
+  const returned = _captures.call(this, rootNode.tree);
+  const nodes = unmarshalNodes(returned.nodes, rootNode.tree);
+  const results = [];
+
+  let nodeIndex = 0;
+  for (let i = 0; i < returned.matches.length; i++) {
+    const match = returned.matches[i];
+    const captures = match.captures;
+    const pattern = match.pattern;
+
+    for (let j = 0; j < captures.length; j++) {
+      const capture = captures[j];
+      capture.node = nodes[nodeIndex++];
+    }
+
+    if (this.predicates[pattern].every(p => p(captures))) {
+      const result = match.captures[match.captureIndex];
+      const setProperties = this.setProperties[pattern];
+      const assertedProperties = this.assertedProperties[pattern];
+      const refutedProperties = this.refutedProperties[pattern];
       if (setProperties) result.setProperties = setProperties;
       if (assertedProperties) result.assertedProperties = assertedProperties;
       if (refutedProperties) result.refutedProperties = refutedProperties;
