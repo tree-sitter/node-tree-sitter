@@ -219,13 +219,6 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
   ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
   ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
 
-  Local<String> js_matches_string = Nan::New("matches").ToLocalChecked();
-  Local<String> js_nodes_string = Nan::New("nodes").ToLocalChecked();
-  Local<String> js_pattern_string = Nan::New("pattern").ToLocalChecked();
-  Local<String> js_captures_string = Nan::New("captures").ToLocalChecked();
-  Local<String> js_name_string = Nan::New("name").ToLocalChecked();
-  Local<String> js_node_string = Nan::New("node").ToLocalChecked();
-
   Local<Array> js_matches = Nan::New<Array>();
   unsigned index = 0;
   vector<TSNode> nodes;
