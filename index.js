@@ -525,7 +525,7 @@ Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POIN
     const patternIndex = returnedMatches[i++];
     const captures = [];
 
-    while (typeof returnedMatches[i] === 'string') {
+    while (i < returnedMatches.length && typeof returnedMatches[i] === 'string') {
       const captureName = returnedMatches[i++];
       captures.push({
         name: captureName,
@@ -564,7 +564,7 @@ Query.prototype.captures = function(rootNode, start = ZERO_POINT, end = ZERO_POI
     const captureIndex = returnedMatches[i++];
     const captures = [];
 
-    while (typeof returnedMatches[i] === 'string') {
+    while (i < returnedMatches.length && typeof returnedMatches[i] === 'string') {
       const captureName = returnedMatches[i++];
       captures.push({
         name: captureName,
