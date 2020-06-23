@@ -528,12 +528,11 @@ Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POIN
   let nodeIndex = 0;
   while (i < returnedMatches.length) {
     const patternIndex = returnedMatches[i++];
-    const captureCount = returnedMatches[i++];
-    const captures = Array(captureCount);
+    const captures = [];
 
-    for (let n = 0; n < captureCount; n++) {
+    while (typeof returnedMatches[i] === 'string') {
       const captureName = returnedMatches[i++];
-      captures[n] = ({
+      captures.push({
         name: captureName,
         node: nodes[nodeIndex++],
       })
@@ -568,12 +567,11 @@ Query.prototype.captures = function(rootNode, start = ZERO_POINT, end = ZERO_POI
   while (i < returnedMatches.length) {
     const patternIndex = returnedMatches[i++];
     const captureIndex = returnedMatches[i++];
-    const captureCount = returnedMatches[i++];
-    const captures = Array(captureCount);
+    const captures = [];
 
-    for (let n = 0; n < captureCount; n++) {
+    while (typeof returnedMatches[i] === 'string') {
       const captureName = returnedMatches[i++];
-      captures[n] = ({
+      captures.push({
         name: captureName,
         node: nodes[nodeIndex++],
       })

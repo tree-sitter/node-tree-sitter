@@ -233,7 +233,6 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
 
   while (ts_query_cursor_next_match(ts_query_cursor, &match)) {
     Nan::Set(js_matches, index++, Nan::New(match.pattern_index));
-    Nan::Set(js_matches, index++, Nan::New(match.capture_count));
 
     for (uint16_t i = 0; i < match.capture_count; i++) {
       const TSQueryCapture &capture = match.captures[i];
@@ -297,7 +296,6 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
 
     Nan::Set(js_matches, index++, Nan::New(match.pattern_index));
     Nan::Set(js_matches, index++, Nan::New(capture_index));
-    Nan::Set(js_matches, index++, Nan::New(match.capture_count));
 
     for (uint16_t i = 0; i < match.capture_count; i++) {
       const TSQueryCapture &capture = match.captures[i];
