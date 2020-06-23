@@ -627,7 +627,7 @@ function getID(buffer, offset) {
   return (high << 32n) + low;
 }
 
-function unmarshalNode(value, tree, offset = 0, cache) {
+function unmarshalNode(value, tree, offset = 0, cache = null) {
   /* case 1: node from the tree cache */
   if (typeof value === 'object') {
     const node = value;
@@ -655,9 +655,11 @@ function unmarshalNode(value, tree, offset = 0, cache) {
     result[i] = nodeTransferArray[offset + i];
   }
 
-  tree._cacheNode(result);
   if (cache)
     cache.set(id, result);
+  else
+    tree._cacheNode(result);
+
   return result;
 }
 
@@ -672,6 +674,8 @@ function unmarshalNodes(nodes, tree) {
       offset += NODE_FIELD_COUNT
     }
   }
+
+  tree._cacheNodes(Array.from(cache.values()));
 
   return nodes;
 }
