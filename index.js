@@ -524,25 +524,26 @@ Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POIN
   const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
   const results = [];
 
+  let i = 0
   let nodeIndex = 0;
-  for (let i = 0; i < returnedMatches.length; i++) {
-    const match = returnedMatches[i];
-    const [pattern, captures] = match;
+  while (i < returnedMatches.length) {
+    const patternIndex = returnedMatches[i++];
+    const captureCount = returnedMatches[i++];
+    const captures = Array(captureCount);
 
-    for (let j = 0; j < captures.length; j++) {
-      const capture = captures[j];
-      const name = capture;
-      captures[j] = {
-        name,
+    for (let n = 0; n < captureCount; n++) {
+      const captureName = returnedMatches[i++];
+      captures[n] = ({
+        name: captureName,
         node: nodes[nodeIndex++],
-      }
+      })
     }
 
-    if (this.predicates[pattern].every(p => p(captures))) {
-      const result = {pattern, captures};
-      const setProperties = this.setProperties[pattern];
-      const assertedProperties = this.assertedProperties[pattern];
-      const refutedProperties = this.refutedProperties[pattern];
+    if (this.predicates[patternIndex].every(p => p(captures))) {
+      const result = {pattern: patternIndex, captures};
+      const setProperties = this.setProperties[patternIndex];
+      const assertedProperties = this.assertedProperties[patternIndex];
+      const refutedProperties = this.refutedProperties[patternIndex];
       if (setProperties) result.setProperties = setProperties;
       if (assertedProperties) result.assertedProperties = assertedProperties;
       if (refutedProperties) result.refutedProperties = refutedProperties;
@@ -562,25 +563,27 @@ Query.prototype.captures = function(rootNode, start = ZERO_POINT, end = ZERO_POI
   const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
   const results = [];
 
+  let i = 0
   let nodeIndex = 0;
-  for (let i = 0; i < returnedMatches.length; i++) {
-    const match = returnedMatches[i];
-    const [pattern, captureIndex, captures] = match;
+  while (i < returnedMatches.length) {
+    const patternIndex = returnedMatches[i++];
+    const captureIndex = returnedMatches[i++];
+    const captureCount = returnedMatches[i++];
+    const captures = Array(captureCount);
 
-    for (let j = 0; j < captures.length; j++) {
-      const capture = captures[j];
-      const name = capture;
-      captures[j] = {
-        name,
+    for (let n = 0; n < captureCount; n++) {
+      const captureName = returnedMatches[i++];
+      captures[n] = ({
+        name: captureName,
         node: nodes[nodeIndex++],
-      }
+      })
     }
 
-    if (this.predicates[pattern].every(p => p(captures))) {
+    if (this.predicates[patternIndex].every(p => p(captures))) {
       const result = captures[captureIndex];
-      const setProperties = this.setProperties[pattern];
-      const assertedProperties = this.assertedProperties[pattern];
-      const refutedProperties = this.refutedProperties[pattern];
+      const setProperties = this.setProperties[patternIndex];
+      const assertedProperties = this.assertedProperties[patternIndex];
+      const refutedProperties = this.refutedProperties[patternIndex];
       if (setProperties) result.setProperties = setProperties;
       if (assertedProperties) result.assertedProperties = assertedProperties;
       if (refutedProperties) result.refutedProperties = refutedProperties;
