@@ -10,14 +10,14 @@ describe("Query", () => {
   parser.setLanguage(JavaScript);
 
   describe("new", () => {
-    it("works with buffer", () => {
+    it("works with string", () => {
       const query = new Query(JavaScript, `
         (function_declaration name: (identifier) @fn-def)
         (call_expression function: (identifier) @fn-ref)
       `);
     });
 
-    it("works with string", () => {
+    it("works with Buffer", () => {
       const query = new Query(JavaScript, Buffer.from(`
         (function_declaration name: (identifier) @fn-def)
         (call_expression function: (identifier) @fn-ref)
