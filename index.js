@@ -12,7 +12,6 @@ try {
 const util = require('util')
 const {Query, Parser, NodeMethods, Tree, TreeCursor} = binding;
 
-
 /*
  * Tree
  */
@@ -40,7 +39,6 @@ Tree.prototype.edit = function(arg) {
 Tree.prototype.walk = function() {
   return this.rootNode.walk()
 };
-
 
 /*
  * Node
@@ -250,7 +248,6 @@ class SyntaxNode {
   }
 }
 
-
 /*
  * Parser
  */
@@ -339,7 +336,6 @@ Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges
   return tree;
 };
 
-
 /*
  * TreeCursor
  */
@@ -375,7 +371,6 @@ TreeCursor.prototype.reset = function(node) {
   marshalNode(node);
   reset.call(this);
 }
-
 
 /*
  * Query
@@ -591,7 +586,6 @@ Query.prototype.captures = function(rootNode, start = ZERO_POINT, end = ZERO_POI
 
   return results;
 }
-
 
 /*
  * Other functions
