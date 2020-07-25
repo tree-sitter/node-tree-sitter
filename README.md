@@ -14,9 +14,8 @@ npm install tree-sitter
 
 ### Usage
 
-First, you'll need a Tree-sitter grammar for the language you want to parse. There are many [existing grammars](https://github.com/tree-sitter) such as [tree-sitter-javascript](http://github.com/tree-sitter/tree-sitter-javascript) and [tree-sitter-go](http://github.com/tree-sitter/tree-sitter-go). You can also develop a new grammar using the [Tree-sitter CLI](https://github.com/tree-sitter/tree-sitter/tree/master/cli).
-
-Once you've got your grammar, create a parser with that grammar.
+First, you'll need a Tree-sitter grammar for the language you want to parse. There are many [existing grammars](https://github.com/tree-sitter) such as [tree-sitter-javascript](http://github.com/tree-sitter/tree-sitter-javascript) and [tree-sitter-go](http://github.com/tree-sitter/tree-sitter-go).
+Once you've got your grammar, create a parser with that grammar:
 
 ```javascript
 const Parser = require('tree-sitter');
@@ -25,6 +24,17 @@ const JavaScript = require('tree-sitter-javascript');
 const parser = new Parser();
 parser.setLanguage(JavaScript);
 ```
+
+You can also develop a new grammar using the [Tree-sitter CLI](https://github.com/tree-sitter/tree-sitter/tree/master/cli).
+Import an unpublished local grammar as follows:
+
+```javascript
+// Linux
+const MyLanguage = require('/path/to/directory/tree-sitter-mylanguage');
+// Windows
+const MyLanguage = require('C:\\path\\to\\directory\\tree-sitter-mylanguage');
+```
+Be sure to re-run `npm install` in your grammar directory before testing each change to the grammar.
 
 Then you can parse some source code,
 
