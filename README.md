@@ -34,7 +34,7 @@ const MyLanguage = require('/path/to/directory/tree-sitter-mylanguage');
 // Windows
 const MyLanguage = require('C:\\path\\to\\directory\\tree-sitter-mylanguage');
 ```
-Be sure to re-run `npm install` in your grammar directory before testing each change to the grammar.
+Be sure to re-run 'tree-sitter generate' and `npm install` in your grammar directory before testing each change to the grammar.
 
 Then you can parse some source code,
 
