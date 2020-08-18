@@ -7,11 +7,15 @@
 #include <tree_sitter/api.h>
 #include "./tree.h"
 
+using namespace v8;
+
 namespace node_tree_sitter {
 namespace node_methods {
 
 void Init(v8::Local<v8::Object>);
 void MarshalNode(const Nan::FunctionCallbackInfo<v8::Value> &info, const Tree *, TSNode);
+Local<Value> GetMarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, TSNode node);
+Local<Value> GetMarshalNodes(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, const TSNode *nodes, uint32_t node_count);
 TSNode UnmarshalNode(const Tree *tree);
 
 static inline const void *UnmarshalNodeId(const uint32_t *buffer) {

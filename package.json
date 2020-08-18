@@ -27,6 +27,7 @@
   },
   "scripts": {
     "install": "prebuild-install || node-gyp rebuild",
+    "build": "node-gyp build",
     "prebuild": "prebuild -r electron -t 3.0.0 -t 4.0.0 -t 4.0.4 -t 5.0.0 --strip && prebuild -t 10.12.0 -t 12.13.0 --strip",
     "prebuild:upload": "prebuild --upload-all",
     "test": "mocha"

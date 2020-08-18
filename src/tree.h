@@ -35,6 +35,7 @@ class Tree : public Nan::ObjectWrap {
   static void GetEditedRange(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GetChangedRanges(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void CacheNode(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void CacheNodes(const Nan::FunctionCallbackInfo<v8::Value> &);
 
   static Nan::Persistent<v8::Function> constructor;
   static Nan::Persistent<v8::FunctionTemplate> constructor_template;

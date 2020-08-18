@@ -24,6 +24,9 @@ static TSTreeCursor scratch_cursor = {nullptr, nullptr, {0, 0}};
 static inline void setup_transfer_buffer(uint32_t node_count) {
   uint32_t new_length = node_count * FIELD_COUNT_PER_NODE;
   if (new_length > transfer_buffer_length) {
+    if (transfer_buffer) {
+      free(transfer_buffer);
+    }
     transfer_buffer_length = new_length;
     transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
     auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
@@ -42,6 +45,15 @@ static inline bool operator<=(const TSPoint &left, const TSPoint &right) {
 }
 
 static void MarshalNodes(const Nan::FunctionCallbackInfo<Value> &info,
+                         const Tree *tree, const TSNode *nodes, uint32_t node_count) {
+  info.GetReturnValue().Set(GetMarshalNodes(info, tree, nodes, node_count));
+}
+
+void MarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, TSNode node) {
+  info.GetReturnValue().Set(GetMarshalNode(info, tree, node));
+}
+
+Local<Value> GetMarshalNodes(const Nan::FunctionCallbackInfo<Value> &info,
                          const Tree *tree, const TSNode *nodes, uint32_t node_count) {
   auto result = Nan::New<Array>();
   setup_transfer_buffer(node_count);
@@ -65,10 +77,10 @@ static void MarshalNodes(const Nan::FunctionCallbackInfo<Value> &info,
       Nan::Set(result, i, Nan::New(cache_entry->second->node));
     }
   }
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-void MarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, TSNode node) {
+Local<Value> GetMarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, TSNode node) {
   const auto &cache_entry = tree->cached_nodes_.find(node.id);
   if (cache_entry == tree->cached_nodes_.end()) {
     setup_transfer_buffer(1);
@@ -80,11 +92,12 @@ void MarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree,
     *(p++) = node.context[2];
     *(p++) = node.context[3];
     if (node.id) {
-      info.GetReturnValue().Set(Nan::New(ts_node_symbol(node)));
+      return Nan::New(ts_node_symbol(node));
     }
   } else {
-    info.GetReturnValue().Set(Nan::New(cache_entry->second->node));
+    return Nan::New(cache_entry->second->node);
   }
+  return Nan::Null();
 }
 
 void MarshalNullNode() {

@@ -3,6 +3,7 @@
 #include "./language.h"
 #include "./node.h"
 #include "./parser.h"
+#include "./query.h"
 #include "./tree.h"
 #include "./tree_cursor.h"
 #include "./conversions.h"
@@ -16,6 +17,7 @@ void InitAll(Local<Object> exports) {
   node_methods::Init(exports);
   language_methods::Init(exports);
   Parser::Init(exports);
+  Query::Init(exports);
   Tree::Init(exports);
   TreeCursor::Init(exports);
 }

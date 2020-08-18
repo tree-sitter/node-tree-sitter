@@ -28,6 +28,7 @@ void Tree::Init(Local<Object> exports) {
     {"getChangedRanges", GetChangedRanges},
     {"getEditedRange", GetEditedRange},
     {"_cacheNode", CacheNode},
+    {"_cacheNodes", CacheNodes},
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
@@ -210,10 +211,7 @@ static void FinalizeNode(const v8::WeakCallbackInfo<Tree::NodeCacheEntry> &info)
   delete cache_entry;
 }
 
-void Tree::CacheNode(const Nan::FunctionCallbackInfo<Value> &info) {
-  Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  Local<Object> js_node = Local<Object>::Cast(info[0]);
-
+static void CacheNodeForTree(Tree *tree, Isolate *isolate, Local<Object> js_node) {
   Local<Value> js_node_field1, js_node_field2;
   if (!Nan::Get(js_node, 0).ToLocal(&js_node_field1)) return;
   if (!Nan::Get(js_node, 1).ToLocal(&js_node_field2)) return;
@@ -223,13 +221,33 @@ void Tree::CacheNode(const Nan::FunctionCallbackInfo<Value> &info) {
   };
   const void *key = UnmarshalNodeId(key_parts);
 
-  auto cache_entry = new NodeCacheEntry{tree, key, {}};
-  cache_entry->node.Reset(info.GetIsolate(), js_node);
+  auto cache_entry = new Tree::NodeCacheEntry{tree, key, {}};
+  cache_entry->node.Reset(isolate, js_node);
   cache_entry->node.SetWeak(cache_entry, &FinalizeNode, Nan::WeakCallbackType::kParameter);
 
   assert(!tree->cached_nodes_.count(key));
 
   tree->cached_nodes_[key] = cache_entry;
+}
+
+void Tree::CacheNode(const Nan::FunctionCallbackInfo<Value> &info) {
+  Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
+  Isolate *isolate = info.GetIsolate();
+  Local<Object> js_node = Local<Object>::Cast(info[0]);
+
+  CacheNodeForTree(tree, isolate, js_node);
+}
+
+void Tree::CacheNodes(const Nan::FunctionCallbackInfo<Value> &info) {
+  Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
+  Isolate *isolate = info.GetIsolate();
+  Local<Array> js_nodes = Local<Array>::Cast(info[0]);
+  uint32_t length = js_nodes->Length();
+
+  for (uint32_t i = 0; i < length; i++) {
+    auto js_node = Local<Object>::Cast(Nan::Get(js_nodes, i).ToLocalChecked());
+    CacheNodeForTree(tree, isolate, js_node);
+  }
 }
 
 }  // namespace node_tree_sitter
