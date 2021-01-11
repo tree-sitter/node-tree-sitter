@@ -388,7 +388,7 @@ const ZERO_POINT = { row: 0, column: 0 };
 
 Query.prototype._init = function() {
   /*
-   * Initializa predicate functions
+   * Initialize predicate functions
    * format: [type1, value1, type2, value2, ...]
    */
   const predicateDescriptions = this._getPredicates();
