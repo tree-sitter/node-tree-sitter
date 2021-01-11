@@ -121,6 +121,7 @@ declare module "tree-sitter" {
       walk(): TreeCursor;
       getChangedRanges(other: Tree): Range[];
       getEditedRange(other: Tree): Range;
+      printDotGraph(): void;
     }
   }
 
