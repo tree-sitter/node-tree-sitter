@@ -52,6 +52,7 @@ declare module "tree-sitter" {
     export interface SyntaxNode {
       tree: Tree;
       type: string;
+      typeId: string;
       isNamed: boolean;
       text: string;
       startPosition: Point;
