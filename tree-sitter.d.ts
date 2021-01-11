@@ -123,6 +123,32 @@ declare module "tree-sitter" {
       getEditedRange(other: Tree): Range;
       printDotGraph(): void;
     }
+
+    export interface QueryMatch {
+      pattern: number,
+      captures: QueryCapture[],
+    }
+
+    export interface QueryCapture {
+      name: string,
+      text?: string,
+      node: SyntaxNode,
+      setProperties?: {[prop: string]: string | null},
+      assertedProperties?: {[prop: string]: string | null},
+      refutedProperties?: {[prop: string]: string | null},
+    }
+
+    export class Query {
+      readonly predicates: { [name: string]: Function }[];
+      readonly setProperties: any[];
+      readonly assertedProperties: any[];
+      readonly refutedProperties: any[];
+
+      constructor(language: any, source: string | Buffer);
+
+      matches(rootNode: SyntaxNode, start?: Point, end?: Point): QueryMatch[];
+      captures(rootNode: SyntaxNode, start?: Point, end?: Point): QueryMatch[];
+    }
   }
 
   export = Parser
