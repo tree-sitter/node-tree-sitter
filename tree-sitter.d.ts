@@ -147,7 +147,7 @@ declare module "tree-sitter" {
       constructor(language: any, source: string | Buffer);
 
       matches(rootNode: SyntaxNode, start?: Point, end?: Point): QueryMatch[];
-      captures(rootNode: SyntaxNode, start?: Point, end?: Point): QueryMatch[];
+      captures(rootNode: SyntaxNode, start?: Point, end?: Point): QueryCapture[];
     }
   }
 
