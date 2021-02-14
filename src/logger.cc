@@ -23,7 +23,7 @@ void Logger::Log(void *payload, TSLogType type, const char *message_str) {
     type == TSLogTypeParse ? "parse" : "lex"
   );
   String name = String::New(env, message.substr(0, param_sep_pos));
-  Object params = Object::New(env);
+  Napi::Object params = Object::New(env);
 
   while (param_sep_pos != string::npos) {
     size_t key_pos = param_sep_pos + param_sep.size();

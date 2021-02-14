@@ -20,7 +20,7 @@ using std::pair;
 
 class Parser : public ObjectWrap<Parser> {
  public:
-  static void Init(Object &exports) {
+  static void Init(Napi::Object &exports) {
     Napi::Env env = exports.Env();
 
     Function ctor = DefineClass(env, "Parser", {
@@ -258,7 +258,7 @@ class Parser : public ObjectWrap<Parser> {
 
     const TSTree *old_tree = nullptr;
     if (info.Length() > 1 && info[1].IsObject()) {
-      Object js_old_tree = info[1].As<Object>();
+      Napi::Object js_old_tree = info[1].As<Napi::Object>();
       const Tree *tree = Tree::UnwrapTree(js_old_tree);
       if (!tree) {
         TypeError::New(env, "Second argument must be a tree").ThrowAsJavaScriptException();
@@ -332,7 +332,7 @@ class Parser : public ObjectWrap<Parser> {
 
     const TSTree *old_tree = nullptr;
     if (info.Length() > 2 && info[2].IsObject()) {
-      Object js_old_tree = info[2].As<Object>();
+      Napi::Object js_old_tree = info[2].As<Napi::Object>();
       const Tree *tree = Tree::UnwrapTree(js_old_tree);
       if (!tree) {
         TypeError::New(env, "Second argument must be a tree").ThrowAsJavaScriptException();
@@ -396,7 +396,7 @@ class Parser : public ObjectWrap<Parser> {
 
     const TSTree *old_tree = nullptr;
     if (info.Length() > 1 && info[1].IsObject()) {
-      const Tree *tree = Tree::UnwrapTree(info[1].As<Object>());
+      const Tree *tree = Tree::UnwrapTree(info[1].As<Napi::Object>());
       if (!tree) {
         TypeError::New(env, "Second argument must be a tree").ThrowAsJavaScriptException();
         return env.Undefined();
@@ -469,7 +469,7 @@ class Parser : public ObjectWrap<Parser> {
   static Napi::FunctionReference string_slice;
 };
 
-void InitParser(Object &exports) {
+void InitParser(Napi::Object &exports) {
   Parser::Init(exports);
 }
 

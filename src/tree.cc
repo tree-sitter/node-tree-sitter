@@ -12,7 +12,7 @@ using namespace Napi;
 
 FunctionReference Tree::constructor;
 
-void Tree::Init(Object &exports) {
+void Tree::Init(Napi::Object &exports) {
   Napi::Env env = exports.Env();
 
   Function ctor = DefineClass(env, "Tree", {
@@ -42,7 +42,7 @@ Tree::~Tree() {
 
 Napi::Value Tree::NewInstance(Napi::Env env, TSTree *tree) {
   if (tree) {
-    Object js_tree = constructor.Value().New({});
+    Napi::Object js_tree = constructor.Value().New({});
     Tree::Unwrap(js_tree)->tree_ = tree;
     return js_tree;
   }
@@ -50,7 +50,7 @@ Napi::Value Tree::NewInstance(Napi::Env env, TSTree *tree) {
 }
 
 const Tree *Tree::UnwrapTree(const Napi::Value &value) {
-  return Tree::Unwrap(value.As<Object>());
+  return Tree::Unwrap(value.As<Napi::Object>());
 }
 
 #define read_number_from_js(out, value, name)                                \
@@ -81,7 +81,7 @@ Napi::Value Tree::Edit(const CallbackInfo &info) {
   ts_tree_edit(tree_, &edit);
 
   for (auto &entry : cached_nodes_) {
-    Object js_node = entry.second->node.Value();
+    Napi::Object js_node = entry.second->node.Value();
     TSNode node;
     node.id = entry.first;
     for (unsigned i = 0; i < 4; i++) {
@@ -186,7 +186,7 @@ static void FinalizeNode(Env env, Tree::NodeCacheEntry *cache_entry) {
 
 Napi::Value Tree::CacheNode(const CallbackInfo &info) {
   auto env = info.Env();
-  Object js_node = info[0].As<Object>();
+  Napi::Object js_node = info[0].As<Napi::Object>();
 
   Napi::Value js_node_field1 = js_node[0u];
   Napi::Value js_node_field2 = js_node[1u];
@@ -212,7 +212,7 @@ Napi::Value Tree::CacheNode(const CallbackInfo &info) {
 void Tree::CacheNode(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
   Isolate *isolate = info.GetIsolate();
-  Local<Object> js_node = Local<Object>::Cast(info[0]);
+  Local<Napi::Object> js_node = Local<Napi::Object>::Cast(info[0]);
 
   CacheNodeForTree(tree, isolate, js_node);
 }
@@ -224,7 +224,7 @@ void Tree::CacheNodes(const Nan::FunctionCallbackInfo<Value> &info) {
   uint32_t length = js_nodes->Length();
 
   for (uint32_t i = 0; i < length; i++) {
-    auto js_node = Local<Object>::Cast(Nan::Get(js_nodes, i).ToLocalChecked());
+    auto js_node = Local<Napi::Object>::Cast(Nan::Get(js_nodes, i).ToLocalChecked());
     CacheNodeForTree(tree, isolate, js_node);
   }
 }

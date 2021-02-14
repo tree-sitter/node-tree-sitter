@@ -717,7 +717,7 @@ class NodeMethods : public ObjectWrap<NodeMethods> {
     : Napi::ObjectWrap<NodeMethods>(info)
     {}
 
-  static void Init(Napi::Env env, Object &exports) {
+  static void Init(Napi::Env env, Napi::Object &exports) {
     exports["NodeMethods"] = DefineClass(env, "NodeMethods", {
       StaticMethod("startIndex", StartIndex, napi_writable),
       StaticMethod("endIndex", EndIndex, napi_writable),
@@ -761,7 +761,7 @@ class NodeMethods : public ObjectWrap<NodeMethods> {
   }
 };
 
-void InitNode(Object &exports) {
+void InitNode(Napi::Object &exports) {
   Env env = exports.Env();
   NodeMethods::Init(env, exports);
   module_exports.Reset(exports, 1);

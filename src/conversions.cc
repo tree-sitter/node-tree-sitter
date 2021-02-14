@@ -11,7 +11,7 @@ using namespace Napi;
 static unsigned BYTES_PER_CHARACTER = 2;
 static uint32_t *point_transfer_buffer;
 
-void InitConversions(Object &exports) {
+void InitConversions(Napi::Object &exports) {
   auto env = exports.Env();
   point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
   auto js_point_transfer_buffer = ArrayBuffer::New(
@@ -32,8 +32,8 @@ void TransferPoint(const TSPoint &point) {
   point_transfer_buffer[1] = point.column / 2;
 }
 
-Object RangeToJS(Env env, const TSRange &range) {
-  Object result = Object::New(env);
+Napi::Object RangeToJS(Env env, const TSRange &range) {
+  Napi::Object result = Napi::Object::New(env);
   result.Set("startPosition", PointToJS(env, range.start_point));
   result.Set("startIndex", ByteCountToJS(env, range.start_byte));
   result.Set("endPosition", PointToJS(env, range.end_point));
@@ -50,7 +50,7 @@ optional<TSRange> RangeFromJS(const Value &arg) {
   }
 
   TSRange result;
-  Object js_range = arg.ToObject();
+  Napi::Object js_range = arg.ToObject();
 
   #define INIT(field, key, Convert) { \
     auto value = js_range.Get(key); \
@@ -76,8 +76,8 @@ optional<TSRange> RangeFromJS(const Value &arg) {
   return result;
 }
 
-Object PointToJS(Env env, const TSPoint &point) {
-  Object result = Object::New(env);
+Napi::Object PointToJS(Env env, const TSPoint &point) {
+  Napi::Object result = Object::New(env);
   result["row"] = Number::New(env, point.row);
   result["column"] = ByteCountToJS(env, point.column);
   return result;
@@ -95,7 +95,7 @@ optional<TSPoint> PointFromJS(const Value &arg) {
     return optional<TSPoint>();
   }
 
-  Object js_point = arg.ToObject();
+  Napi::Object js_point = arg.ToObject();
 
   Number js_row = js_point.Get("row").As<Number>();
   if (!js_row.IsNumber()) {

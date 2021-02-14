@@ -80,7 +80,7 @@ static Value GetNodeFieldNamesById(const CallbackInfo &info) {
   return result;
 }
 
-void InitLanguage(Object &exports) {
+void InitLanguage(Napi::Object &exports) {
   Env env = exports.Env();
   exports["getNodeTypeNamesById"] = Function::New(env, GetNodeTypeNamesById);
   exports["getNodeFieldNamesById"] = Function::New(env, GetNodeFieldNamesById);

@@ -94,7 +94,7 @@ class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
 
   Napi::Value CurrentNode(const CallbackInfo &info) {
     auto env = info.Env();
-    Napi::Value js_tree = info.This().As<Object>()["tree"];
+    Napi::Value js_tree = info.This().As<Napi::Object>()["tree"];
     const Tree *tree = Tree::UnwrapTree(js_tree.As<Object>());
     TSNode node = ts_tree_cursor_current_node(&cursor_);
     return MarshalNode(env, tree, node);
@@ -102,8 +102,8 @@ class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
 
   Napi::Value Reset(const CallbackInfo &info) {
     auto env = info.Env();
-    Napi::Value js_tree = info.This().As<Object>()["tree"];
-    const Tree *tree = Tree::UnwrapTree(js_tree.As<Object>());
+    Napi::Value js_tree = info.This().As<Napi::Object>()["tree"];
+    const Tree *tree = Tree::UnwrapTree(js_tree.As<Napi::Object>());
     TSNode node = UnmarshalNode(env, tree);
     ts_tree_cursor_reset(&cursor_, node);
     return env.Undefined();
@@ -147,12 +147,12 @@ class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
   static Napi::FunctionReference constructor;
 };
 
-void InitTreeCursor(Object &exports) {
+void InitTreeCursor(Napi::Object &exports) {
   TreeCursor::Init(exports);
 }
 
 Napi::Value NewTreeCursor(TSTreeCursor cursor) {
-  Object js_cursor = TreeCursor::constructor.Value().New({});
+  Napi::Object js_cursor = TreeCursor::constructor.Value().New({});
   TreeCursor::Unwrap(js_cursor)->cursor_ = cursor;
   return js_cursor;
 }

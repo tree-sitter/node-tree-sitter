@@ -11,7 +11,7 @@ namespace node_tree_sitter {
 
 using namespace Napi;
 
-Object Init(Env env, Object exports) {
+Napi::Object Init(Env env, Napi::Object exports) {
   InitConversions(exports);
   InitNode(exports);
   InitLanguage(exports);
