@@ -97,13 +97,13 @@ optional<TSPoint> PointFromJS(const Value &arg) {
 
   Napi::Object js_point = arg.ToObject();
 
-  Number js_row = js_point.Get("row").As<Number>();
+  Number js_row = js_point.Get("row").As<Napi::Number>();
   if (!js_row.IsNumber()) {
     TypeError::New(env, "Point must be a {row, column} object").ThrowAsJavaScriptException();
     return optional<TSPoint>();
   }
 
-  Number js_column = js_point.Get("column").As<Number>();
+  Number js_column = js_point.Get("column").As<Napi::Number>();
   if (!js_column.IsNumber()) {
     TypeError::New(env, "Point must be a {row, column} object").ThrowAsJavaScriptException();
     return optional<TSPoint>();

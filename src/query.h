@@ -2,18 +2,19 @@
 #define NODE_TREE_SITTER_QUERY_H_
 
 #include <v8.h>
-#include <nan.h>
+#include <napi.h>
+#include <uv.h>
 #include <node_object_wrap.h>
 #include <unordered_map>
 #include <tree_sitter/api.h>
 
 namespace node_tree_sitter {
 
-class Query : public Nan::ObjectWrap {
+class Query : public Napi::ObjectWrap<Query> {
  public:
-  static void Init(v8::Local<v8::Object> exports);
-  static v8::Local<v8::Value> NewInstance(TSQuery *);
-  static Query *UnwrapQuery(const v8::Local<v8::Value> &);
+  static Napi::Object Init(Napi::Env env, Napi::Object exports);
+  static Napi::Value NewInstance(TSQuery *);
+  static Query *UnwrapQuery(const Napi::Value &);
 
   TSQuery *query_;
 
@@ -21,14 +22,14 @@ class Query : public Nan::ObjectWrap {
   explicit Query(TSQuery *);
   ~Query();
 
-  static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void Matches(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void Captures(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void GetPredicates(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void New(const Napi::CallbackInfo&);
+  static void Matches(const Napi::CallbackInfo&);
+  static void Captures(const Napi::CallbackInfo&);
+  static void GetPredicates(const Napi::CallbackInfo&);
 
   static TSQueryCursor *ts_query_cursor;
-  static Nan::Persistent<v8::Function> constructor;
-  static Nan::Persistent<v8::FunctionTemplate> constructor_template;
+  static Napi::FunctionReference constructor;
+  static Napi::FunctionReference constructor;
 };
 
 }  // namespace node_tree_sitter

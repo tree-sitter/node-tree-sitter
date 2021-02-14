@@ -46,7 +46,7 @@ void Logger::Log(void *payload, TSLogType type, const char *message_str) {
     if (console.IsObject()) {
       Value console_error_fn = console.ToObject()["error"];
       if (console_error_fn.IsFunction()) {
-        console_error_fn.As<Function>()({
+        console_error_fn.As<Napi::Function>()({
           String::New(env, "Error in debug callback:"),
           error.Value()
         });

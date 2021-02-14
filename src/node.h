@@ -6,7 +6,7 @@
 #include "./tree.h"
 #include "./util.h"
 
-using namespace v8;
+using namespace Napi;
 
 namespace node_tree_sitter {
 

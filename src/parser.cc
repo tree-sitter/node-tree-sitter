@@ -51,7 +51,7 @@ class Parser : public ObjectWrap<Parser> {
     assert(status == napi_ok);
 
     constructor.Reset(ctor, 1);
-    // string_slice.Reset(string_slice_fn.As<Function>(), 1);
+    // string_slice.Reset(string_slice_fn.As<Napi::Function>(), 1);
     exports["Parser"] = ctor;
     exports["LANGUAGE_VERSION"] = Number::New(env, TREE_SITTER_LANGUAGE_VERSION);
   }
@@ -74,7 +74,7 @@ class Parser : public ObjectWrap<Parser> {
       : byte_offset(0) {
       this->callback.Reset(callback, 1);
       if (js_buffer_size.IsNumber()) {
-        buffer.resize(js_buffer_size.As<Number>().Uint32Value());
+        buffer.resize(js_buffer_size.As<Napi::Number>().Uint32Value());
       } else {
         buffer.resize(32 * 1024);
       }
@@ -90,7 +90,7 @@ class Parser : public ObjectWrap<Parser> {
 
    private:
     static String slice(String s, uint32_t offset) {
-      return string_slice.Call(s, {Number::New(s.Env(), offset)}).As<String>();
+      return string_slice.Call(s, {Number::New(s.Env(), offset)}).As<Napi::String>();
     }
 
     static const char * Read(void *payload, uint32_t byte, TSPoint position, uint32_t *bytes_read) {
@@ -105,7 +105,7 @@ class Parser : public ObjectWrap<Parser> {
       *bytes_read = 0;
       String result;
       if (!reader->partial_string.IsEmpty()) {
-        result = reader->partial_string.Value().As<String>();
+        result = reader->partial_string.Value().As<Napi::String>();
       } else {
         Function callback = reader->callback.Value();
         Napi::Value result_value = callback({
@@ -114,7 +114,7 @@ class Parser : public ObjectWrap<Parser> {
         });
         if (env.IsExceptionPending()) return nullptr;
         if (!result_value.IsString()) return nullptr;
-        result = result_value.As<String>();
+        result = result_value.As<Napi::String>();
       }
 
       size_t length = 0;
@@ -208,7 +208,7 @@ class Parser : public ObjectWrap<Parser> {
     Napi::Env env = arg.Env();
     uint32_t last_included_range_end = 0;
     if (arg.IsArray()) {
-      Array js_included_ranges = arg.As<Array>();
+      Array js_included_ranges = arg.As<Napi::Array>();
       vector<TSRange> included_ranges;
       for (unsigned i = 0; i < js_included_ranges.Length(); i++) {
         Napi::Value range_value = js_included_ranges[i];
@@ -254,7 +254,7 @@ class Parser : public ObjectWrap<Parser> {
       return env.Undefined();
     }
 
-    Function callback = info[0].As<Function>();
+    Function callback = info[0].As<Napi::Function>();
 
     const TSTree *old_tree = nullptr;
     if (info.Length() > 1 && info[1].IsObject()) {
@@ -305,6 +305,7 @@ class Parser : public ObjectWrap<Parser> {
 
   const std::vector<std::pair<const char16_t *, uint32_t>> *
   TextBufferSnapshotFromJS(Napi::Value value) {
+    Napi::Env env = value.Env();
     auto env = value.Env();
     if (!value.IsObject()) {
       TypeError::New(env, "Expected a snapshot wrapper").ThrowAsJavaScriptException();
@@ -328,7 +329,7 @@ class Parser : public ObjectWrap<Parser> {
       return env.Undefined();
     }
 
-    auto callback = info[0].As<Function>();
+    auto callback = info[0].As<Napi::Function>();
 
     const TSTree *old_tree = nullptr;
     if (info.Length() > 2 && info[2].IsObject()) {
@@ -358,7 +359,7 @@ class Parser : public ObjectWrap<Parser> {
       if (!std::isfinite(js_sync_timeout.ToNumber().DoubleValue())) {
         sync_timeout = 0;
       } else if (js_sync_timeout.IsNumber()) {
-        sync_timeout = js_sync_timeout.As<Number>().Uint32Value();
+        sync_timeout = js_sync_timeout.As<Napi::Number>().Uint32Value();
       } else {
         TypeError::New(env, "The `syncTimeoutMicros` option must be a positive integer.").ThrowAsJavaScriptException();
         return env.Undefined();
@@ -437,8 +438,8 @@ class Parser : public ObjectWrap<Parser> {
 
     if (info[0].IsFunction()) {
       if (current_logger.payload) delete (Logger *)current_logger.payload;
-      ts_parser_set_logger(parser_, Logger::Make(info[0].As<Function>()));
-    } else if (info[0].IsEmpty() || info[0].IsNull() || (info[0].IsBoolean() && !info[0].As<Boolean>())) {
+      ts_parser_set_logger(parser_, Logger::Make(info[0].As<Napi::Function>()));
+    } else if (info[0].IsEmpty() || info[0].IsNull() || (info[0].IsBoolean() && !info[0].As<Napi::Boolean>())) {
       if (current_logger.payload) delete (Logger *)current_logger.payload;
       ts_parser_set_logger(parser_, { 0, 0 });
     } else {
@@ -456,7 +457,7 @@ class Parser : public ObjectWrap<Parser> {
       return env.Undefined();
     }
 
-    if (info[0].IsBoolean() && info[0].As<Boolean>()) {
+    if (info[0].IsBoolean() && info[0].As<Napi::Boolean>()) {
       ts_parser_print_dot_graphs(parser_, 2);
     } else {
       ts_parser_print_dot_graphs(parser_, -1);

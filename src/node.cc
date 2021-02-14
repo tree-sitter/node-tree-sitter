@@ -101,7 +101,7 @@ Value MarshalNode(
   } else {
     return cache_entry->second->node.Value();
   }
-  return Nan::Null();
+  return env.Null();
 }
 
 Value MarshalNullNode(Env env) {
@@ -358,7 +358,7 @@ static Value Child(const CallbackInfo &info) {
   TSNode node = UnmarshalNode(env, tree);
   if (node.id) {
     if (info[1].IsNumber()) {
-      uint32_t index = info[1].As<Number>().Uint32Value();
+      uint32_t index = info[1].As<Napi::Number>().Uint32Value();
       return MarshalNode(env, tree, ts_node_child(node, index));
     }
     TypeError::New(env, "Second argument must be an integer").ThrowAsJavaScriptException();
@@ -372,7 +372,7 @@ static Value NamedChild(const CallbackInfo &info) {
   TSNode node = UnmarshalNode(env, tree);
   if (node.id) {
     if (info[1].IsNumber()) {
-      uint32_t index = info[1].As<Number>().Uint32Value();
+      uint32_t index = info[1].As<Napi::Number>().Uint32Value();
       return MarshalNode(env, tree, ts_node_named_child(node, index));
     }
     TypeError::New(env, "Second argument must be an integer").ThrowAsJavaScriptException();
@@ -508,12 +508,12 @@ bool symbol_set_from_js(SymbolSet *symbols, const Value &value, const TSLanguage
     TypeError::New(env, "Argument must be a string or array of strings").ThrowAsJavaScriptException();
     return false;
   }
-  Array js_types = value.As<Array>();
+  Array js_types = value.As<Napi::Array>();
   unsigned symbol_count = ts_language_symbol_count(language);
   for (uint32_t i = 0, n = js_types.Length(); i < n; i++) {
     Value js_node_type_value = js_types[i];
     if (js_node_type_value.IsString()) {
-      String js_node_type = js_node_type_value.As<String>();
+      String js_node_type = js_node_type_value.As<Napi::String>();
       std::string node_type = js_node_type.Utf8Value();
       if (node_type == "ERROR") {
         symbols->add(static_cast<TSSymbol>(-1));
@@ -648,7 +648,7 @@ static Value ChildNodesForFieldId(const CallbackInfo &info) {
     TypeError::New(env, "Second argument must be an integer").ThrowAsJavaScriptException();
     return env.Undefined();
   }
-  uint32_t field_id = info[1].As<Number>().Uint32Value();
+  uint32_t field_id = info[1].As<Napi::Number>().Uint32Value();
 
   vector<TSNode> result;
   ts_tree_cursor_reset(&scratch_cursor, node);
@@ -674,7 +674,7 @@ static Value ChildNodeForFieldId(const CallbackInfo &info) {
       TypeError::New(env, "Second argument must be an integer").ThrowAsJavaScriptException();
       return env.Undefined();
     }
-    uint32_t field_id = info[1].As<Number>().Uint32Value();
+    uint32_t field_id = info[1].As<Napi::Number>().Uint32Value();
     return MarshalNode(env, tree, ts_node_child_by_field_id(node, field_id));
   }
   return MarshalNullNode(env);

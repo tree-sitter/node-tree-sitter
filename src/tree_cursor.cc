@@ -57,7 +57,7 @@ class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
 
   Napi::Value GotoFirstChildForIndex(const CallbackInfo &info) {
     auto env = info.Env();
-    auto js_index = info[0].As<Number>();
+    auto js_index = info[0].As<Napi::Number>();
     if (!js_index.IsNumber()) {
       TypeError::New(env, "Argument must be an integer").ThrowAsJavaScriptException();
       return env.Undefined();
@@ -95,7 +95,7 @@ class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
   Napi::Value CurrentNode(const CallbackInfo &info) {
     auto env = info.Env();
     Napi::Value js_tree = info.This().As<Napi::Object>()["tree"];
-    const Tree *tree = Tree::UnwrapTree(js_tree.As<Object>());
+    const Tree *tree = Tree::UnwrapTree(js_tree.As<Napi::Object>());
     TSNode node = ts_tree_cursor_current_node(&cursor_);
     return MarshalNode(env, tree, node);
   }
