@@ -16,7 +16,6 @@ static const uint32_t FIELD_COUNT_PER_NODE = 6;
 
 static uint32_t *transfer_buffer = nullptr;
 static uint32_t transfer_buffer_length = 0;
-static ObjectReference module_exports;
 static TSTreeCursor scratch_cursor = {nullptr, nullptr, {0, 0}};
 
 static inline void setup_transfer_buffer(Env env, uint32_t node_count) {
@@ -47,7 +46,7 @@ static inline bool operator<=(const TSPoint &left, const TSPoint &right) {
   return left.column <= right.column;
 }
 
-static Value MarshalNodes(
+Value MarshalNodes(
   Env env,
   const Tree *tree,
   const TSNode *nodes,
@@ -718,53 +717,56 @@ class NodeMethods : public ObjectWrap<NodeMethods> {
     {}
 
   static void Init(Napi::Env env, Napi::Object &exports) {
-    exports["NodeMethods"] = DefineClass(env, "NodeMethods", {
-      StaticMethod("startIndex", StartIndex, napi_writable),
-      StaticMethod("endIndex", EndIndex, napi_writable),
-      StaticMethod("type", Type, napi_writable),
-      StaticMethod("typeId", TypeId, napi_writable),
-      StaticMethod("isNamed", IsNamed, napi_writable),
-      StaticMethod("parent", Parent, napi_writable),
-      StaticMethod("child", Child, napi_writable),
-      StaticMethod("namedChild", NamedChild, napi_writable),
-      StaticMethod("children", Children, napi_writable),
-      StaticMethod("namedChildren", NamedChildren, napi_writable),
-      StaticMethod("childCount", ChildCount, napi_writable),
-      StaticMethod("namedChildCount", NamedChildCount, napi_writable),
-      StaticMethod("firstChild", FirstChild, napi_writable),
-      StaticMethod("lastChild", LastChild, napi_writable),
-      StaticMethod("firstNamedChild", FirstNamedChild, napi_writable),
-      StaticMethod("lastNamedChild", LastNamedChild, napi_writable),
-      StaticMethod("nextSibling", NextSibling, napi_writable),
-      StaticMethod("nextNamedSibling", NextNamedSibling, napi_writable),
-      StaticMethod("previousSibling", PreviousSibling, napi_writable),
-      StaticMethod("previousNamedSibling", PreviousNamedSibling, napi_writable),
-      StaticMethod("startPosition", StartPosition, napi_writable),
-      StaticMethod("endPosition", EndPosition, napi_writable),
-      StaticMethod("isMissing", IsMissing, napi_writable),
-      StaticMethod("toString", ToString, napi_writable),
-      StaticMethod("firstChildForIndex", FirstChildForIndex, napi_writable),
-      StaticMethod("firstNamedChildForIndex", FirstNamedChildForIndex, napi_writable),
-      StaticMethod("descendantForIndex", DescendantForIndex, napi_writable),
-      StaticMethod("namedDescendantForIndex", NamedDescendantForIndex, napi_writable),
-      StaticMethod("descendantForPosition", DescendantForPosition, napi_writable),
-      StaticMethod("namedDescendantForPosition", NamedDescendantForPosition, napi_writable),
-      StaticMethod("hasChanges", HasChanges, napi_writable),
-      StaticMethod("hasError", HasError, napi_writable),
-      StaticMethod("descendantsOfType", DescendantsOfType, napi_writable),
-      StaticMethod("walk", Walk, napi_writable),
-      StaticMethod("closest", Closest, napi_writable),
-      StaticMethod("childNodeForFieldId", ChildNodeForFieldId, napi_writable),
-      StaticMethod("childNodesForFieldId", ChildNodesForFieldId, napi_writable),
+    Napi::Function ctor = DefineClass(env, "NodeMethods", {
+      StaticMethod("startIndex", &StartIndex, napi_writable),
+      StaticMethod("endIndex", &EndIndex, napi_writable),
+      StaticMethod("type", &Type, napi_writable),
+      StaticMethod("typeId", &TypeId, napi_writable),
+      StaticMethod("isNamed", &IsNamed, napi_writable),
+      StaticMethod("parent", &Parent, napi_writable),
+      StaticMethod("child", &Child, napi_writable),
+      StaticMethod("namedChild", &NamedChild, napi_writable),
+      StaticMethod("children", &Children, napi_writable),
+      StaticMethod("namedChildren", &NamedChildren, napi_writable),
+      StaticMethod("childCount", &ChildCount, napi_writable),
+      StaticMethod("namedChildCount", &NamedChildCount, napi_writable),
+      StaticMethod("firstChild", &FirstChild, napi_writable),
+      StaticMethod("lastChild", &LastChild, napi_writable),
+      StaticMethod("firstNamedChild", &FirstNamedChild, napi_writable),
+      StaticMethod("lastNamedChild", &LastNamedChild, napi_writable),
+      StaticMethod("nextSibling", &NextSibling, napi_writable),
+      StaticMethod("nextNamedSibling", &NextNamedSibling, napi_writable),
+      StaticMethod("previousSibling", &PreviousSibling, napi_writable),
+      StaticMethod("previousNamedSibling", &PreviousNamedSibling, napi_writable),
+      StaticMethod("startPosition", &StartPosition, napi_writable),
+      StaticMethod("endPosition", &EndPosition, napi_writable),
+      StaticMethod("isMissing", &IsMissing, napi_writable),
+      StaticMethod("toString", &ToString, napi_writable),
+      StaticMethod("firstChildForIndex", &FirstChildForIndex, napi_writable),
+      StaticMethod("firstNamedChildForIndex", &FirstNamedChildForIndex, napi_writable),
+      StaticMethod("descendantForIndex", &DescendantForIndex, napi_writable),
+      StaticMethod("namedDescendantForIndex", &NamedDescendantForIndex, napi_writable),
+      StaticMethod("descendantForPosition", &DescendantForPosition, napi_writable),
+      StaticMethod("namedDescendantForPosition", &NamedDescendantForPosition, napi_writable),
+      StaticMethod("hasChanges", &HasChanges, napi_writable),
+      StaticMethod("hasError", &HasError, napi_writable),
+      StaticMethod("descendantsOfType", &DescendantsOfType, napi_writable),
+      StaticMethod("walk", &Walk, napi_writable),
+      StaticMethod("closest", &Closest, napi_writable),
+      StaticMethod("childNodeForFieldId", &ChildNodeForFieldId, napi_writable),
+      StaticMethod("childNodesForFieldId", &ChildNodesForFieldId, napi_writable),
     });
 
+    Napi::FunctionReference* constructor = new Napi::FunctionReference();
+    (*constructor) = Napi::Persistent(ctor);
+    env.SetInstanceData(constructor);
+    export["NodeMethods"] = ctor;
   }
 };
 
 void InitNode(Napi::Object &exports) {
   Env env = exports.Env();
   NodeMethods::Init(env, exports);
-  module_exports.Reset(exports, 1);
   setup_transfer_buffer(env, 1);
 }
 

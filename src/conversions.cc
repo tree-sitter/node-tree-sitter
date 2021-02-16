@@ -14,12 +14,12 @@ static uint32_t *point_transfer_buffer;
 void InitConversions(Napi::Object &exports) {
   auto env = exports.Env();
   point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
-  auto js_point_transfer_buffer = ArrayBuffer::New(
+  auto js_point_transfer_buffer = Napi::ArrayBuffer::New(
     env,
     static_cast<void *>(point_transfer_buffer),
     2 * sizeof(uint32_t)
   );
-  exports.Set("pointTransferArray", Uint32Array::New(
+  exports.Set("pointTransferArray", Napi::Uint32Array::New(
     env,
     2,
     js_point_transfer_buffer,
@@ -41,7 +41,7 @@ Napi::Object RangeToJS(Env env, const TSRange &range) {
   return result;
 }
 
-optional<TSRange> RangeFromJS(const Value &arg) {
+optional<TSRange> RangeFromJS(const Napi::Value &arg) {
   Env env = arg.Env();
 
   if (!arg.IsObject()) {
@@ -77,14 +77,14 @@ optional<TSRange> RangeFromJS(const Value &arg) {
 }
 
 Napi::Object PointToJS(Env env, const TSPoint &point) {
-  Napi::Object result = Object::New(env);
-  result["row"] = Number::New(env, point.row);
+  Napi::Object result = Napi::Object::New(env);
+  result["row"] = Napi::Number::New(env, point.row);
   result["column"] = ByteCountToJS(env, point.column);
   return result;
 }
 
-Number ByteCountToJS(Env env, uint32_t byte_count) {
-  return Number::New(env, byte_count / BYTES_PER_CHARACTER);
+Napi::Number ByteCountToJS(Env env, uint32_t byte_count) {
+  return Napi::Number::New(env, byte_count / BYTES_PER_CHARACTER);
 }
 
 optional<TSPoint> PointFromJS(const Value &arg) {
@@ -97,13 +97,13 @@ optional<TSPoint> PointFromJS(const Value &arg) {
 
   Napi::Object js_point = arg.ToObject();
 
-  Number js_row = js_point.Get("row").As<Napi::Number>();
+  Napi::Number js_row = js_point.Get("row").As<Napi::Number>();
   if (!js_row.IsNumber()) {
     TypeError::New(env, "Point must be a {row, column} object").ThrowAsJavaScriptException();
     return optional<TSPoint>();
   }
 
-  Number js_column = js_point.Get("column").As<Napi::Number>();
+  Napi::Number js_column = js_point.Get("column").As<Napi::Number>();
   if (!js_column.IsNumber()) {
     TypeError::New(env, "Point must be a {row, column} object").ThrowAsJavaScriptException();
     return optional<TSPoint>();
@@ -126,7 +126,7 @@ optional<TSPoint> PointFromJS(const Value &arg) {
   return TSPoint{row, column};
 }
 
-optional<uint32_t> ByteCountFromJS(const Value &arg) {
+optional<uint32_t> ByteCountFromJS(const Napi::Value &arg) {
   Env env = arg.Env();
 
   if (!arg.IsNumber()) {
@@ -136,7 +136,7 @@ optional<uint32_t> ByteCountFromJS(const Value &arg) {
     return optional<uint32_t>();
   }
 
-  Number js_number = arg.ToNumber();
+  Napi::Number js_number = arg.ToNumber();
   if (!std::isfinite(js_number.DoubleValue())) {
     return UINT32_MAX;
   } else {

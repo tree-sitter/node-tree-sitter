@@ -1,0 +1,16 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "lldb for C++",
+      "type": "lldb",
+      "request": "launch",
+      "preLaunchTask": "npm: build:dev",
+      "program": "/Users/gregory.beaver/.nvm/versions/node/v14.15.4/bin/node",
+      "args": "/Users/gregory.beaver/Documents/GitHub/node-tree-sitter/index.js"
+    }
+  ]
+}

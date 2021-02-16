@@ -11,12 +11,10 @@ namespace node_tree_sitter {
 
 using namespace Napi;
 
-FunctionReference Tree::constructor;
-
 void Tree::Init(Napi::Object &exports) {
   Napi::Env env = exports.Env();
 
-  Function ctor = DefineClass(env, "Tree", {
+  Napi::Function ctor = DefineClass(env, "Tree", {
     InstanceMethod("edit", &Tree::Edit, napi_writable),
     InstanceMethod("rootNode", &Tree::RootNode, napi_configurable),
     InstanceMethod("printDotGraph", &Tree::PrintDotGraph),
@@ -26,16 +24,19 @@ void Tree::Init(Napi::Object &exports) {
     InstanceMethod("_cacheNodes", &Tree::CacheNodes),
   });
 
-  constructor.Reset(ctor, 1);
+  Napi::FunctionReference* constructor = new Napi::FunctionReference();
+  (*constructor) = Napi::Persistent(ctor);
+  env.SetInstanceData(constructor);
   exports["Tree"] = ctor;
 }
 
 Tree::Tree(const Napi::CallbackInfo& info)
-  : Napi::ObjectWrap<Tree>(info),
-    tree_(nullptr) {}
+  : Napi::ObjectWrap<Tree>(info) {
+  this->tree_ = nullptr;
+}
 
 Tree::~Tree() {
-  if (tree_) ts_tree_delete(tree_);
+  if (this->tree_) ts_tree_delete(this->tree_);
   for (auto &entry : cached_nodes_) {
     entry.second->tree = nullptr;
   }
@@ -43,15 +44,25 @@ Tree::~Tree() {
 
 Napi::Value Tree::NewInstance(Napi::Env env, TSTree *tree) {
   if (tree) {
-    Napi::Object js_tree = constructor.Value().New({});
-    Tree::Unwrap(js_tree)->tree_ = tree;
+    Napi::FunctionReference *constructor = env.GetInstanceData<Napi::FunctionReference>();
+    Napi::Object js_tree = constructor->New({});
+
+    Tree *ret_tree = nullptr;
+    if (js_tree.IsObject()) {
+      ret_tree = Napi::ObjectWrap<Tree>::Unwrap(js_tree);
+    }
+    ret_tree->tree_ = tree;
     return js_tree;
   }
   return env.Null();
 }
 
 const Tree *Tree::UnwrapTree(const Napi::Value &value) {
-  return Tree::Unwrap(value.As<Napi::Object>());
+  const Tree *tree = nullptr;
+  if (value.IsObject()) {
+    tree = Napi::ObjectWrap<Tree>::Unwrap(value.As<Napi::Object>());
+  }
+  return tree;
 }
 
 #define read_number_from_js(out, value, name)                                \
@@ -66,7 +77,7 @@ const Tree *Tree::UnwrapTree(const Napi::Value &value) {
   (*out) *= 2
 
 Napi::Value Tree::Edit(const CallbackInfo &info) {
-  auto env = info.Env();
+  Napi::Env env = info.Env();
 
   TSInputEdit edit;
   read_number_from_js(&edit.start_point.row, info[0], "startPosition.row");
@@ -95,7 +106,7 @@ Napi::Value Tree::Edit(const CallbackInfo &info) {
     ts_node_edit(&node, &edit);
 
     for (unsigned i = 0; i < 4; i++) {
-      js_node[i + 2u] = Number::New(env, node.context[i]);
+      js_node[i + 2u] = Napi::Number::New(env, node.context[i]);
     }
   }
 
@@ -107,14 +118,14 @@ Napi::Value Tree::RootNode(const CallbackInfo &info) {
 }
 
 Napi::Value Tree::GetChangedRanges(const CallbackInfo &info) {
-  auto env = info.Env();
+  Napi::Env env = info.Env();
   const Tree *other_tree = UnwrapTree(info[0]);
   if (!other_tree) return env.Undefined();
 
   uint32_t range_count;
   TSRange *ranges = ts_tree_get_changed_ranges(tree_, other_tree->tree_, &range_count);
 
-  Array result = Array::New(env);
+  Napi::Array result = Napi::Array::New(env);
   for (unsigned i = 0; i < range_count; i++) {
     result[i] = RangeToJS(env, ranges[i]);
   }
@@ -123,7 +134,7 @@ Napi::Value Tree::GetChangedRanges(const CallbackInfo &info) {
 }
 
 Napi::Value Tree::GetEditedRange(const CallbackInfo &info) {
-  auto env = info.Env();
+  Napi::Env env = info.Env();
   TSNode root = ts_tree_root_node(tree_);
   if (!ts_node_has_changes(root)) return env.Undefined();
   TSRange result = {
@@ -171,11 +182,11 @@ Napi::Value Tree::GetEditedRange(const CallbackInfo &info) {
 }
 
 Napi::Value Tree::PrintDotGraph(const CallbackInfo &info) {
-  ts_tree_print_dot_graph(tree_, stderr);
+  ts_tree_print_dot_graph(this->tree_, stderr);
   return info.This();
 }
 
-static void FinalizeNode(Env env, Tree::NodeCacheEntry *cache_entry) {
+static void FinalizeNode(Napi::Env, Tree::NodeCacheEntry *cache_entry) {
   assert(!cache_entry->node.IsEmpty());
   cache_entry->node.Reset();
   if (cache_entry->tree) {
@@ -185,9 +196,7 @@ static void FinalizeNode(Env env, Tree::NodeCacheEntry *cache_entry) {
   delete cache_entry;
 }
 
-Napi::Value Tree::CacheNode(const CallbackInfo &info) {
-  auto env = info.Env();
-  Napi::Object js_node = info[0].As<Napi::Object>();
+Napi::Value Tree::ExtractCacheNode(Napi::Env env, Napi::Object &js_node) {
 
   Napi::Value js_node_field1 = js_node[0u];
   Napi::Value js_node_field2 = js_node[1u];
@@ -202,7 +211,7 @@ Napi::Value Tree::CacheNode(const CallbackInfo &info) {
 
   auto cache_entry = new Tree::NodeCacheEntry{this, key, {}};
   cache_entry->node.Reset(js_node, 0);
-  js_node.AddFinalizer(&FinalizeNode, cache_entry);
+  js_node.AddFinalizer(FinalizeNode, cache_entry);
 
   assert(!cached_nodes_.count(key));
 
@@ -210,24 +219,35 @@ Napi::Value Tree::CacheNode(const CallbackInfo &info) {
   return env.Undefined();
 }
 
-void Tree::CacheNode(const Napi::CallbackInfo&info) {
-  Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  Isolate *isolate = info.GetIsolate();
-  Local<Napi::Object> js_node = info[0].As<Local<Napi::Object>>();
-
-  CacheNodeForTree(tree, isolate, js_node);
+Napi::Value Tree::CacheNode(const Napi::CallbackInfo&info) {
+  Napi::Env env = info.Env();
+  Napi::Object js_node = info[0].As<Napi::Object>();
+  return this->ExtractCacheNode(env, js_node);
 }
 
-void Tree::CacheNodes(const Napi::CallbackInfo&info) {
-  Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  Isolate *isolate = info.GetIsolate();
+Napi::Value Tree::CacheNodes(const Napi::CallbackInfo&info) {
+  Napi::Env env = info.Env();
+
+  if (!info[0].IsArray()) {
+    Napi::TypeError::New(env, "Must pass an array of nodes").ThrowAsJavaScriptException();
+    return env.Undefined();
+  }
   Napi::Array js_nodes = info[0].As<Napi::Array>();
-  uint32_t length = js_nodes->Length();
+  uint32_t length = js_nodes.Length();
 
   for (uint32_t i = 0; i < length; i++) {
-    auto js_node = (js_nodes).Get(i.As<Local<Napi::Object>>());
-    CacheNodeForTree(tree, isolate, js_node);
+    Napi::Value js_node = js_nodes.Get(i);
+    if (js_node.IsObject()) {
+      continue;
+    }
+    Napi::TypeError::New(env, "Must pass an array of nodes").ThrowAsJavaScriptException();
+    return env.Undefined();
   }
+  for (uint32_t i = 0; i < length; i++) {
+    Napi::Object js_node = js_nodes.Get(i).As<Napi::Object>();
+    js_nodes.Set(i, this->ExtractCacheNode(env, js_node));
+  }
+  return js_nodes;
 }
 
 }  // namespace node_tree_sitter

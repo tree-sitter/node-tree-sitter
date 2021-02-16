@@ -26,12 +26,12 @@ static inline void MarshalPointer(const void *id, uint32_t *buffer) {
 // github.com/nodejs/node/blob/53ca0b9ae145c430842bf78e553e3b6cbd2823aa/src/js_native_api_v8.h
 
 static_assert(
-  sizeof(Napi::Value) == sizeof(napi_value),
-  "Cannot convert between Napi::Value and napi_value"
+  sizeof(v8::Local<v8::Value>) == sizeof(napi_value),
+  "Cannot convert between v8::Local<v8::Value> and napi_value"
 );
 
-static inline Napi::Value V8LocalValueFromJsValue(napi_value v) {
-  Napi::Value local;
+static inline v8::Local<v8::Value> V8LocalValueFromJsValue(napi_value v) {
+  v8::Local<v8::Value> local;
   memcpy(static_cast<void*>(&local), &v, sizeof(v));
   return local;
 }
@@ -39,9 +39,8 @@ static inline Napi::Value V8LocalValueFromJsValue(napi_value v) {
 //=========================================================================
 
 static inline void *GetInternalFieldPointer(Napi::Value value) {
-  Napi::Env env = value.Env();
   if (value.IsObject()) {
-    Napi::Object object = Napi::Object::Cast(
+    v8::Local<v8::Object> object = v8::Local<v8::Object>::Cast(
       V8LocalValueFromJsValue(value)
     );
     if (object->InternalFieldCount() == 1) {
@@ -50,8 +49,6 @@ static inline void *GetInternalFieldPointer(Napi::Value value) {
   }
   return nullptr;
 }
-
-bool instance_of(Napi::Value value, Napi::Object object);
 
 }  // namespace node_tree_sitter
 

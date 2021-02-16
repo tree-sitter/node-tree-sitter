@@ -236,7 +236,7 @@ class Parser : public ObjectWrap<Parser> {
       return env.Undefined();
     }
 
-    const TSLanguage *language = UnwrapLanguage(info[0]);
+    const TSLanguage *language = UnwrapLanguage(env, info[0]);
     if (language) ts_parser_set_language(parser_, language);
     return info.This();
   }
@@ -273,7 +273,7 @@ class Parser : public ObjectWrap<Parser> {
 
     CallbackInput callback_input(callback, buffer_size);
     TSTree *tree = ts_parser_parse(parser_, old_tree, callback_input.Input());
-    auto result = Tree::NewInstance(env, tree);
+    Napi::Value result = Tree::NewInstance(env, tree);
     return result;
   }
 
@@ -306,7 +306,6 @@ class Parser : public ObjectWrap<Parser> {
   const std::vector<std::pair<const char16_t *, uint32_t>> *
   TextBufferSnapshotFromJS(Napi::Value value) {
     Napi::Env env = value.Env();
-    auto env = value.Env();
     if (!value.IsObject()) {
       TypeError::New(env, "Expected a snapshot wrapper").ThrowAsJavaScriptException();
       return nullptr;

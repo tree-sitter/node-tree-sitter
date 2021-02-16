@@ -1,13 +1,4 @@
-let binding;
-try {
-  binding = require('./build/Release/tree_sitter_runtime_binding');
-} catch (e) {
-  try {
-    binding = require('./build/Debug/tree_sitter_runtime_binding');
-  } catch (_) {
-    throw e;
-  }
-}
+const binding = require("bindings")("tree_sitter_runtime_binding");
 
 const util = require('util')
 const {Query, Parser, NodeMethods, Tree, TreeCursor} = binding;

@@ -15,8 +15,8 @@
   "main": "index.js",
   "types": "tree-sitter.d.ts",
   "dependencies": {
-    "nan": "^2.14.0",
-    "node-addon-api": "3.1.0",
+    "bindings": "^1.5.0",
+    "node-addon-api": "^3.1.0",
     "prebuild-install": "^5.0.0"
   },
   "devDependencies": {
@@ -24,12 +24,13 @@
     "mocha": "^5.2.0",
     "prebuild": "^7.6.0",
     "superstring": "^2.4.2",
-    "tree-sitter-javascript": "git://github.com/tree-sitter/tree-sitter-javascript.git#master"
+    "tree-sitter-javascript": "file:../tree-sitter-javascript"
   },
   "scripts": {
     "install": "prebuild-install || node-gyp rebuild",
     "build": "node-gyp build",
-    "prebuild": "prebuild -r electron -t 3.0.0 -t 4.0.0 -t 4.0.4 -t 5.0.0 --strip && prebuild -t 10.12.0 -t 12.13.0 --strip",
+    "build:dev": "node-gyp build --debug",
+    "prebuild": "prebuild -r electron -t 3.0.0 -t 4.0.0 -t 4.0.4 -t 5.0.0 --strip && prebuild -t 10.12.0 -t 12.13.0 -t 14.15.4 --strip",
     "prebuild:upload": "prebuild --upload-all",
     "test": "mocha"
   }

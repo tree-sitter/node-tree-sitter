@@ -19,7 +19,6 @@
         "src/query.cc",
         "src/tree.cc",
         "src/tree_cursor.cc",
-        "src/util.cc",
       ],
       "include_dirs": [
         "vendor/tree-sitter/lib/include",
@@ -30,7 +29,7 @@
       'conditions': [
         ['OS == "mac"', {
           'xcode_settings': {
-            'MACOSX_DEPLOYMENT_TARGET': '10.9',
+            'MACOSX_DEPLOYMENT_TARGET': '10.13',
           },
         }]
       ],

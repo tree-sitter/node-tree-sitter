@@ -12,24 +12,18 @@ namespace node_tree_sitter {
 
 class Query : public Napi::ObjectWrap<Query> {
  public:
-  static Napi::Object Init(Napi::Env env, Napi::Object exports);
-  static Napi::Value NewInstance(TSQuery *);
-  static Query *UnwrapQuery(const Napi::Value &);
+  static void Init(Napi::Object exports);
 
-  TSQuery *query_;
-
- private:
-  explicit Query(TSQuery *);
+  Query(const Napi::CallbackInfo &info);
   ~Query();
 
-  static void New(const Napi::CallbackInfo&);
-  static void Matches(const Napi::CallbackInfo&);
-  static void Captures(const Napi::CallbackInfo&);
-  static void GetPredicates(const Napi::CallbackInfo&);
+ private:
+  TSQuery *query_;
+  TSQueryCursor *ts_query_cursor;
 
-  static TSQueryCursor *ts_query_cursor;
-  static Napi::FunctionReference constructor;
-  static Napi::FunctionReference constructor;
+  Napi::Value Matches(const Napi::CallbackInfo&);
+  Napi::Value Captures(const Napi::CallbackInfo&);
+  Napi::Value GetPredicates(const Napi::CallbackInfo&);
 };
 
 }  // namespace node_tree_sitter

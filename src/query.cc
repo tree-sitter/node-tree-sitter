@@ -8,13 +8,12 @@
 #include "./language.h"
 #include "./logger.h"
 #include "./util.h"
+#include "./tree.h"
 #include "./conversions.h"
 
 namespace node_tree_sitter {
 
 using std::vector;
-using namespace Napi;
-using node_methods::UnmarshalNodeId;
 
 const char *query_error_names[] = {
   "TSQueryErrorNone",
@@ -24,99 +23,57 @@ const char *query_error_names[] = {
   "TSQueryErrorCapture",
 };
 
-TSQueryCursor *Query::ts_query_cursor;
-Napi::FunctionReference Query::constructor;
-Napi::FunctionReference Query::constructor;
-
 void Query::Init(Napi::Object exports) {
-  ts_query_cursor = ts_query_cursor_new();
+  Napi::Env env = exports.Env();
 
-  Napi::FunctionReference tpl = Napi::Function::New(env, New);
+  Napi::Function ctor = DefineClass(env, "Query", {
+    InstanceMethod("_matches", &Query::Matches),
+    InstanceMethod("_captures", &Query::Captures),
+    InstanceMethod("_getPredicates", &Query::GetPredicates),
+  });
 
-  Napi::String class_name = Napi::String::New(env, "Query");
-  tpl->SetClassName(class_name);
-
-  FunctionPair methods[] = {
-    {"_matches", Matches},
-    {"_captures", Captures},
-    {"_getPredicates", GetPredicates},
-  };
-
-  for (size_t i = 0; i < length_of_array(methods); i++) {
-    Napi::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
-  }
-
-  Napi::Function ctor = Napi::GetFunction(tpl);
-
-  constructor.Reset(tpl);
-  constructor.Reset(ctor);
-  (exports).Set(class_name, ctor);
+  Napi::FunctionReference *constructor = new Napi::FunctionReference();
+  (*constructor) = Napi::Persistent(ctor);
+  env.SetInstanceData(constructor);
+  exports["Query"] = ctor;
 }
 
-Query::Query(TSQuery *query) : query_(query) {}
+Query::Query(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Query>(info) {
+  Napi::Env env = info.Env();
+  this->ts_query_cursor = ts_query_cursor_new();
 
-Query::~Query() {
-  ts_query_delete(query_);
-}
-
-Napi::Value Query::NewInstance(TSQuery *query) {
-  if (query) {
-    Napi::Object self;
-    MaybeNapi::Object maybe_self = Napi::NewInstance(Napi::New(env, constructor));
-    if (maybe_self.ToLocal(&self)) {
-      (new Query(query))->Wrap(self);
-      return self;
-    }
-  }
-  return env.Null();
-}
-
-Query *Query::UnwrapQuery(const Napi::Value &value) {
-  if (!value.IsObject()) return nullptr;
-  Napi::Object js_query = value.As<Napi::Object>();
-  if (!Napi::New(env, constructor)->HasInstance(js_query)) return nullptr;
-  return ObjectWrap::Unwrap<Query>(js_query);
-}
-
-void Query::New(const Napi::CallbackInfo&info) {
-  if (!info.IsConstructCall()) {
-    Napi::Object self;
-    MaybeNapi::Object maybe_self = Napi::New(env, constructor)->NewInstance(Napi::GetCurrentContext());
-    if (maybe_self.ToLocal(&self)) {
-      return self;
-    } else {
-      return env.Null();
-    }
-    return;
-  }
-
-  const TSLanguage *language = language_methods::UnwrapLanguage(info[0]);
+  const TSLanguage *language = UnwrapLanguage(env, info[0]);
   const char *source;
   uint32_t source_len;
   uint32_t error_offset = 0;
   TSQueryError error_type = TSQueryErrorNone;
 
   if (language == nullptr) {
-    Napi::Error::New(env, "Missing language argument").ThrowAsJavaScriptException();
-    return env.Null();
+    Napi::TypeError::New(env, "Missing language argument").ThrowAsJavaScriptException();
+    return;
   }
 
   if (info[1].IsString()) {
-    auto string = Napi::To<String> (info[1]);
-    source = string->As<Napi::String>().Utf8Value().c_str();
-    source_len = string->Length();
+    Napi::String string = info[1].As<Napi::String>();
+    source = string.Utf8Value().c_str();
+    source_len = strlen(source);
   }
   else if (info[1].IsBuffer()) {
-    source = info[1].As<Napi::Buffer<char>>().Data();
-    source_len = info[1].As<Napi::Buffer<char>>().Length();
+    source = info[1].As<Napi::Buffer<char> >().Data();
+    source_len = info[1].As<Napi::Buffer<char> >().Length();
   }
   else {
-    Napi::Error::New(env, "Missing source argument").ThrowAsJavaScriptException();
-    return env.Null();
+    Napi::TypeError::New(env, "Missing source argument").ThrowAsJavaScriptException();
+    return;
   }
 
-  TSQuery *query = ts_query_new(
-      language, source, source_len, &error_offset, &error_type);
+  this->query_ = ts_query_new(
+    language,
+    source,
+    source_len,
+    &error_offset,
+    &error_type
+  );
 
   if (error_offset > 0) {
     const char *error_name = query_error_names[error_type];
@@ -125,28 +82,20 @@ void Query::New(const Napi::CallbackInfo&info) {
     message += " at position ";
     message += std::to_string(error_offset);
     Napi::Error::New(env, message.c_str()).ThrowAsJavaScriptException();
-    return env.Null();
+    return;
   }
-
-  auto self = info.This();
-
-  Query *query_wrapper = new Query(query);
-  query_wrapper->Wrap(self);
-
-  auto init =
-    Napi::To<Function>(
-      (self).Get(Napi::String::New(env, "_init"))
-    );
-  Napi::Call(init, self, 0, nullptr);
-
-  return self;
 }
 
-void Query::GetPredicates(const Napi::CallbackInfo&info) {
-  Query *query = Query::UnwrapQuery(info.This());
-  auto ts_query = query->query_;
+Query::~Query() {
+  ts_query_delete(this->query_);
+  ts_query_cursor_delete(this->ts_query_cursor);
+}
 
-  auto pattern_len = ts_query_pattern_count(ts_query);
+Napi::Value Query::GetPredicates(const Napi::CallbackInfo&info) {
+  Napi::Env env = info.Env();
+  TSQuery *ts_query = this->query_;
+
+  uint32_t pattern_len = ts_query_pattern_count(ts_query);
 
   Napi::Array js_predicates = Napi::Array::New(env);
 
@@ -167,21 +116,21 @@ void Query::GetPredicates(const Napi::CallbackInfo&info) {
         uint32_t len;
         switch (predicate.type) {
           case TSQueryPredicateStepTypeCapture:
-            (js_predicate).Set(p_index++, Napi::New(env, TSQueryPredicateStepTypeCapture));
-            (js_predicate).Set(p_index++,
+            js_predicate.Set(p_index++, Napi::Number::New(env, TSQueryPredicateStepTypeCapture));
+            js_predicate.Set(p_index++,
                 Napi::String::New(env, 
                   ts_query_capture_name_for_id(ts_query, predicate.value_id, &len)
                 ));
             break;
           case TSQueryPredicateStepTypeString:
-            (js_predicate).Set(p_index++, Napi::New(env, TSQueryPredicateStepTypeString));
-            (js_predicate).Set(p_index++,
+            js_predicate.Set(p_index++, Napi::Number::New(env, TSQueryPredicateStepTypeString));
+            js_predicate.Set(p_index++,
                 Napi::String::New(env, 
                   ts_query_string_value_for_id(ts_query, predicate.value_id, &len)
                 ));
             break;
           case TSQueryPredicateStepTypeDone:
-            (js_pattern_predicates).Set(a_index++, js_predicate);
+            js_pattern_predicates.Set(a_index++, js_predicate);
             js_predicate = Napi::Array::New(env);
             p_index = 0;
             break;
@@ -189,44 +138,41 @@ void Query::GetPredicates(const Napi::CallbackInfo&info) {
       }
     }
 
-    (js_predicates).Set(pattern_index, js_pattern_predicates);
+    js_predicates.Set(pattern_index, js_pattern_predicates);
   }
 
   return js_predicates;
 }
 
-void Query::Matches(const Napi::CallbackInfo&info) {
-  Query *query = Query::UnwrapQuery(info.This());
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  uint32_t start_row    = info[1].As<Napi::Number>().Uint32Value().ToChecked();
-  uint32_t start_column = info[2].As<Napi::Number>().Uint32Value().ToChecked() << 1;
-  uint32_t end_row      = info[3].As<Napi::Number>().Uint32Value().ToChecked();
-  uint32_t end_column   = info[4].As<Napi::Number>().Uint32Value().ToChecked() << 1;
-
-  if (query == nullptr) {
-    Napi::Error::New(env, "Missing argument query").ThrowAsJavaScriptException();
-    return env.Null();
+Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  const Tree *tree = nullptr;
+  if (info[0].IsObject()) {
+    tree = Napi::ObjectWrap<Tree>::Unwrap(info[0].As<Napi::Object>());
   }
-
   if (tree == nullptr) {
-    Napi::Error::New(env, "Missing argument tree").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "Missing argument tree").ThrowAsJavaScriptException();
     return env.Null();
   }
+  uint32_t start_row    = info[1].As<Napi::Number>().Uint32Value();
+  uint32_t start_column = info[2].As<Napi::Number>().Uint32Value() << 1;
+  uint32_t end_row      = info[3].As<Napi::Number>().Uint32Value();
+  uint32_t end_column   = info[4].As<Napi::Number>().Uint32Value() << 1;
 
-  TSQuery *ts_query = query->query_;
-  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSQuery *ts_query = this->query_;
+  TSNode rootNode = UnmarshalNode(env, tree);
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
-  ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
-  ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
+  ts_query_cursor_set_point_range(this->ts_query_cursor, start_point, end_point);
+  ts_query_cursor_exec(this->ts_query_cursor, ts_query, rootNode);
 
   Napi::Array js_matches = Napi::Array::New(env);
   unsigned index = 0;
   vector<TSNode> nodes;
   TSQueryMatch match;
 
-  while (ts_query_cursor_next_match(ts_query_cursor, &match)) {
-    (js_matches).Set(index++, Napi::New(env, match.pattern_index));
+  while (ts_query_cursor_next_match(this->ts_query_cursor, &match)) {
+    js_matches.Set(index++, Napi::Number::New(env, match.pattern_index));
 
     for (uint16_t i = 0; i < match.capture_count; i++) {
       const TSQueryCapture &capture = match.captures[i];
@@ -238,43 +184,40 @@ void Query::Matches(const Napi::CallbackInfo&info) {
       TSNode node = capture.node;
       nodes.push_back(node);
 
-      Napi::Value js_capture = Napi::New(env, capture_name);
-      (js_matches).Set(index++, js_capture);
+      Napi::Value js_capture = Napi::String::New(env, capture_name);
+      js_matches.Set(index++, js_capture);
     }
   }
 
-  auto js_nodes = node_methods::GetMarshalNodes(info, tree, nodes.data(), nodes.size());
+  auto js_nodes = MarshalNodes(env, tree, nodes.data(), nodes.size());
 
-  auto result = Napi::Array::New(env);
-  (result).Set(0, js_matches);
-  (result).Set(1, js_nodes);
+  Napi::Array result = Napi::Array::New(env);
+  result.Set((uint32_t) 0, js_matches);
+  result.Set((uint32_t) 1, js_nodes);
   return result;
 }
 
-void Query::Captures(const Napi::CallbackInfo&info) {
-  Query *query = Query::UnwrapQuery(info.This());
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  uint32_t start_row    = info[1].As<Napi::Number>().Uint32Value().ToChecked();
-  uint32_t start_column = info[2].As<Napi::Number>().Uint32Value().ToChecked() << 1;
-  uint32_t end_row      = info[3].As<Napi::Number>().Uint32Value().ToChecked();
-  uint32_t end_column   = info[4].As<Napi::Number>().Uint32Value().ToChecked() << 1;
-
-  if (query == nullptr) {
-    Napi::Error::New(env, "Missing argument query").ThrowAsJavaScriptException();
-    return env.Null();
+Napi::Value Query::Captures(const Napi::CallbackInfo&info) {
+  Napi::Env env = info.Env();
+  const Tree *tree = nullptr;
+  if (info[0].IsObject()) {
+    tree = Napi::ObjectWrap<Tree>::Unwrap(info[0].As<Napi::Object>());
   }
-
   if (tree == nullptr) {
-    Napi::Error::New(env, "Missing argument tree").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "Missing argument tree").ThrowAsJavaScriptException();
     return env.Null();
   }
+  uint32_t start_row    = info[1].As<Napi::Number>().Uint32Value();
+  uint32_t start_column = info[2].As<Napi::Number>().Uint32Value() << 1;
+  uint32_t end_row      = info[3].As<Napi::Number>().Uint32Value();
+  uint32_t end_column   = info[4].As<Napi::Number>().Uint32Value() << 1;
 
-  TSQuery *ts_query = query->query_;
-  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSQuery *ts_query = this->query_;
+  TSNode rootNode = UnmarshalNode(env, tree);
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
-  ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
-  ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
+  ts_query_cursor_set_point_range(this->ts_query_cursor, start_point, end_point);
+  ts_query_cursor_exec(this->ts_query_cursor, ts_query, rootNode);
 
   Napi::Array js_matches = Napi::Array::New(env);
   unsigned index = 0;
@@ -283,13 +226,13 @@ void Query::Captures(const Napi::CallbackInfo&info) {
   uint32_t capture_index;
 
   while (ts_query_cursor_next_capture(
-    ts_query_cursor,
+    this->ts_query_cursor,
     &match,
     &capture_index
   )) {
 
-    (js_matches).Set(index++, Napi::New(env, match.pattern_index));
-    (js_matches).Set(index++, Napi::New(env, capture_index));
+    js_matches.Set(index++, Napi::Number::New(env, match.pattern_index));
+    js_matches.Set(index++, Napi::Number::New(env, capture_index));
 
     for (uint16_t i = 0; i < match.capture_count; i++) {
       const TSQueryCapture &capture = match.captures[i];
@@ -301,18 +244,18 @@ void Query::Captures(const Napi::CallbackInfo&info) {
       TSNode node = capture.node;
       nodes.push_back(node);
 
-      Napi::Value js_capture = Napi::New(env, capture_name);
-      (js_matches).Set(index++, js_capture);
+      Napi::Value js_capture = Napi::String::New(env, capture_name);
+      js_matches.Set(index++, js_capture);
     }
   }
 
-  auto js_nodes = node_methods::GetMarshalNodes(info, tree, nodes.data(), nodes.size());
+  Napi::Value js_nodes = MarshalNodes(env, tree, nodes.data(), nodes.size());
 
-  auto result = Napi::Array::New(env);
-  (result).Set(0, js_matches);
-  (result).Set(1, js_nodes);
+  Napi::Array result = Napi::Array::New(env);
+  result.Set((uint32_t) 0, js_matches);
+  result.Set((uint32_t) 1, js_nodes);
   return result;
 }
 
 
-}  // namespace node_tree_sitter
+}  /* namespace node_tree_sitter */

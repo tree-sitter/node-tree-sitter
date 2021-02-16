@@ -12,6 +12,12 @@ namespace node_tree_sitter {
 
 void InitNode(Napi::Object &exports);
 Napi::Value MarshalNode(Napi::Env, const Tree *, TSNode);
+Napi::Value MarshalNodes(
+  Env env,
+  const Tree *tree,
+  const TSNode *nodes,
+  uint32_t node_count
+);
 TSNode UnmarshalNode(Napi::Env env, const Tree *tree);
 
 }  // namespace node_tree_sitter
