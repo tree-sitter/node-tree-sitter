@@ -1,5 +1,6 @@
 #include <napi.h>
 #include <tree_sitter/api.h>
+#include "./binding.h"
 #include "./node.h"
 #include "./conversions.h"
 #include <cmath>
@@ -9,25 +10,37 @@ namespace node_tree_sitter {
 using namespace Napi;
 
 static unsigned BYTES_PER_CHARACTER = 2;
-static uint32_t *point_transfer_buffer;
 
-void InitConversions(Napi::Object &exports) {
-  auto env = exports.Env();
+Napi::Value UnmarshalPoint(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  uint32_t *point_transfer_buffer = GetInternalData(env)->point_transfer_buffer;
+  Napi::Object unmarshaled_point = Napi::Object::New(env);
+  unmarshaled_point["row"] = Napi::Number::New(env, point_transfer_buffer[0]);
+  unmarshaled_point["column"] = Napi::Number::New(env, point_transfer_buffer[1]);
+  return unmarshaled_point;
+}
+
+void InitConversions(Napi::Object &exports, InstanceData *instance) {
+  Napi::Env env = exports.Env();
+  uint32_t *point_transfer_buffer;
   point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
-  auto js_point_transfer_buffer = Napi::ArrayBuffer::New(
+  instance->point_transfer_buffer = point_transfer_buffer;
+  Napi::ArrayBuffer js_point_transfer_buffer = Napi::ArrayBuffer::New(
     env,
     static_cast<void *>(point_transfer_buffer),
     2 * sizeof(uint32_t)
   );
-  exports.Set("pointTransferArray", Napi::Uint32Array::New(
+  exports["unmarshalPoint"] = Napi::Function::New<UnmarshalPoint>(env);
+  exports["pointTransferArray"] = Napi::Uint32Array::New(
     env,
     2,
     js_point_transfer_buffer,
     0
-  ));
+  );
 }
 
-void TransferPoint(const TSPoint &point) {
+void TransferPoint(Napi::Env env, const TSPoint &point) {
+  uint32_t *point_transfer_buffer = GetInternalData(env)->point_transfer_buffer;
   point_transfer_buffer[0] = point.row;
   point_transfer_buffer[1] = point.column / 2;
 }

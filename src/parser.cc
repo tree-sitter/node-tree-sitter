@@ -20,7 +20,7 @@ using std::pair;
 
 class Parser : public ObjectWrap<Parser> {
  public:
-  static void Init(Napi::Object &exports) {
+  static void Init(Napi::Object &exports, InstanceData *instance) {
     Napi::Env env = exports.Env();
 
     Function ctor = DefineClass(env, "Parser", {
@@ -50,7 +50,8 @@ class Parser : public ObjectWrap<Parser> {
     status = napi_typeof(env, value, &type);
     assert(status == napi_ok);
 
-    constructor.Reset(ctor, 1);
+    instance->parser_constructor = new Napi::FunctionReference();
+    (*instance->parser_constructor) = Napi::Persistent(ctor);
     // string_slice.Reset(string_slice_fn.As<Napi::Function>(), 1);
     exports["Parser"] = ctor;
     exports["LANGUAGE_VERSION"] = Number::New(env, TREE_SITTER_LANGUAGE_VERSION);
@@ -465,15 +466,13 @@ class Parser : public ObjectWrap<Parser> {
     return info.This();
   }
 
-  static Napi::FunctionReference constructor;
   static Napi::FunctionReference string_slice;
 };
 
-void InitParser(Napi::Object &exports) {
-  Parser::Init(exports);
+void InitParser(Napi::Object &exports, InstanceData *instance) {
+  Parser::Init(exports, instance);
 }
 
-Napi::FunctionReference Parser::constructor;
 Napi::FunctionReference Parser::string_slice;
 
 }  // namespace node_tree_sitter

@@ -4,12 +4,13 @@
 #include <napi.h>
 #include <unordered_map>
 #include <tree_sitter/api.h>
+#include "./binding.h"
 
 namespace node_tree_sitter {
 
 class Tree : public Napi::ObjectWrap<Tree> {
  public:
-  static void Init(Napi::Object &);
+  static void Init(Napi::Object &, InstanceData *);
   static const Tree *UnwrapTree(const Napi::Value &);
   static Napi::Value NewInstance(Napi::Env, TSTree *);
   Tree(const Napi::CallbackInfo& info);
@@ -35,8 +36,6 @@ class Tree : public Napi::ObjectWrap<Tree> {
   Napi::Value ExtractCacheNode(Napi::Env, Napi::Object &);
   Napi::Value CacheNode(const Napi::CallbackInfo &);
   Napi::Value CacheNodes(const Napi::CallbackInfo &);
-
-  static Napi::FunctionReference constructor;
 };
 
 }  // namespace node_tree_sitter

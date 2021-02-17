@@ -1,7 +1,7 @@
 const binding = require("bindings")("tree_sitter_runtime_binding");
 
 const util = require('util')
-const {Query, Parser, NodeMethods, Tree, TreeCursor} = binding;
+const {Query, Parser, NodeMethods, Tree, TreeCursor, unmarshalPoint } = binding;
 
 /*
  * Tree
@@ -602,8 +602,6 @@ function getTextFromTextBuffer ({startPosition, endPosition}) {
   return this.input.getTextInRange({start: startPosition, end: endPosition});
 }
 
-const {pointTransferArray} = binding;
-
 const NODE_FIELD_COUNT = 6;
 const ERROR_TYPE_ID = 0xFFFF
 
@@ -626,7 +624,7 @@ function unmarshalNode(value, tree, offset = 0, cache = null) {
     ? SyntaxNode
     : tree.language.nodeSubclasses[nodeTypeId];
 
-  const {nodeTransferArray} = binding;
+  const nodeTransferArray = NodeMethods.nodeTransferArray;
   const id = getID(nodeTransferArray, offset)
   if (id === 0n) {
     return null
@@ -667,14 +665,10 @@ function unmarshalNodes(nodes, tree) {
 }
 
 function marshalNode(node) {
-  const {nodeTransferArray} = binding;
+  const nodeTransferArray = NodeMethods.nodeTransferArray;
   for (let i = 0; i < NODE_FIELD_COUNT; i++) {
     nodeTransferArray[i] = node[i];
   }
-}
-
-function unmarshalPoint() {
-  return {row: pointTransferArray[0], column: pointTransferArray[1]};
 }
 
 function pointToString(point) {

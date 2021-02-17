@@ -3,11 +3,12 @@
 
 #include <napi.h>
 #include <tree_sitter/api.h>
+#include "./binding.h"
 
 namespace node_tree_sitter {
 
-void InitTreeCursor(Napi::Object &);
-Napi::Value NewTreeCursor(TSTreeCursor);
+void InitTreeCursor(Napi::Object &, InstanceData *);
+Napi::Value NewTreeCursor(Napi::Env, TSTreeCursor);
 
 }  // namespace node_tree_sitter
 

@@ -12,7 +12,7 @@ using namespace Napi;
 
 class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
  public:
-  static void Init(Napi::Object &exports) {
+  static void Init(Napi::Object &exports, InstanceData * instance) {
     Napi::Env env = exports.Env();
 
     Function ctor = DefineClass(env, "TreeCursor", {
@@ -32,7 +32,8 @@ class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
       InstanceMethod("reset", &TreeCursor::Reset),
     });
 
-    constructor.Reset(ctor, 1);
+    instance->tree_cursor_constructor = new Napi::FunctionReference();
+    (*instance->tree_cursor_constructor) = Napi::Persistent(ctor);
     exports.Set("TreeCursor", ctor);
   }
 
@@ -81,14 +82,14 @@ class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
   Napi::Value StartPosition(const CallbackInfo &info) {
     auto env = info.Env();
     TSNode node = ts_tree_cursor_current_node(&cursor_);
-    TransferPoint(ts_node_start_point(node));
+    TransferPoint(env, ts_node_start_point(node));
     return env.Undefined();
   }
 
   Napi::Value EndPosition(const CallbackInfo &info) {
     auto env = info.Env();
     TSNode node = ts_tree_cursor_current_node(&cursor_);
-    TransferPoint(ts_node_end_point(node));
+    TransferPoint(env, ts_node_end_point(node));
     return env.Undefined();
   }
 
@@ -147,14 +148,21 @@ class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
   static Napi::FunctionReference constructor;
 };
 
-void InitTreeCursor(Napi::Object &exports) {
-  TreeCursor::Init(exports);
+void InitTreeCursor(Napi::Object &exports, InstanceData * instance) {
+  TreeCursor::Init(exports, instance);
 }
 
-Napi::Value NewTreeCursor(TSTreeCursor cursor) {
-  Napi::Object js_cursor = TreeCursor::constructor.Value().New({});
-  TreeCursor::Unwrap(js_cursor)->cursor_ = cursor;
-  return js_cursor;
+Napi::Value NewTreeCursor(Napi::Env env, TSTreeCursor cursor) {
+  InstanceData *instance = GetInternalData(env);
+  Napi::Object js_cursor = instance->tree_cursor_constructor->New({});
+
+  TreeCursor *ret_tree_cursor = nullptr;
+  if (js_cursor.IsObject()) {
+    ret_tree_cursor = Napi::ObjectWrap<TreeCursor>::Unwrap(js_cursor);
+    ret_tree_cursor->cursor_ = cursor;
+    return js_cursor;
+  }
+  return env.Null();
 }
 
 FunctionReference TreeCursor::constructor;

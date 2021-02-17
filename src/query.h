@@ -7,12 +7,13 @@
 #include <node_object_wrap.h>
 #include <unordered_map>
 #include <tree_sitter/api.h>
+#include "./binding.h"
 
 namespace node_tree_sitter {
 
 class Query : public Napi::ObjectWrap<Query> {
  public:
-  static void Init(Napi::Object exports);
+  static void Init(Napi::Object exports, InstanceData *instance);
 
   Query(const Napi::CallbackInfo &info);
   ~Query();

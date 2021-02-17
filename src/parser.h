@@ -3,10 +3,11 @@
 
 #include <napi.h>
 #include <tree_sitter/api.h>
+#include "./binding.h"
 
 namespace node_tree_sitter {
 
-void InitParser(Napi::Object &exports);
+void InitParser(Napi::Object &exports, InstanceData *instance);
 
 }  // namespace node_tree_sitter
 

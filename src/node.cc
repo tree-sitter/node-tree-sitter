@@ -1,3 +1,4 @@
+#include "./binding.h"
 #include "./node.h"
 #include <tree_sitter/api.h>
 #include <napi.h>
@@ -14,31 +15,7 @@ using namespace Napi;
 
 static const uint32_t FIELD_COUNT_PER_NODE = 6;
 
-static uint32_t *transfer_buffer = nullptr;
-static uint32_t transfer_buffer_length = 0;
 static TSTreeCursor scratch_cursor = {nullptr, nullptr, {0, 0}};
-
-static inline void setup_transfer_buffer(Env env, uint32_t node_count) {
-  uint32_t new_length = node_count * FIELD_COUNT_PER_NODE;
-  if (new_length > transfer_buffer_length) {
-    if (transfer_buffer) {
-      free(transfer_buffer);
-    }
-    transfer_buffer_length = new_length;
-    transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
-    auto js_transfer_buffer = ArrayBuffer::New(
-      env,
-      transfer_buffer,
-      transfer_buffer_length * sizeof(uint32_t)
-    );
-    module_exports.Value()["nodeTransferArray"] = Uint32Array::New(
-      env,
-      transfer_buffer_length,
-      js_transfer_buffer,
-      0
-    );
-  }
-}
 
 static inline bool operator<=(const TSPoint &left, const TSPoint &right) {
   if (left.row < right.row) return true;
@@ -53,8 +30,8 @@ Value MarshalNodes(
   uint32_t node_count
 ) {
   Array result = Array::New(env);
-  setup_transfer_buffer(env, node_count);
-  uint32_t *p = transfer_buffer;
+  InstanceData *instance = GetInternalData(env);
+  uint32_t *p = instance->node_transfer_buffer;
   for (unsigned i = 0; i < node_count; i++) {
     TSNode node = nodes[i];
     const auto &cache_entry = tree->cached_nodes_.find(node.id);
@@ -84,8 +61,8 @@ Value MarshalNode(
 ) {
   const auto &cache_entry = tree->cached_nodes_.find(node.id);
   if (cache_entry == tree->cached_nodes_.end()) {
-    setup_transfer_buffer(env, 1);
-    uint32_t *p = transfer_buffer;
+    InstanceData *instance = GetInternalData(env);
+    uint32_t *p = instance->node_transfer_buffer;
     MarshalPointer(node.id, p);
     p += 2;
     *(p++) = node.context[0];
@@ -104,7 +81,8 @@ Value MarshalNode(
 }
 
 Value MarshalNullNode(Env env) {
-  memset(transfer_buffer, 0, FIELD_COUNT_PER_NODE * sizeof(transfer_buffer[0]));
+  InstanceData *instance = GetInternalData(env);
+  memset(instance->node_transfer_buffer, 0, FIELD_COUNT_PER_NODE * sizeof(instance->node_transfer_buffer[0]));
   return env.Null();
 }
 
@@ -114,13 +92,14 @@ TSNode UnmarshalNode(Env env, const Tree *tree) {
     TypeError::New(env, "Argument must be a tree").ThrowAsJavaScriptException();
     return result;
   }
+  InstanceData *instance = GetInternalData(env);
 
   result.tree = tree->tree_;
-  result.id = UnmarshalPointer(&transfer_buffer[0]);
-  result.context[0] = transfer_buffer[2];
-  result.context[1] = transfer_buffer[3];
-  result.context[2] = transfer_buffer[4];
-  result.context[3] = transfer_buffer[5];
+  result.id = UnmarshalPointer(&instance->node_transfer_buffer[0]);
+  result.context[0] = instance->node_transfer_buffer[2];
+  result.context[1] = instance->node_transfer_buffer[3];
+  result.context[2] = instance->node_transfer_buffer[4];
+  result.context[3] = instance->node_transfer_buffer[5];
   return result;
 }
 
@@ -336,7 +315,7 @@ static Value StartPosition(const CallbackInfo &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(env, tree);
   if (node.id) {
-    TransferPoint(ts_node_start_point(node));
+    TransferPoint(env, ts_node_start_point(node));
   }
   return env.Undefined();
 }
@@ -346,7 +325,7 @@ static Value EndPosition(const CallbackInfo &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(env, tree);
   if (node.id) {
-    TransferPoint(ts_node_end_point(node));
+    TransferPoint(env, ts_node_end_point(node));
   }
   return env.Undefined();
 }
@@ -707,7 +686,7 @@ static Value Walk(const CallbackInfo &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(env, tree);
   TSTreeCursor cursor = ts_tree_cursor_new(node);
-  return NewTreeCursor(cursor);
+  return NewTreeCursor(env, cursor);
 }
 
 class NodeMethods : public ObjectWrap<NodeMethods> {
@@ -716,58 +695,71 @@ class NodeMethods : public ObjectWrap<NodeMethods> {
     : Napi::ObjectWrap<NodeMethods>(info)
     {}
 
-  static void Init(Napi::Env env, Napi::Object &exports) {
+  static void Init(Napi::Env env, Napi::Object &exports, InstanceData *instance) {
     Napi::Function ctor = DefineClass(env, "NodeMethods", {
-      StaticMethod("startIndex", &StartIndex, napi_writable),
-      StaticMethod("endIndex", &EndIndex, napi_writable),
-      StaticMethod("type", &Type, napi_writable),
-      StaticMethod("typeId", &TypeId, napi_writable),
-      StaticMethod("isNamed", &IsNamed, napi_writable),
-      StaticMethod("parent", &Parent, napi_writable),
-      StaticMethod("child", &Child, napi_writable),
-      StaticMethod("namedChild", &NamedChild, napi_writable),
-      StaticMethod("children", &Children, napi_writable),
-      StaticMethod("namedChildren", &NamedChildren, napi_writable),
-      StaticMethod("childCount", &ChildCount, napi_writable),
-      StaticMethod("namedChildCount", &NamedChildCount, napi_writable),
-      StaticMethod("firstChild", &FirstChild, napi_writable),
-      StaticMethod("lastChild", &LastChild, napi_writable),
-      StaticMethod("firstNamedChild", &FirstNamedChild, napi_writable),
-      StaticMethod("lastNamedChild", &LastNamedChild, napi_writable),
-      StaticMethod("nextSibling", &NextSibling, napi_writable),
-      StaticMethod("nextNamedSibling", &NextNamedSibling, napi_writable),
-      StaticMethod("previousSibling", &PreviousSibling, napi_writable),
-      StaticMethod("previousNamedSibling", &PreviousNamedSibling, napi_writable),
-      StaticMethod("startPosition", &StartPosition, napi_writable),
-      StaticMethod("endPosition", &EndPosition, napi_writable),
-      StaticMethod("isMissing", &IsMissing, napi_writable),
-      StaticMethod("toString", &ToString, napi_writable),
-      StaticMethod("firstChildForIndex", &FirstChildForIndex, napi_writable),
-      StaticMethod("firstNamedChildForIndex", &FirstNamedChildForIndex, napi_writable),
-      StaticMethod("descendantForIndex", &DescendantForIndex, napi_writable),
-      StaticMethod("namedDescendantForIndex", &NamedDescendantForIndex, napi_writable),
-      StaticMethod("descendantForPosition", &DescendantForPosition, napi_writable),
-      StaticMethod("namedDescendantForPosition", &NamedDescendantForPosition, napi_writable),
-      StaticMethod("hasChanges", &HasChanges, napi_writable),
-      StaticMethod("hasError", &HasError, napi_writable),
-      StaticMethod("descendantsOfType", &DescendantsOfType, napi_writable),
-      StaticMethod("walk", &Walk, napi_writable),
-      StaticMethod("closest", &Closest, napi_writable),
-      StaticMethod("childNodeForFieldId", &ChildNodeForFieldId, napi_writable),
-      StaticMethod("childNodesForFieldId", &ChildNodesForFieldId, napi_writable),
+      StaticMethod("startIndex", StartIndex, napi_writable),
+      StaticMethod("endIndex", EndIndex, napi_writable),
+      StaticMethod("type", Type, napi_writable),
+      StaticMethod("typeId", TypeId, napi_writable),
+      StaticMethod("isNamed", IsNamed, napi_writable),
+      StaticMethod("parent", Parent, napi_writable),
+      StaticMethod("child", Child, napi_writable),
+      StaticMethod("namedChild", NamedChild, napi_writable),
+      StaticMethod("children", Children, napi_writable),
+      StaticMethod("namedChildren", NamedChildren, napi_writable),
+      StaticMethod("childCount", ChildCount, napi_writable),
+      StaticMethod("namedChildCount", NamedChildCount, napi_writable),
+      StaticMethod("firstChild", FirstChild, napi_writable),
+      StaticMethod("lastChild", LastChild, napi_writable),
+      StaticMethod("firstNamedChild", FirstNamedChild, napi_writable),
+      StaticMethod("lastNamedChild", LastNamedChild, napi_writable),
+      StaticMethod("nextSibling", NextSibling, napi_writable),
+      StaticMethod("nextNamedSibling", NextNamedSibling, napi_writable),
+      StaticMethod("previousSibling", PreviousSibling, napi_writable),
+      StaticMethod("previousNamedSibling", PreviousNamedSibling, napi_writable),
+      StaticMethod("startPosition", StartPosition, napi_writable),
+      StaticMethod("endPosition", EndPosition, napi_writable),
+      StaticMethod("isMissing", IsMissing, napi_writable),
+      StaticMethod("toString", ToString, napi_writable),
+      StaticMethod("firstChildForIndex", FirstChildForIndex, napi_writable),
+      StaticMethod("firstNamedChildForIndex", FirstNamedChildForIndex, napi_writable),
+      StaticMethod("descendantForIndex", DescendantForIndex, napi_writable),
+      StaticMethod("namedDescendantForIndex", NamedDescendantForIndex, napi_writable),
+      StaticMethod("descendantForPosition", DescendantForPosition, napi_writable),
+      StaticMethod("namedDescendantForPosition", NamedDescendantForPosition, napi_writable),
+      StaticMethod("hasChanges", HasChanges, napi_writable),
+      StaticMethod("hasError", HasError, napi_writable),
+      StaticMethod("descendantsOfType", DescendantsOfType, napi_writable),
+      StaticMethod("walk", Walk, napi_writable),
+      StaticMethod("closest", Closest, napi_writable),
+      StaticMethod("childNodeForFieldId", ChildNodeForFieldId, napi_writable),
+      StaticMethod("childNodesForFieldId", ChildNodesForFieldId, napi_writable),
+      StaticValue("nodeTransferArray", instance->transfer_array, napi_enumerable)
     });
 
-    Napi::FunctionReference* constructor = new Napi::FunctionReference();
-    (*constructor) = Napi::Persistent(ctor);
-    env.SetInstanceData(constructor);
-    export["NodeMethods"] = ctor;
+    instance->node_constructor = new Napi::FunctionReference(env, Napi::Persistent(ctor));
+    instance->node_constructor->SuppressDestruct();
+    exports["NodeMethods"] = ctor;
   }
 };
 
-void InitNode(Napi::Object &exports) {
+void InitNode(Napi::Object &exports, InstanceData *instance) {
   Env env = exports.Env();
-  NodeMethods::Init(env, exports);
-  setup_transfer_buffer(env, 1);
+  // first time setup
+  instance->node_transfer_buffer_length = 6 * FIELD_COUNT_PER_NODE;
+  instance->node_transfer_buffer = static_cast<uint32_t *>(malloc(instance->node_transfer_buffer_length * sizeof(uint32_t)));
+  Napi::ArrayBuffer js_transfer_buffer = Napi::ArrayBuffer::New(
+    env,
+    instance->node_transfer_buffer,
+    instance->node_transfer_buffer_length * sizeof(uint32_t)
+  );
+  instance->transfer_array = Napi::Uint32Array::New(
+    env,
+    instance->node_transfer_buffer_length,
+    js_transfer_buffer,
+    0
+  );
+  NodeMethods::Init(env, exports, instance);
 }
 
 }  // namespace node_tree_sitter

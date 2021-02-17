@@ -3,12 +3,13 @@
 
 #include <napi.h>
 #include <tree_sitter/api.h>
+#include "./binding.h"
 #include "./optional.h"
 
 namespace node_tree_sitter {
 
-void InitConversions(Napi::Object &);
-void TransferPoint(const TSPoint &);
+void InitConversions(Napi::Object &, InstanceData *);
+void TransferPoint(Napi::Env, const TSPoint &);
 
 Napi::Object RangeToJS(Napi::Env, const TSRange &);
 Napi::Object PointToJS(Napi::Env, const TSPoint &);

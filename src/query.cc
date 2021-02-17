@@ -4,6 +4,7 @@
 #include <v8.h>
 #include <napi.h>
 #include <uv.h>
+#include "./binding.h"
 #include "./node.h"
 #include "./language.h"
 #include "./logger.h"
@@ -23,7 +24,7 @@ const char *query_error_names[] = {
   "TSQueryErrorCapture",
 };
 
-void Query::Init(Napi::Object exports) {
+void Query::Init(Napi::Object exports, InstanceData *instance) {
   Napi::Env env = exports.Env();
 
   Napi::Function ctor = DefineClass(env, "Query", {
@@ -32,9 +33,8 @@ void Query::Init(Napi::Object exports) {
     InstanceMethod("_getPredicates", &Query::GetPredicates),
   });
 
-  Napi::FunctionReference *constructor = new Napi::FunctionReference();
-  (*constructor) = Napi::Persistent(ctor);
-  env.SetInstanceData(constructor);
+  instance->query_constructor = new Napi::FunctionReference();
+  (*instance->query_constructor) = Napi::Persistent(ctor);
   exports["Query"] = ctor;
 }
 

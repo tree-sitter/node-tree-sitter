@@ -2,6 +2,7 @@
 #include <string>
 #include <napi.h>
 #include <uv.h>
+#include "./binding.h"
 #include "./node.h"
 #include "./logger.h"
 #include "./util.h"
@@ -11,7 +12,7 @@ namespace node_tree_sitter {
 
 using namespace Napi;
 
-void Tree::Init(Napi::Object &exports) {
+void Tree::Init(Napi::Object &exports, InstanceData *instance) {
   Napi::Env env = exports.Env();
 
   Napi::Function ctor = DefineClass(env, "Tree", {
@@ -24,9 +25,8 @@ void Tree::Init(Napi::Object &exports) {
     InstanceMethod("_cacheNodes", &Tree::CacheNodes),
   });
 
-  Napi::FunctionReference* constructor = new Napi::FunctionReference();
-  (*constructor) = Napi::Persistent(ctor);
-  env.SetInstanceData(constructor);
+  instance->tree_constructor = new Napi::FunctionReference();
+  (*instance->tree_constructor) = Napi::Persistent(ctor);
   exports["Tree"] = ctor;
 }
 
@@ -44,15 +44,15 @@ Tree::~Tree() {
 
 Napi::Value Tree::NewInstance(Napi::Env env, TSTree *tree) {
   if (tree) {
-    Napi::FunctionReference *constructor = env.GetInstanceData<Napi::FunctionReference>();
-    Napi::Object js_tree = constructor->New({});
+    InstanceData *instance = GetInternalData(env);
+    Napi::Object js_tree = instance->tree_constructor->New({});
 
     Tree *ret_tree = nullptr;
     if (js_tree.IsObject()) {
       ret_tree = Napi::ObjectWrap<Tree>::Unwrap(js_tree);
+      ret_tree->tree_ = tree;
+      return js_tree;
     }
-    ret_tree->tree_ = tree;
-    return js_tree;
   }
   return env.Null();
 }

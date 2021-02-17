@@ -3,6 +3,7 @@
 
 #include <napi.h>
 #include <tree_sitter/api.h>
+#include "./binding.h"
 #include "./tree.h"
 #include "./util.h"
 
@@ -10,7 +11,7 @@ using namespace Napi;
 
 namespace node_tree_sitter {
 
-void InitNode(Napi::Object &exports);
+void InitNode(Napi::Object &, InstanceData *);
 Napi::Value MarshalNode(Napi::Env, const Tree *, TSNode);
 Napi::Value MarshalNodes(
   Env env,
