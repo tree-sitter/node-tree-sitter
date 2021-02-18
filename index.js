@@ -6,7 +6,7 @@ const {
   Parser,
   NodeMethods,
   Tree,
-  TreeCursor: _TreeCursor,
+  TreeCursor,
   unmarshalPoint,
 } = binding;
 
@@ -394,38 +394,35 @@ Parser.prototype.parseTextBufferSync = function (
  * TreeCursor
  */
 
-const {
-  startPosition,
-  endPosition,
-  currentNode,
-  reset,
-} = _TreeCursor.prototype;
-class TreeCursor {
-  constructor(...args) {
-    return new Proxy(new _TreeCursor(...args), {
-      get(target, key) {
-        switch (key) {
-          case "currentNode":
-            return unmarshalNode(target.currentNode(), target.tree);
-          case "startPosition":
-          case "endPosition":
-            target[target];
-            return unmarshalPoint();
-          case "nodeText":
-            return target.tree.getText(target);
-          case "reset":
-            return (node) => {
-              marshalNode(node);
-              target.reset();
-            };
-          default:
-            // fall through to the original method
-            break;
-        }
-        return Reflect.get(...arguments);
-      },
-    });
-  }
+
+const {_startPosition, _endPosition, _currentNode, _reset} = TreeCursor.prototype;
+
+Object.defineProperties(TreeCursor.prototype, {
+  currentNode: {
+    get() {
+      return unmarshalNode(_currentNode.call(this), this.tree);
+    },
+    configurable: true,
+  },
+  startPosition: {
+    get() {
+      _startPosition.call(this);
+      return unmarshalPoint();
+    },
+    configurable: true,
+  },
+  endPosition: {
+    get() {
+      _endPosition.call(this);
+      return unmarshalPoint();
+    },
+    configurable: true,
+  },
+});
+
+TreeCursor.prototype.reset = function(node) {
+  marshalNode(node);
+  _reset.call(this);
 }
 
 /*

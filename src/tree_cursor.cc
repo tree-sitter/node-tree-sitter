@@ -22,14 +22,14 @@ class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
       InstanceAccessor("nodeIsNamed", &TreeCursor::NodeIsNamed, nullptr),
       InstanceAccessor("currentFieldName", &TreeCursor::CurrentFieldName, nullptr),
 
-      InstanceMethod("startPosition", &TreeCursor::StartPosition, napi_configurable),
-      InstanceMethod("endPosition", &TreeCursor::EndPosition, napi_configurable),
+      InstanceMethod("_startPosition", &TreeCursor::StartPosition, napi_configurable),
+      InstanceMethod("_endPosition", &TreeCursor::EndPosition, napi_configurable),
       InstanceMethod("gotoParent", &TreeCursor::GotoParent),
       InstanceMethod("gotoFirstChild", &TreeCursor::GotoFirstChild),
       InstanceMethod("gotoFirstChildForIndex", &TreeCursor::GotoFirstChildForIndex),
       InstanceMethod("gotoNextSibling", &TreeCursor::GotoNextSibling),
-      InstanceMethod("currentNode", &TreeCursor::CurrentNode, napi_configurable),
-      InstanceMethod("reset", &TreeCursor::Reset),
+      InstanceMethod("_currentNode", &TreeCursor::CurrentNode, napi_configurable),
+      InstanceMethod("_reset", &TreeCursor::Reset),
     });
 
     instance->tree_cursor_constructor = new Napi::FunctionReference();
