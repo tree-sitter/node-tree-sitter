@@ -16,16 +16,17 @@ const {Query, Parser, NodeMethods, Tree, TreeCursor} = binding;
  * Tree
  */
 
-const {rootNode, edit} = Tree.prototype;
+const {_rootNode, _edit} = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
-    return unmarshalNode(rootNode.call(this), this);
-  }
+    return unmarshalNode(_rootNode.call(this), this);
+  },
+  configurable: true
 });
 
 Tree.prototype.edit = function(arg) {
-  edit.call(
+  _edit.call(
     this,
     arg.startPosition.row, arg.startPosition.column,
     arg.oldEndPosition.row, arg.oldEndPosition.column,
@@ -340,36 +341,34 @@ Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges
  * TreeCursor
  */
 
-const {startPosition, endPosition, currentNode, reset} = TreeCursor.prototype;
+const {_startPosition, _endPosition, _currentNode, _reset} = TreeCursor.prototype;
 
 Object.defineProperties(TreeCursor.prototype, {
   currentNode: {
     get() {
-      return unmarshalNode(currentNode.call(this), this.tree);
-    }
+      return unmarshalNode(_currentNode.call(this), this.tree);
+    },
+    configurable: true,
   },
   startPosition: {
     get() {
-      startPosition.call(this);
+      _startPosition.call(this);
       return unmarshalPoint();
-    }
+    },
+    configurable: true,
   },
   endPosition: {
     get() {
-      endPosition.call(this);
+      _endPosition.call(this);
       return unmarshalPoint();
-    }
+    },
+    configurable: true,
   },
-  nodeText: {
-    get() {
-      return this.tree.getText(this)
-    }
-  }
 });
 
 TreeCursor.prototype.reset = function(node) {
   marshalNode(node);
-  reset.call(this);
+  _reset.call(this);
 }
 
 /*
