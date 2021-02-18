@@ -5,12 +5,36 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "lldb for C++",
+      "name": "basic index",
       "type": "lldb",
       "request": "launch",
       "preLaunchTask": "npm: build:dev",
       "program": "/Users/gregory.beaver/.nvm/versions/node/v14.15.4/bin/node",
       "args": "/Users/gregory.beaver/Documents/GitHub/node-tree-sitter/index.js"
+    },
+    {
+      "name": "runit",
+      "type": "lldb",
+      "request": "launch",
+      "preLaunchTask": "npm: build:dev",
+      "program": "/Users/gregory.beaver/.nvm/versions/node/v14.15.4/bin/node",
+      "args": "/Users/gregory.beaver/Documents/GitHub/node-tree-sitter/runit.js"
+    },
+    {
+      "name": "test",
+      "type": "lldb",
+      "request": "launch",
+      "preLaunchTask": "npm: build:dev",
+      "program": "/Users/gregory.beaver/.nvm/versions/node/v14.15.4/bin/node",
+      "args": "/Users/gregory.beaver/Documents/GitHub/node-tree-sitter/test.js"
+    },
+    {
+      "name": "jest test",
+      "type": "lldb",
+      "request": "launch",
+      "preLaunchTask": "npm: build:dev",
+      "program": "/Users/gregory.beaver/.nvm/versions/node/v14.15.4/bin/node",
+      "args": "/Users/gregory.beaver/.nvm/versions/node/v14.15.4/bin/npx jest"
     }
   ]
 }

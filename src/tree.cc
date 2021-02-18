@@ -16,8 +16,8 @@ void Tree::Init(Napi::Object &exports, InstanceData *instance) {
   Napi::Env env = exports.Env();
 
   Napi::Function ctor = DefineClass(env, "Tree", {
-    InstanceMethod("edit", &Tree::Edit, napi_writable),
-    InstanceMethod("rootNode", &Tree::RootNode, napi_configurable),
+    InstanceMethod("_edit", &Tree::Edit),
+    InstanceMethod("_rootNode", &Tree::RootNode),
     InstanceMethod("printDotGraph", &Tree::PrintDotGraph),
     InstanceMethod("getChangedRanges", &Tree::GetChangedRanges),
     InstanceMethod("getEditedRange", &Tree::GetEditedRange),

@@ -69,5 +69,6 @@
     "unordered_set": "cpp",
     "utility": "cpp",
     "vector": "cpp"
-  }
+  },
+  "python.pythonPath": "/usr/local/bin/python3"
 }

@@ -1,34 +1,45 @@
 const binding = require("bindings")("tree_sitter_runtime_binding");
 
-const util = require('util')
-const {Query, Parser, NodeMethods, Tree, TreeCursor, unmarshalPoint } = binding;
+const util = require("util");
+const {
+  Query,
+  Parser,
+  NodeMethods,
+  Tree,
+  TreeCursor: _TreeCursor,
+  unmarshalPoint,
+} = binding;
 
 /*
  * Tree
  */
 
-const {rootNode, edit} = Tree.prototype;
+const { _rootNode, _edit } = Tree.prototype;
 
-Object.defineProperty(Tree.prototype, 'rootNode', {
+Object.defineProperty(Tree.prototype, "rootNode", {
   get() {
-    return unmarshalNode(rootNode.call(this), this);
-  }
+    return unmarshalNode(_rootNode.call(this), this);
+  },
+  configurable: true,
 });
 
-Tree.prototype.edit = function(arg) {
-  edit.call(
+Tree.prototype.edit = function (arg) {
+  _edit.call(
     this,
-    arg.startPosition.row, arg.startPosition.column,
-    arg.oldEndPosition.row, arg.oldEndPosition.column,
-    arg.newEndPosition.row, arg.newEndPosition.column,
+    arg.startPosition.row,
+    arg.startPosition.column,
+    arg.oldEndPosition.row,
+    arg.oldEndPosition.column,
+    arg.newEndPosition.row,
+    arg.newEndPosition.column,
     arg.startIndex,
     arg.oldEndIndex,
     arg.newEndIndex
   );
 };
 
-Tree.prototype.walk = function() {
-  return this.rootNode.walk()
+Tree.prototype.walk = function () {
+  return this.rootNode.walk();
 };
 
 /*
@@ -41,12 +52,23 @@ class SyntaxNode {
   }
 
   [util.inspect.custom]() {
-    return this.constructor.name + ' {\n' +
-      '  type: ' + this.type + ',\n' +
-      '  startPosition: ' + pointToString(this.startPosition) + ',\n' +
-      '  endPosition: ' + pointToString(this.endPosition) + ',\n' +
-      '  childCount: ' + this.childCount + ',\n' +
-      '}'
+    return (
+      this.constructor.name +
+      " {\n" +
+      "  type: " +
+      this.type +
+      ",\n" +
+      "  startPosition: " +
+      pointToString(this.startPosition) +
+      ",\n" +
+      "  endPosition: " +
+      pointToString(this.endPosition) +
+      ",\n" +
+      "  childCount: " +
+      this.childCount +
+      ",\n" +
+      "}"
+    );
   }
 
   get type() {
@@ -152,7 +174,10 @@ class SyntaxNode {
 
   get previousNamedSibling() {
     marshalNode(this);
-    return unmarshalNode(NodeMethods.previousNamedSibling(this.tree), this.tree);
+    return unmarshalNode(
+      NodeMethods.previousNamedSibling(this.tree),
+      this.tree
+    );
   }
 
   hasChanges() {
@@ -187,51 +212,72 @@ class SyntaxNode {
 
   firstChildForIndex(index) {
     marshalNode(this);
-    return unmarshalNode(NodeMethods.firstChildForIndex(this.tree, index), this.tree);
+    return unmarshalNode(
+      NodeMethods.firstChildForIndex(this.tree, index),
+      this.tree
+    );
   }
 
   firstNamedChildForIndex(index) {
     marshalNode(this);
-    return unmarshalNode(NodeMethods.firstNamedChildForIndex(this.tree, index), this.tree);
+    return unmarshalNode(
+      NodeMethods.firstNamedChildForIndex(this.tree, index),
+      this.tree
+    );
   }
 
   namedDescendantForIndex(start, end) {
     marshalNode(this);
     if (end == null) end = start;
-    return unmarshalNode(NodeMethods.namedDescendantForIndex(this.tree, start, end), this.tree);
+    return unmarshalNode(
+      NodeMethods.namedDescendantForIndex(this.tree, start, end),
+      this.tree
+    );
   }
 
   descendantForIndex(start, end) {
     marshalNode(this);
     if (end == null) end = start;
-    return unmarshalNode(NodeMethods.descendantForIndex(this.tree, start, end), this.tree);
+    return unmarshalNode(
+      NodeMethods.descendantForIndex(this.tree, start, end),
+      this.tree
+    );
   }
 
   descendantsOfType(types, start, end) {
     marshalNode(this);
-    if (typeof types === 'string') types = [types]
-    return unmarshalNodes(NodeMethods.descendantsOfType(this.tree, types, start, end), this.tree);
+    if (typeof types === "string") types = [types];
+    return unmarshalNodes(
+      NodeMethods.descendantsOfType(this.tree, types, start, end),
+      this.tree
+    );
   }
 
   namedDescendantForPosition(start, end) {
     marshalNode(this);
     if (end == null) end = start;
-    return unmarshalNode(NodeMethods.namedDescendantForPosition(this.tree, start, end), this.tree);
+    return unmarshalNode(
+      NodeMethods.namedDescendantForPosition(this.tree, start, end),
+      this.tree
+    );
   }
 
   descendantForPosition(start, end) {
     marshalNode(this);
     if (end == null) end = start;
-    return unmarshalNode(NodeMethods.descendantForPosition(this.tree, start, end), this.tree);
+    return unmarshalNode(
+      NodeMethods.descendantForPosition(this.tree, start, end),
+      this.tree
+    );
   }
 
   closest(types) {
     marshalNode(this);
-    if (typeof types === 'string') types = [types]
+    if (typeof types === "string") types = [types];
     return unmarshalNode(NodeMethods.closest(this.tree, types), this.tree);
   }
 
-  walk () {
+  walk() {
     marshalNode(this);
     const cursor = NodeMethods.walk(this.tree);
     cursor.tree = this.tree;
@@ -243,64 +289,71 @@ class SyntaxNode {
  * Parser
  */
 
-const {parse, parseTextBuffer, parseTextBufferSync, setLanguage} = Parser.prototype;
-const languageSymbol = Symbol('parser.language');
+const {
+  parse,
+  parseTextBuffer,
+  parseTextBufferSync,
+  setLanguage,
+} = Parser.prototype;
+const languageSymbol = Symbol("parser.language");
 
-Parser.prototype.setLanguage = function(language) {
+Parser.prototype.setLanguage = function (language) {
   setLanguage.call(this, language);
   this[languageSymbol] = language;
   if (!language.nodeSubclasses) {
-    initializeLanguageNodeClasses(language)
+    initializeLanguageNodeClasses(language);
   }
   return this;
 };
 
-Parser.prototype.getLanguage = function(language) {
+Parser.prototype.getLanguage = function (language) {
   return this[languageSymbol] || null;
 };
 
-Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={}) {
-  let getText, treeInput = input
-  if (typeof input === 'string') {
+Parser.prototype.parse = function (
+  input,
+  oldTree,
+  { bufferSize, includedRanges } = {}
+) {
+  let getText,
+    treeInput = input;
+  if (typeof input === "string") {
     const inputString = input;
-    input = (offset, position) => inputString.slice(offset)
-    getText = getTextFromString
+    input = (offset, position) => inputString.slice(offset);
+    getText = getTextFromString;
   } else {
-    getText = getTextFromFunction
+    getText = getTextFromFunction;
   }
 
-  const tree = parse.call(
-    this,
-    input,
-    oldTree,
-    bufferSize,
-    includedRanges
-  );
+  const tree = parse.call(this, input, oldTree, bufferSize, includedRanges);
   if (tree) {
-    tree.input = treeInput
-    tree.getText = getText
-    tree.language = this.getLanguage()
+    tree.input = treeInput;
+    tree.getText = getText;
+    tree.language = this.getLanguage();
   }
-  return tree
+  return tree;
 };
 
-Parser.prototype.parseTextBuffer = function(
-  buffer, oldTree,
-  {syncTimeoutMicros, includedRanges} = {}
+Parser.prototype.parseTextBuffer = function (
+  buffer,
+  oldTree,
+  { syncTimeoutMicros, includedRanges } = {}
 ) {
-  let tree
-  let resolveTreePromise
-  const treePromise = new Promise(resolve => { resolveTreePromise = resolve })
+  let tree;
+  let resolveTreePromise;
+  const treePromise = new Promise((resolve) => {
+    resolveTreePromise = resolve;
+  });
   const snapshot = buffer.getSnapshot();
   parseTextBuffer.call(
     this,
-    result => {
-      tree = result
+    (result) => {
+      tree = result;
       snapshot.destroy();
       if (tree) {
-        tree.input = buffer
-        tree.getText = getTextFromTextBuffer
-        tree.language = this.getLanguage()
+        tree.input = buffer;
+        tree.getText = getTextFromTextBuffer;
+        tree.language = this.getLanguage();
       }
       resolveTreePromise(tree);
     },
@@ -313,16 +366,25 @@ Parser.prototype.parseTextBuffer = function(
   // If the parse finished synchronously within the time specified by the
   // `syncTimeoutMicros` parameter, then return the tree immediately
   // so that callers have the option of continuing synchronously.
-  return tree || treePromise
+  return tree || treePromise;
 };
 
-Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges}={}) {
+Parser.prototype.parseTextBufferSync = function (
+  buffer,
+  oldTree,
+  { includedRanges } = {}
+) {
   const snapshot = buffer.getSnapshot();
-  const tree = parseTextBufferSync.call(this, snapshot, oldTree, includedRanges);
+  const tree = parseTextBufferSync.call(
+    this,
+    snapshot,
+    oldTree,
+    includedRanges
+  );
   if (tree) {
     tree.input = buffer;
     tree.getText = getTextFromTextBuffer;
-    tree.language = this.getLanguage()
+    tree.language = this.getLanguage();
   }
   snapshot.destroy();
   return tree;
@@ -332,53 +394,55 @@ Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges
  * TreeCursor
  */
 
-const {startPosition, endPosition, currentNode, reset} = TreeCursor.prototype;
-
-Object.defineProperties(TreeCursor.prototype, {
-  currentNode: {
-    get() {
-      return unmarshalNode(currentNode.call(this), this.tree);
-    }
-  },
-  startPosition: {
-    get() {
-      startPosition.call(this);
-      return unmarshalPoint();
-    }
-  },
-  endPosition: {
-    get() {
-      endPosition.call(this);
-      return unmarshalPoint();
-    }
-  },
-  nodeText: {
-    get() {
-      return this.tree.getText(this)
-    }
+const {
+  startPosition,
+  endPosition,
+  currentNode,
+  reset,
+} = _TreeCursor.prototype;
+class TreeCursor {
+  constructor(...args) {
+    return new Proxy(new _TreeCursor(...args), {
+      get(target, key) {
+        switch (key) {
+          case "currentNode":
+            return unmarshalNode(target.currentNode(), target.tree);
+          case "startPosition":
+          case "endPosition":
+            target[target];
+            return unmarshalPoint();
+          case "nodeText":
+            return target.tree.getText(target);
+          case "reset":
+            return (node) => {
+              marshalNode(node);
+              target.reset();
+            };
+          default:
+            // fall through to the original method
+            break;
+        }
+        return Reflect.get(...arguments);
+      },
+    });
   }
-});
-
-TreeCursor.prototype.reset = function(node) {
-  marshalNode(node);
-  reset.call(this);
 }
 
 /*
  * Query
  */
 
-const {_matches, _captures} = Query.prototype;
+const { _matches, _captures } = Query.prototype;
 
 const PREDICATE_STEP_TYPE = {
   DONE: 0,
   CAPTURE: 1,
   STRING: 2,
-}
+};
 
 const ZERO_POINT = { row: 0, column: 0 };
 
-Query.prototype._init = function() {
+Query.prototype._init = function () {
   /*
    * Initializa predicate functions
    * format: [type1, value1, type2, value2, ...]
@@ -391,20 +455,19 @@ Query.prototype._init = function() {
   const refutedProperties = new Array(patternCount);
   const predicates = new Array(patternCount);
 
-  const FIRST  = 0
-  const SECOND = 2
-  const THIRD  = 4
+  const FIRST = 0;
+  const SECOND = 2;
+  const THIRD = 4;
 
   for (let i = 0; i < predicateDescriptions.length; i++) {
     predicates[i] = [];
 
     for (let j = 0; j < predicateDescriptions[i].length; j++) {
-
       const steps = predicateDescriptions[i][j];
       const stepsLength = steps.length / 2;
 
       if (steps[FIRST] !== PREDICATE_STEP_TYPE.STRING) {
-        throw new Error('Predicates must begin with a literal value');
+        throw new Error("Predicates must begin with a literal value");
       }
 
       const operator = steps[FIRST + 1];
@@ -412,20 +475,26 @@ Query.prototype._init = function() {
       let isPositive = true;
 
       switch (operator) {
-        case 'not-eq?':
+        case "not-eq?":
           isPositive = false;
-        case 'eq?':
-          if (stepsLength !== 3) throw new Error(
-            `Wrong number of arguments to \`#eq?\` predicate. Expected 2, got ${stepsLength - 1}`
-          );
-          if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
-            `First argument of \`#eq?\` predicate must be a capture. Got "${steps[SECOND + 1]}"`
-          );
+        case "eq?":
+          if (stepsLength !== 3)
+            throw new Error(
+              `Wrong number of arguments to \`#eq?\` predicate. Expected 2, got ${
+                stepsLength - 1
+              }`
+            );
+          if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE)
+            throw new Error(
+              `First argument of \`#eq?\` predicate must be a capture. Got "${
+                steps[SECOND + 1]
+              }"`
+            );
           if (steps[THIRD] === PREDICATE_STEP_TYPE.CAPTURE) {
             const captureName1 = steps[SECOND + 1];
-            const captureName2 = steps[THIRD  + 1];
-            predicates[i].push(function(captures) {
-              let node1, node2
+            const captureName2 = steps[THIRD + 1];
+            predicates[i].push(function (captures) {
+              let node1, node2;
               for (const c of captures) {
                 if (c.name === captureName1) node1 = c.node;
                 if (c.name === captureName2) node2 = c.node;
@@ -434,31 +503,40 @@ Query.prototype._init = function() {
             });
           } else {
             const captureName = steps[SECOND + 1];
-            const stringValue = steps[THIRD  + 1];
-            predicates[i].push(function(captures) {
+            const stringValue = steps[THIRD + 1];
+            predicates[i].push(function (captures) {
               for (const c of captures) {
                 if (c.name === captureName) {
                   return (c.node.text === stringValue) === isPositive;
-                };
+                }
               }
               return false;
             });
           }
           break;
 
-        case 'match?':
-          if (stepsLength !== 3) throw new Error(
-            `Wrong number of arguments to \`#match?\` predicate. Expected 2, got ${stepsLength - 1}.`
-          );
-          if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
-            `First argument of \`#match?\` predicate must be a capture. Got "${steps[SECOND + 1]}".`
-          );
-          if (steps[THIRD] !== PREDICATE_STEP_TYPE.STRING) throw new Error(
-            `Second argument of \`#match?\` predicate must be a string. Got @${steps[THIRD + 1]}.`
-          );
+        case "match?":
+          if (stepsLength !== 3)
+            throw new Error(
+              `Wrong number of arguments to \`#match?\` predicate. Expected 2, got ${
+                stepsLength - 1
+              }.`
+            );
+          if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE)
+            throw new Error(
+              `First argument of \`#match?\` predicate must be a capture. Got "${
+                steps[SECOND + 1]
+              }".`
+            );
+          if (steps[THIRD] !== PREDICATE_STEP_TYPE.STRING)
+            throw new Error(
+              `Second argument of \`#match?\` predicate must be a string. Got @${
+                steps[THIRD + 1]
+              }.`
+            );
           const captureName = steps[SECOND + 1];
           const regex = new RegExp(steps[THIRD + 1]);
-          predicates[i].push(function(captures) {
+          predicates[i].push(function (captures) {
             for (const c of captures) {
               if (c.name === captureName) return regex.test(c.node.text);
             }
@@ -466,28 +544,49 @@ Query.prototype._init = function() {
           });
           break;
 
-        case 'set!':
-          if (stepsLength < 2 || stepsLength > 3) throw new Error(
-            `Wrong number of arguments to \`#set!\` predicate. Expected 1 or 2. Got ${stepsLength - 1}.`
-          );
-          if (steps.some((s, i) => (i % 2 !== 1) && s !== PREDICATE_STEP_TYPE.STRING)) throw new Error(
-            `Arguments to \`#set!\` predicate must be a strings.".`
-          );
+        case "set!":
+          if (stepsLength < 2 || stepsLength > 3)
+            throw new Error(
+              `Wrong number of arguments to \`#set!\` predicate. Expected 1 or 2. Got ${
+                stepsLength - 1
+              }.`
+            );
+          if (
+            steps.some(
+              (s, i) => i % 2 !== 1 && s !== PREDICATE_STEP_TYPE.STRING
+            )
+          )
+            throw new Error(
+              `Arguments to \`#set!\` predicate must be a strings.".`
+            );
           if (!setProperties[i]) setProperties[i] = {};
-          setProperties[i][steps[SECOND + 1]] = steps[THIRD] ? steps[THIRD + 1] : null;
+          setProperties[i][steps[SECOND + 1]] = steps[THIRD]
+            ? steps[THIRD + 1]
+            : null;
           break;
 
-        case 'is?':
-        case 'is-not?':
-          if (stepsLength < 2 || stepsLength > 3) throw new Error(
-            `Wrong number of arguments to \`#${operator}\` predicate. Expected 1 or 2. Got ${stepsLength - 1}.`
-          );
-          if (steps.some((s, i) => (i % 2 !== 1) && s !== PREDICATE_STEP_TYPE.STRING)) throw new Error(
-            `Arguments to \`#${operator}\` predicate must be a strings.".`
-          );
-          const properties = operator === 'is?' ? assertedProperties : refutedProperties;
+        case "is?":
+        case "is-not?":
+          if (stepsLength < 2 || stepsLength > 3)
+            throw new Error(
+              `Wrong number of arguments to \`#${operator}\` predicate. Expected 1 or 2. Got ${
+                stepsLength - 1
+              }.`
+            );
+          if (
+            steps.some(
+              (s, i) => i % 2 !== 1 && s !== PREDICATE_STEP_TYPE.STRING
+            )
+          )
+            throw new Error(
+              `Arguments to \`#${operator}\` predicate must be a strings.".`
+            );
+          const properties =
+            operator === "is?" ? assertedProperties : refutedProperties;
           if (!properties[i]) properties[i] = {};
-          properties[i][steps[SECOND + 1]] = steps[THIRD] ? steps[THIRD + 1] : null;
+          properties[i][steps[SECOND + 1]] = steps[THIRD]
+            ? steps[THIRD + 1]
+            : null;
           break;
 
         default:
@@ -500,33 +599,44 @@ Query.prototype._init = function() {
   this.setProperties = Object.freeze(setProperties);
   this.assertedProperties = Object.freeze(assertedProperties);
   this.refutedProperties = Object.freeze(refutedProperties);
-}
+};
 
-Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POINT) {
+Query.prototype.matches = function (
+  rootNode,
+  start = ZERO_POINT,
+  end = ZERO_POINT
+) {
   marshalNode(rootNode);
-  const [returnedMatches, returnedNodes] = _matches.call(this, rootNode.tree,
-    start.row, start.column,
-    end.row, end.column
+  const [returnedMatches, returnedNodes] = _matches.call(
+    this,
+    rootNode.tree,
+    start.row,
+    start.column,
+    end.row,
+    end.column
   );
   const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
   const results = [];
 
-  let i = 0
+  let i = 0;
   let nodeIndex = 0;
   while (i < returnedMatches.length) {
     const patternIndex = returnedMatches[i++];
     const captures = [];
 
-    while (i < returnedMatches.length && typeof returnedMatches[i] === 'string') {
+    while (
+      i < returnedMatches.length &&
+      typeof returnedMatches[i] === "string"
+    ) {
       const captureName = returnedMatches[i++];
       captures.push({
         name: captureName,
         node: nodes[nodeIndex++],
-      })
+      });
     }
 
-    if (this.predicates[patternIndex].every(p => p(captures))) {
-      const result = {pattern: patternIndex, captures};
+    if (this.predicates[patternIndex].every((p) => p(captures))) {
+      const result = { pattern: patternIndex, captures };
       const setProperties = this.setProperties[patternIndex];
       const assertedProperties = this.assertedProperties[patternIndex];
       const refutedProperties = this.refutedProperties[patternIndex];
@@ -538,33 +648,44 @@ Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POIN
   }
 
   return results;
-}
+};
 
-Query.prototype.captures = function(rootNode, start = ZERO_POINT, end = ZERO_POINT) {
+Query.prototype.captures = function (
+  rootNode,
+  start = ZERO_POINT,
+  end = ZERO_POINT
+) {
   marshalNode(rootNode);
-  const [returnedMatches, returnedNodes] = _captures.call(this, rootNode.tree,
-    start.row, start.column,
-    end.row, end.column
+  const [returnedMatches, returnedNodes] = _captures.call(
+    this,
+    rootNode.tree,
+    start.row,
+    start.column,
+    end.row,
+    end.column
   );
   const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
   const results = [];
 
-  let i = 0
+  let i = 0;
   let nodeIndex = 0;
   while (i < returnedMatches.length) {
     const patternIndex = returnedMatches[i++];
     const captureIndex = returnedMatches[i++];
     const captures = [];
 
-    while (i < returnedMatches.length && typeof returnedMatches[i] === 'string') {
+    while (
+      i < returnedMatches.length &&
+      typeof returnedMatches[i] === "string"
+    ) {
       const captureName = returnedMatches[i++];
       captures.push({
         name: captureName,
         node: nodes[nodeIndex++],
-      })
+      });
     }
 
-    if (this.predicates[patternIndex].every(p => p(captures))) {
+    if (this.predicates[patternIndex].every((p) => p(captures))) {
       const result = captures[captureIndex];
       const setProperties = this.setProperties[patternIndex];
       const assertedProperties = this.assertedProperties[patternIndex];
@@ -577,19 +698,19 @@ Query.prototype.captures = function(rootNode, start = ZERO_POINT, end = ZERO_POI
   }
 
   return results;
-}
+};
 
 /*
  * Other functions
  */
 
-function getTextFromString (node) {
+function getTextFromString(node) {
   return this.input.substring(node.startIndex, node.endIndex);
 }
 
-function getTextFromFunction ({startIndex, endIndex}) {
-  const {input} = this
-  let result = '';
+function getTextFromFunction({ startIndex, endIndex }) {
+  const { input } = this;
+  let result = "";
   const goalLength = endIndex - startIndex;
   while (result.length < goalLength) {
     const text = input(startIndex + result.length);
@@ -598,51 +719,49 @@ function getTextFromFunction ({startIndex, endIndex}) {
   return result.substr(0, goalLength);
 }
 
-function getTextFromTextBuffer ({startPosition, endPosition}) {
-  return this.input.getTextInRange({start: startPosition, end: endPosition});
+function getTextFromTextBuffer({ startPosition, endPosition }) {
+  return this.input.getTextInRange({ start: startPosition, end: endPosition });
 }
 
 const NODE_FIELD_COUNT = 6;
-const ERROR_TYPE_ID = 0xFFFF
+const ERROR_TYPE_ID = 0xffff;
 
 function getID(buffer, offset) {
-  const low  = BigInt(buffer[offset]);
+  const low = BigInt(buffer[offset]);
   const high = BigInt(buffer[offset + 1]);
   return (high << 32n) + low;
 }
 
 function unmarshalNode(value, tree, offset = 0, cache = null) {
   /* case 1: node from the tree cache */
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     const node = value;
     return node;
   }
 
   /* case 2: node being transferred */
   const nodeTypeId = value;
-  const NodeClass = nodeTypeId === ERROR_TYPE_ID
-    ? SyntaxNode
-    : tree.language.nodeSubclasses[nodeTypeId];
+  const NodeClass =
+    nodeTypeId === ERROR_TYPE_ID
+      ? SyntaxNode
+      : tree.language.nodeSubclasses[nodeTypeId];
 
   const nodeTransferArray = NodeMethods.nodeTransferArray;
-  const id = getID(nodeTransferArray, offset)
+  const id = getID(nodeTransferArray, offset);
   if (id === 0n) {
-    return null
+    return null;
   }
 
   let cachedResult;
-  if (cache && (cachedResult = cache.get(id)))
-    return cachedResult;
+  if (cache && (cachedResult = cache.get(id))) return cachedResult;
 
   const result = new NodeClass(tree);
   for (let i = 0; i < NODE_FIELD_COUNT; i++) {
     result[i] = nodeTransferArray[offset + i];
   }
 
-  if (cache)
-    cache.set(id, result);
-  else
-    tree._cacheNode(result);
+  if (cache) cache.set(id, result);
+  else tree._cacheNode(result);
 
   return result;
 }
@@ -651,11 +770,11 @@ function unmarshalNodes(nodes, tree) {
   const cache = new Map();
 
   let offset = 0;
-  for (let i = 0, {length} = nodes; i < length; i++) {
+  for (let i = 0, { length } = nodes; i < length; i++) {
     const node = unmarshalNode(nodes[i], tree, offset, cache);
     if (node !== nodes[i]) {
       nodes[i] = node;
-      offset += NODE_FIELD_COUNT
+      offset += NODE_FIELD_COUNT;
     }
   }
 
@@ -687,45 +806,51 @@ function initializeLanguageNodeClasses(language) {
     const typeName = nodeTypeNamesById[id];
     if (!typeName) continue;
 
-    const typeInfo = nodeTypeInfo.find(info => info.named && info.type === typeName);
+    const typeInfo = nodeTypeInfo.find(
+      (info) => info.named && info.type === typeName
+    );
     if (!typeInfo) continue;
 
     const fieldNames = [];
-    let classBody = '\n';
+    let classBody = "\n";
     if (typeInfo.fields) {
       for (const fieldName in typeInfo.fields) {
         const fieldId = nodeFieldNamesById.indexOf(fieldName);
         if (fieldId === -1) continue;
         if (typeInfo.fields[fieldName].multiple) {
-          const getterName = camelCase(fieldName) + 'Nodes';
+          const getterName = camelCase(fieldName) + "Nodes";
           fieldNames.push(getterName);
-          classBody += `
+          classBody +=
+            `
             get ${getterName}() {
               marshalNode(this);
               return unmarshalNodes(NodeMethods.childNodesForFieldId(this.tree, ${fieldId}), this.tree);
             }
-          `.replace(/\s+/g, ' ') + '\n';
+          `.replace(/\s+/g, " ") + "\n";
         } else {
-          const getterName = camelCase(fieldName, false) + 'Node';
+          const getterName = camelCase(fieldName, false) + "Node";
           fieldNames.push(getterName);
-          classBody += `
+          classBody +=
+            `
             get ${getterName}() {
               marshalNode(this);
               return unmarshalNode(NodeMethods.childNodeForFieldId(this.tree, ${fieldId}), this.tree);
             }
-          `.replace(/\s+/g, ' ') + '\n';
+          `.replace(/\s+/g, " ") + "\n";
         }
       }
     }
 
-    const className = camelCase(typeName, true) + 'Node';
-    const nodeSubclass = eval(`class ${className} extends SyntaxNode {${classBody}}; ${className}`);
+    const className = camelCase(typeName, true) + "Node";
+    const nodeSubclass = eval(
+      `class ${className} extends SyntaxNode {${classBody}}; ${className}`
+    );
     nodeSubclass.prototype.type = typeName;
-    nodeSubclass.prototype.fields = Object.freeze(fieldNames.sort())
+    nodeSubclass.prototype.fields = Object.freeze(fieldNames.sort());
     nodeSubclasses[id] = nodeSubclass;
   }
 
-  language.nodeSubclasses = nodeSubclasses
+  language.nodeSubclasses = nodeSubclasses;
 }
 
 function camelCase(name, upperCase) {
@@ -739,3 +864,4 @@ module.exports.Query = Query;
 module.exports.Tree = Tree;
 module.exports.SyntaxNode = SyntaxNode;
 module.exports.TreeCursor = TreeCursor;
+module.exports.Parser = Parser;
