@@ -32,7 +32,7 @@ void Tree::Init(Napi::Object &exports, InstanceData *instance) {
 
 Tree::Tree(const Napi::CallbackInfo& info)
   : Napi::ObjectWrap<Tree>(info) {
-  this->tree_ = nullptr;
+  tree_ = nullptr;
 }
 
 Tree::~Tree() {

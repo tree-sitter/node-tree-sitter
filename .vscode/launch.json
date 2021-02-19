@@ -26,7 +26,7 @@
       "request": "launch",
       "preLaunchTask": "npm: build:dev",
       "program": "/Users/gregory.beaver/.nvm/versions/node/v14.15.4/bin/node",
-      "args": "/Users/gregory.beaver/Documents/GitHub/node-tree-sitter/test.js"
+      "args": "/Users/gregory.beaver/Documents/GitHub/node-tree-sitter/node_modules/.bin/mocha"
     },
     {
       "name": "jest test",

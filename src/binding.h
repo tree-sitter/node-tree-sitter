@@ -15,7 +15,7 @@ struct InstanceData {
   Napi::FunctionReference *tree_cursor_constructor;
   uint32_t *node_transfer_buffer;
   uint32_t node_transfer_buffer_length;
-  Napi::Uint32Array transfer_array;
+  Napi::Reference<Napi::Uint32Array> *node_transfer_array_ref;
 };
 
 InstanceData *GetInternalData(Napi::Env);

@@ -19,7 +19,6 @@ InstanceData *GetInternalData(Env env) {
 
 void InstanceDataFinalizer(Env env, InstanceData *instance) {
   free(instance->point_transfer_buffer);
-  free(instance->node_transfer_buffer);
 }
 
 }
