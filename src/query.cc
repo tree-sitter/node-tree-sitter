@@ -21,6 +21,7 @@ const char *query_error_names[] = {
   "TSQueryErrorNodeType",
   "TSQueryErrorField",
   "TSQueryErrorCapture",
+  "TSQueryErrorStructure",
 };
 
 TSQueryCursor *Query::ts_query_cursor;
