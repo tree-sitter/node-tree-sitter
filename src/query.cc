@@ -40,23 +40,33 @@ void Query::Init(Napi::Object exports, InstanceData *instance) {
 }
 
 Query::Query(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Query>(info) {
+  query_ = nullptr;
+  ts_query_cursor = nullptr;
   Napi::Env env = info.Env();
-  ts_query_cursor = ts_query_cursor_new();
 
-  const TSLanguage *language = UnwrapLanguage(env, info[0]);
+  if (info.Length() != 2) {
+    Napi::TypeError::New(env, "Missing language and source arguments").ThrowAsJavaScriptException();
+    return;
+  }
   const char *source;
   uint32_t source_len;
   uint32_t error_offset = 0;
   TSQueryError error_type = TSQueryErrorNone;
+  const TSLanguage *language = UnwrapLanguage(env, info[0]);
 
+  if (env.IsExceptionPending()) {
+    return;
+  }
   if (language == nullptr) {
-    Napi::TypeError::New(env, "Missing language argument").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "language argument is not a tree-sitter language").ThrowAsJavaScriptException();
     return;
   }
 
   if (info[1].IsString()) {
     Napi::String string = info[1].As<Napi::String>();
-    source = string.Utf8Value().c_str();
+    std::string utf8 = string.Utf8Value();
+    source = utf8.c_str();
+    printf("first %s", source);
     source_len = strlen(source);
   }
   else if (info[1].IsBuffer()) {
@@ -64,25 +74,18 @@ Query::Query(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Query>(info) {
     source_len = info[1].As<Napi::Buffer<char> >().Length();
   }
   else {
-    Napi::TypeError::New(env, "Missing source argument").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "source argument must be a string or buffer").ThrowAsJavaScriptException();
     return;
   }
-  // we can't use source directly. Because source is a local variable, it is overwritten
-  // inside ts_query_new in certain cases. This way guarantees we get a unique address
-  // at the expense of greater memory use
-  char *copied_source = static_cast<char *>(malloc(source_len));
-  strncpy(copied_source, source, source_len);
 
   TSQuery *query = ts_query_new(
     language,
-    copied_source,
+    source,
     source_len,
     &error_offset,
     &error_type
   );
   query_ = query;
-  // no longer need the buffer
-  free(copied_source);
 
   if (error_type > 0) {
     const char *error_name = query_error_names[error_type];
@@ -99,12 +102,17 @@ Query::Query(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Query>(info) {
   if (env.IsExceptionPending()) {
     return;
   }
+  ts_query_cursor = ts_query_cursor_new();
   _init.Call(self, {});
 }
 
 Query::~Query() {
-  ts_query_delete(query_);
-  ts_query_cursor_delete(ts_query_cursor);
+  if (query_) {
+    ts_query_delete(query_);
+  }
+  if (ts_query_cursor) {
+    ts_query_cursor_delete(ts_query_cursor);
+  }
 }
 
 Napi::Value Query::GetPredicates(const Napi::CallbackInfo&info) {
