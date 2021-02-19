@@ -66,7 +66,7 @@ Query::Query(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Query>(info) {
     Napi::String string = info[1].As<Napi::String>();
     std::string utf8 = string.Utf8Value();
     source = utf8.c_str();
-    printf("first %s", source);
+    printf("before \"%s\"\n", source);
     source_len = strlen(source);
   }
   else if (info[1].IsBuffer()) {
@@ -85,6 +85,7 @@ Query::Query(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Query>(info) {
     &error_offset,
     &error_type
   );
+  printf("after \"%s\" (this should be the same as first, but is overwritten in some cases)\n", source);
   query_ = query;
 
   if (error_type > 0) {

@@ -5,26 +5,18 @@ const { Query } = Parser;
 const parser = new Parser();
 parser.setLanguage(JavaScript);
 const tree = parser.parse(`
-a({
-  bc: function de() {
-    const fg = function hi() {}
-  },
-  jk: function lm() {
-    const no = function pq() {}
-  },
-});
+const ab = require('./ab');
+new Cd(EF);
 `);
+
 const query = new Query(JavaScript, `
-(pair
-  key: _ @method.def
-  (function
-    name: (identifier) @method.alias))
-(variable_declarator
-  name: _ @function.def
-  value: (function
-    name: (identifier) @function.alias))
-":" @delimiter
-"=" @operator
+(identifier) @variable
+((identifier) @function.builtin
+ (#eq? @function.builtin "require"))
+((identifier) @constructor
+ (#match? @constructor "^[A-Z]"))
+((identifier) @constant
+ (#match? @constant "^[A-Z]{2,}$"))
 `);
 
 const captures = query.captures(tree.rootNode);
