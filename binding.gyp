@@ -2,7 +2,13 @@
   "targets": [
     {
       "target_name": "tree_sitter_runtime_binding",
-      "dependencies": ["tree_sitter"],
+      "dependencies": [
+        "tree_sitter",
+        "<!(node -p \"require('node-addon-api').gyp\")"
+      ],
+      "defines": [
+        "NAPI_DISABLE_CPP_EXCEPTIONS=",
+      ],
       "sources": [
         "src/binding.cc",
         "src/conversions.cc",
@@ -13,22 +19,19 @@
         "src/query.cc",
         "src/tree.cc",
         "src/tree_cursor.cc",
-        "src/util.cc",
       ],
       "include_dirs": [
         "vendor/tree-sitter/lib/include",
         "vendor/superstring",
         "<!(node -e \"require('nan')\")",
+        "<!@(node -p \"require('node-addon-api').include\")",
       ],
       'conditions': [
         ['OS == "mac"', {
           'xcode_settings': {
-            'MACOSX_DEPLOYMENT_TARGET': '10.9',
+            'MACOSX_DEPLOYMENT_TARGET': '10.13',
           },
         }]
-      ],
-      "cflags": [
-        "-std=c++0x",
       ],
       'xcode_settings': {
         'CLANG_CXX_LANGUAGE_STANDARD': 'c++11',
