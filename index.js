@@ -510,11 +510,11 @@ Query.prototype._init = function() {
   this.refutedProperties = Object.freeze(refutedProperties);
 }
 
-Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POINT) {
+Query.prototype.matches = function(rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
   marshalNode(rootNode);
   const [returnedMatches, returnedNodes] = _matches.call(this, rootNode.tree,
-    start.row, start.column,
-    end.row, end.column
+    startPosition.row, startPosition.column,
+    endPosition.row, endPosition.column
   );
   const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
   const results = [];
@@ -548,11 +548,11 @@ Query.prototype.matches = function(rootNode, start = ZERO_POINT, end = ZERO_POIN
   return results;
 }
 
-Query.prototype.captures = function(rootNode, start = ZERO_POINT, end = ZERO_POINT) {
+Query.prototype.captures = function(rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
   marshalNode(rootNode);
   const [returnedMatches, returnedNodes] = _captures.call(this, rootNode.tree,
-    start.row, start.column,
-    end.row, end.column
+    startPosition.row, startPosition.column,
+    endPosition.row, endPosition.column
   );
   const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
   const results = [];
