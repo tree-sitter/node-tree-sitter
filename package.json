@@ -19,6 +19,7 @@
     "prebuild-install": "^5.0.0"
   },
   "devDependencies": {
+    "@types/node": "^14.14.31",
     "chai": "3.5.x",
     "mocha": "^5.2.0",
     "prebuild": "^7.6.0",

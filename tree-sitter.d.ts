@@ -1,10 +1,13 @@
 declare module "tree-sitter" {
   class Parser {
-    parse(input: string | Parser.Input, previousTree?: Parser.Tree, options?: {bufferSize?: number, includedRanges?: Parser.Range[]}): Parser.Tree;
+    parse(input: string | Parser.Input | Parser.InputReader, oldTree?: Parser.Tree, options?: { bufferSize?: number, includedRanges?: Parser.Range[] }): Parser.Tree;
+    parseTextBuffer(buffer: Parser.TextBuffer, oldTree?: Parser.Tree, options?: { syncTimeoutMicros?: number, includedRanges?: Parser.Range[] }): Parser.Tree | Promise<Parser.Tree>;
+    parseTextBufferSync(buffer: Parser.TextBuffer, oldTree?: Parser.Tree, options?: { includedRanges?: Parser.Range[] }): Parser.Tree;
     getLanguage(): any;
     setLanguage(language: any): void;
     getLogger(): Parser.Logger;
     setLogger(logFunc: Parser.Logger): void;
+    printDotGraphs(enabled: boolean): void;
   }
 
   namespace Parser {
@@ -35,6 +38,12 @@ declare module "tree-sitter" {
       type: "parse" | "lex"
     ) => void;
 
+    export type TextBuffer = Buffer;
+
+    export interface InputReader {
+      (index: any, position: Point): string;
+    }
+
     export interface Input {
       seek(index: number): void;
       read(): any;
@@ -43,6 +52,7 @@ declare module "tree-sitter" {
     export interface SyntaxNode {
       tree: Tree;
       type: string;
+      typeId: string;
       isNamed: boolean;
       text: string;
       startPosition: Point;
@@ -94,7 +104,8 @@ declare module "tree-sitter" {
       endPosition: Point;
       startIndex: number;
       endIndex: number;
-      readonly currentNode: SyntaxNode
+      readonly currentNode: SyntaxNode;
+      readonly currentFieldName: string;
 
       reset(node: SyntaxNode): void
       gotoParent(): boolean;
@@ -110,6 +121,33 @@ declare module "tree-sitter" {
       walk(): TreeCursor;
       getChangedRanges(other: Tree): Range[];
       getEditedRange(other: Tree): Range;
+      printDotGraph(): void;
+    }
+
+    export interface QueryMatch {
+      pattern: number,
+      captures: QueryCapture[],
+    }
+
+    export interface QueryCapture {
+      name: string,
+      text?: string,
+      node: SyntaxNode,
+      setProperties?: {[prop: string]: string | null},
+      assertedProperties?: {[prop: string]: string | null},
+      refutedProperties?: {[prop: string]: string | null},
+    }
+
+    export class Query {
+      readonly predicates: { [name: string]: Function }[];
+      readonly setProperties: any[];
+      readonly assertedProperties: any[];
+      readonly refutedProperties: any[];
+
+      constructor(language: any, source: string | Buffer);
+
+      matches(rootNode: SyntaxNode, startPosition?: Point, endPosition?: Point): QueryMatch[];
+      captures(rootNode: SyntaxNode, startPosition?: Point, endPosition?: Point): QueryCapture[];
     }
   }
 
