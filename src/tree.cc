@@ -22,8 +22,8 @@ void Tree::Init(Local<Object> exports) {
   tpl->SetClassName(class_name);
 
   FunctionPair methods[] = {
-    {"edit", Edit},
-    {"rootNode", RootNode},
+    {"_edit", Edit},
+    {"_rootNode", RootNode},
     {"printDotGraph", PrintDotGraph},
     {"getChangedRanges", GetChangedRanges},
     {"getEditedRange", GetEditedRange},
