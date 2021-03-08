@@ -95,6 +95,7 @@ void Query::New(const Nan::FunctionCallbackInfo<Value> &info) {
   uint32_t source_len;
   uint32_t error_offset = 0;
   TSQueryError error_type = TSQueryErrorNone;
+  TSQuery *query;
 
   if (language == nullptr) {
     Nan::ThrowError("Missing language argument");
@@ -103,20 +104,20 @@ void Query::New(const Nan::FunctionCallbackInfo<Value> &info) {
 
   if (info[1]->IsString()) {
     auto string = Nan::To<String> (info[1]).ToLocalChecked();
-    source = *Nan::Utf8String(string);
-    source_len = string->Length();
+    Nan::Utf8String utf8_string(string);
+    source = *utf8_string;
+    source_len = utf8_string.length();
+    query = ts_query_new(language, source, source_len, &error_offset, &error_type);
   }
   else if (node::Buffer::HasInstance(info[1])) {
     source = node::Buffer::Data(info[1]);
     source_len = node::Buffer::Length(info[1]);
+    query = ts_query_new(language, source, source_len, &error_offset, &error_type);
   }
   else {
     Nan::ThrowError("Missing source argument");
     return;
   }
-
-  TSQuery *query = ts_query_new(
-      language, source, source_len, &error_offset, &error_type);
 
   if (error_offset > 0) {
     const char *error_name = query_error_names[error_type];
