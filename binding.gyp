@@ -28,10 +28,10 @@
         }]
       ],
       "cflags": [
-        "-std=c++0x",
+        "-std=c++17",
       ],
       'xcode_settings': {
-        'CLANG_CXX_LANGUAGE_STANDARD': 'c++11',
+        'CLANG_CXX_LANGUAGE_STANDARD': 'c++17',
       },
     },
     {
