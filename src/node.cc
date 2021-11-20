@@ -29,8 +29,14 @@ static inline void setup_transfer_buffer(uint32_t node_count) {
     }
     transfer_buffer_length = new_length;
     transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
+
+    #if V8_MAJOR_VERSION >= 8
     auto backing_store = ArrayBuffer::NewBackingStore(transfer_buffer, transfer_buffer_length * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
     auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
+    #else
+    auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
+    #endif
+
     Nan::Set(
       Nan::New(module_exports),
       Nan::New("nodeTransferArray").ToLocalChecked(),
