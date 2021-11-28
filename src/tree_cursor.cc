@@ -24,6 +24,7 @@ void TreeCursor::Init(v8::Local<v8::Object> exports) {
     {"endIndex", EndIndex},
     {"nodeType", NodeType},
     {"nodeIsNamed", NodeIsNamed},
+    {"nodeIsMissing", NodeIsMissing},
     {"currentFieldName", CurrentFieldName},
   };
 
@@ -146,6 +147,13 @@ void TreeCursor::NodeIsNamed(v8::Local<v8::String> prop, const Nan::PropertyCall
   TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
 
   info.GetReturnValue().Set(Nan::New(ts_node_is_named(node)));
+}
+
+void TreeCursor::NodeIsMissing(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
+  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
+  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
+
+  info.GetReturnValue().Set(Nan::New(ts_node_is_missing(node)));
 }
 
 void TreeCursor::CurrentFieldName(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {

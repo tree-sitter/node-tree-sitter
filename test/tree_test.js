@@ -159,6 +159,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'program',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 0},
         endPosition: {row: 0, column: 13},
         startIndex: 0,
@@ -169,6 +170,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'expression_statement',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 0},
         endPosition: {row: 0, column: 13},
         startIndex: 0,
@@ -179,6 +181,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'binary_expression',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 0},
         endPosition: {row: 0, column: 13},
         startIndex: 0,
@@ -189,6 +192,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'binary_expression',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 0},
         endPosition: {row: 0, column: 5},
         startIndex: 0,
@@ -199,6 +203,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'identifier',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 0},
         endPosition: {row: 0, column: 1},
         startIndex: 0,
@@ -210,6 +215,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: '*',
         nodeIsNamed: false,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 2},
         endPosition: {row: 0, column: 3},
         startIndex: 2,
@@ -220,6 +226,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'identifier',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 4},
         endPosition: {row: 0, column: 5},
         startIndex: 4,
@@ -231,6 +238,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'binary_expression',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 0},
         endPosition: {row: 0, column: 5},
         startIndex: 0,
@@ -241,6 +249,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: '+',
         nodeIsNamed: false,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 6},
         endPosition: {row: 0, column: 7},
         startIndex: 6,
@@ -251,6 +260,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'binary_expression',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 8},
         endPosition: {row: 0, column: 13},
         startIndex: 8,
@@ -261,6 +271,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'identifier',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 12},
         endPosition: {row: 0, column: 13},
         startIndex: 12,
@@ -285,6 +296,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'binary_expression',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 0},
         endPosition: {row: 0, column: 5},
         startIndex: 0,
@@ -295,6 +307,7 @@ describe("Tree", () => {
       assertCursorState(cursor, {
         nodeType: 'identifier',
         nodeIsNamed: true,
+        nodeIsMissing: false,
         startPosition: {row: 0, column: 0},
         endPosition: {row: 0, column: 1},
         startIndex: 0,
@@ -308,8 +321,12 @@ describe("Tree", () => {
 });
 
 function assertCursorState(cursor, params) {
+  assert.isBoolean(cursor.nodeIsNamed);
+  assert.isBoolean(cursor.nodeIsMissing);
+
   assert.equal(cursor.nodeType, params.nodeType);
   assert.equal(cursor.nodeIsNamed, params.nodeIsNamed);
+  assert.equal(cursor.nodeIsMissing, params.nodeIsMissing);
   assert.deepEqual(cursor.startPosition, params.startPosition);
   assert.deepEqual(cursor.endPosition, params.endPosition);
   assert.deepEqual(cursor.startIndex, params.startIndex);
@@ -318,6 +335,7 @@ function assertCursorState(cursor, params) {
   const node = cursor.currentNode
   assert.equal(node.type, params.nodeType);
   assert.equal(node.isNamed, params.nodeIsNamed);
+  assert.equal(node.isMissing(), params.nodeIsMissing);
   assert.deepEqual(node.startPosition, params.startPosition);
   assert.deepEqual(node.endPosition, params.endPosition);
   assert.deepEqual(node.startIndex, params.startIndex);
