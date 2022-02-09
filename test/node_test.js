@@ -415,4 +415,14 @@ describe("Node", () => {
       })
     )
   })
+
+  describe(".childNodeForFieldName", () => {
+    it(`finds a child node by name`, async () => {
+      const tree = parser.parse(`1 + 2`);
+
+      const node = tree.rootNode?.firstChild?.firstChild;
+      assert.equal(node?.childNodeForFieldName("left").text, '1');
+      assert.equal(node?.childNodeForFieldName("right").text, '2');
+    });
+  })
 });

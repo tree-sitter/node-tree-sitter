@@ -669,6 +669,41 @@ static void ChildNodeForFieldId(const Nan::FunctionCallbackInfo<Value> &info) {
   MarshalNullNode();
 }
 
+static void ChildNodeForFieldName(const Nan::FunctionCallbackInfo<Value> &info) {
+  const Tree *tree = Tree::UnwrapTree(info[0]);
+  TSNode node = UnmarshalNode(tree);
+
+  if (node.id) {
+    auto maybe_field_name = Nan::To<v8::String>(info[1]);
+    
+    Local<String> local_field_name;
+    if (!maybe_field_name.ToLocal(&local_field_name)) {
+      Nan::ThrowTypeError("Second argument must be an integer");
+      return;
+    }
+
+    auto length = local_field_name->Utf8Length(
+      #if NODE_MAJOR_VERSION >= 12
+        Isolate::GetCurrent()
+      #endif
+    );
+
+    std::string field_name(length, '\0');
+    local_field_name->WriteUtf8(
+
+      #if NODE_MAJOR_VERSION >= 12
+        Isolate::GetCurrent(),
+      #endif
+
+      &field_name[0]
+    );
+    
+    MarshalNode(info, tree, ts_node_child_by_field_name(node, field_name.c_str(), length));
+    return;
+  }
+  MarshalNullNode();
+}
+
 static void Closest(const Nan::FunctionCallbackInfo<Value> &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(tree);
@@ -738,6 +773,7 @@ void Init(Local<Object> exports) {
     {"closest", Closest},
     {"childNodeForFieldId", ChildNodeForFieldId},
     {"childNodesForFieldId", ChildNodesForFieldId},
+    {"childNodeForFieldName", ChildNodeForFieldName},
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
