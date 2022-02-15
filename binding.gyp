@@ -24,7 +24,17 @@
           'xcode_settings': {
             'MACOSX_DEPLOYMENT_TARGET': '10.9',
           },
-        }]
+        }],
+        ['OS == "linux" or OS == "mac"', {
+          'cflags': [
+            '-Wno-cast-function-type',
+            '-Wno-deprecated-declarations',
+          ],
+          'cxxflags': [
+            '-Wno-cast-function-type',
+            '-Wno-deprecated-declarations',
+          ],
+        }],
       ],
       "cflags": [
         "-std=c++17",

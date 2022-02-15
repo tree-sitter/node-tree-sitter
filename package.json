@@ -29,10 +29,10 @@
   },
   "scripts": {
     "install": "node-gyp-build",
-    "prebuild-darwin": "prebuildify --all --strip --arch x64+arm64",
-    "prebuild-win32-x64": "prebuildify --all --strip",
-    "prebuild-win32-x86": "prebuildify --all --strip",
-    "prebuild-linux-x64": "prebuildify --all --strip",
+    "prebuild-darwin": "prebuildify -t 12.13.0 -t 14.19.0 -t 16.14.0 --strip --arch x64+arm64",
+    "prebuild-win32-x64": "prebuildify -t 12.13.0 -t 14.19.0 -t 16.14.0 --strip",
+    "prebuild-win32-x86": "prebuildify -t 12.13.0 -t 14.19.0 -t 16.14.0 --strip",
+    "prebuild-linux-x64": "prebuildify -t 12.13.0 -t 14.19.0 -t 16.14.0 --strip",
     "pretest": "npm run rebuild",
     "rebuild": "node-gyp rebuild",
     "test": "mocha"
