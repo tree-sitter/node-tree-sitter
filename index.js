@@ -1,22 +1,13 @@
-let binding;
-try {
-  binding = require('./build/Release/tree_sitter_runtime_binding');
-} catch (e) {
-  try {
-    binding = require('./build/Debug/tree_sitter_runtime_binding');
-  } catch (_) {
-    throw e;
-  }
-}
-
 const util = require('util')
+
+const binding = require('node-gyp-build')(__dirname);
 const {Query, Parser, NodeMethods, Tree, TreeCursor} = binding;
 
 /*
  * Tree
  */
 
-const {rootNode, edit} = Tree.prototype;
+const { rootNode, edit } = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {

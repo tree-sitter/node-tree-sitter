@@ -12,8 +12,7 @@
         "src/parser.cc",
         "src/query.cc",
         "src/tree.cc",
-        "src/tree_cursor.cc",
-        "src/util.cc",
+        "src/tree_cursor.cc"
       ],
       "include_dirs": [
         "vendor/tree-sitter/lib/include",

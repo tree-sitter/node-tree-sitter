@@ -18,8 +18,6 @@ struct FunctionPair {
   Nan::FunctionCallback callback;
 };
 
-bool instance_of(v8::Local<v8::Value> value, v8::Local<v8::Object> object);
-
 }  // namespace node_tree_sitter
 
 #endif  // NODE_TREE_SITTER_UTIL_H_
