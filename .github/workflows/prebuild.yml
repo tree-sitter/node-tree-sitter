@@ -20,10 +20,10 @@ jobs:
             os: macos-latest
             node: x64
           - name: win32-x86
-            os: windows-latest
+            os: windows-2019
             node: x86
           - name: win32-x64
-            os: windows-latest
+            os: windows-2019
             node: x64
           - name: linux-x64
             os: ubuntu-latest
