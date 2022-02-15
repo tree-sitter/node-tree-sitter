@@ -40,7 +40,7 @@ jobs:
         with:
           submodules: recursive
 
-      - run: npm install --ignore-scripts
+      - run: npm install
       - run: npm run prebuild-${{ matrix.name }}
       - run: tar -zcvf ${{ matrix.name }}.tar.gz -C prebuilds .
       - uses: actions/upload-artifact@v2
