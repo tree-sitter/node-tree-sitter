@@ -12,7 +12,6 @@ namespace node_tree_sitter {
 
 using std::vector;
 using namespace Napi;
-using node_methods::UnmarshalNodeId;
 
 const char *query_error_names[] = {
   "TSQueryErrorNone",
@@ -61,8 +60,7 @@ Query::Query(const Napi::CallbackInfo& info)
   : Napi::ObjectWrap<Query>(info)
   , query_(nullptr) {
 
-//Napi::Value Query::New(const Napi::CallbackInfo &info) {
-  const TSLanguage *language = language_methods::UnwrapLanguage(info[0]);
+  const TSLanguage *language = UnwrapLanguage(info[0]);
   const char *source;
   uint32_t source_len;
   uint32_t error_offset = 0;
@@ -159,7 +157,7 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
     return Env().Null();
   }
 
-  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSNode rootNode = UnmarshalNode(info.Env(), tree);
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
   ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
@@ -188,7 +186,7 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
     }
   }
 
-  auto js_nodes = node_methods::GetMarshalNodes(info, tree, nodes.data(), nodes.size());
+  auto js_nodes = GetMarshalNodes(info.Env(), tree, nodes.data(), nodes.size());
 
   auto result = Napi::Array::New(info.Env());
   result[0u] = js_matches;
@@ -208,7 +206,7 @@ Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
     return info.Env().Null();
   }
 
-  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSNode rootNode = UnmarshalNode(info.Env(), tree);
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
   ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
@@ -244,7 +242,7 @@ Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
     }
   }
 
-  auto js_nodes = node_methods::GetMarshalNodes(info, tree, nodes.data(), nodes.size());
+  auto js_nodes = GetMarshalNodes(info.Env(), tree, nodes.data(), nodes.size());
 
   auto result = Napi::Array::New(info.Env());
   result[0u] = js_matches;

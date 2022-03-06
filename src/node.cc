@@ -48,7 +48,7 @@ static inline bool operator<=(const TSPoint &left, const TSPoint &right) {
 }
 
 
-static Value MarshalNodes(
+Value GetMarshalNodes(
   Env env,
   const Tree *tree,
   const TSNode *nodes,
@@ -79,7 +79,10 @@ static Value MarshalNodes(
   return result;
 }
 
-Value MarshalNode(
+Value MarshalNode(Env env, const Tree *tree, TSNode node) { return GetMarshalNode(env, tree, node); }
+Value MarshalNodes(Env env, const Tree *tree, const TSNode *nodes, uint32_t node_count) { return GetMarshalNodes(env, tree, nodes, node_count); }
+
+Value GetMarshalNode(
   Env env,
   const Tree *tree,
   TSNode node

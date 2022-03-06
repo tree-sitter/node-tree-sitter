@@ -14,11 +14,10 @@ class Query : public Napi::ObjectWrap<Query> {
 
   TSQuery *query_;
 
- private:
   explicit Query(const Napi::CallbackInfo &);
   ~Query();
 
-  //static Napi::Value New(const Napi::CallbackInfo &);
+ private:
   Napi::Value Matches(const Napi::CallbackInfo &);
   Napi::Value Captures(const Napi::CallbackInfo &);
   Napi::Value GetPredicates(const Napi::CallbackInfo &);

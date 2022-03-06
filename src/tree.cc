@@ -174,10 +174,10 @@ Napi::Value Tree::PrintDotGraph(const CallbackInfo &info) {
 }
 
 static void FinalizeNode(Env env, Tree::NodeCacheEntry *cache_entry) {
-  assert(!cache_entry->node.IsEmpty());
+  //assert(!cache_entry->node.IsEmpty());
   cache_entry->node.Reset();
   if (cache_entry->tree) {
-    assert(cache_entry->tree->cached_nodes_.count(cache_entry->key));
+    //assert(cache_entry->tree->cached_nodes_.count(cache_entry->key));
     cache_entry->tree->cached_nodes_.erase(cache_entry->key);
   }
   delete cache_entry;
@@ -202,7 +202,7 @@ Napi::Value Tree::CacheNode(const CallbackInfo &info) {
   cache_entry->node.Reset(js_node, 0);
   js_node.AddFinalizer(&FinalizeNode, cache_entry);
 
-  assert(!cached_nodes_.count(key));
+  //assert(!cached_nodes_.count(key));
 
   cached_nodes_[key] = cache_entry;
   return env.Undefined();
