@@ -14,9 +14,13 @@ using namespace Napi;
 const TSLanguage *UnwrapLanguage(const Napi::Value &value) {
   Env env = value.Env();
 
-  const TSLanguage *language = static_cast<const TSLanguage *>(
-    GetInternalFieldPointer(value)
-  );
+  const TSLanguage *language
+    = value.IsString()
+    && value.As<Object>().Has("_language")
+    && value.As<Object>().Get("_language").IsExternal()
+    ? value.As<Object>().Get("_language").As<External<TSLanguage>>().Data()
+    : static_cast<const TSLanguage *>(GetInternalFieldPointer(value))
+  ;
 
   if (language) {
     uint16_t version = ts_language_version(language);
