@@ -28,9 +28,9 @@ Napi::FunctionReference Query::constructor;
 void Query::Init(Napi::Object &exports) {
   Napi::Env env = exports.Env();
   Function ctor = DefineClass(env, "Query", {
-    InstanceMethod("matches", &Query::Matches),
-    InstanceMethod("captures", &Query::Captures),
-    InstanceMethod("getPredicates", &Query::GetPredicates),
+    InstanceMethod("_matches", &Query::Matches),
+    InstanceMethod("_captures", &Query::Captures),
+    InstanceMethod("_getPredicates", &Query::GetPredicates),
   });
 
 	constructor.Reset(ctor, 1);
