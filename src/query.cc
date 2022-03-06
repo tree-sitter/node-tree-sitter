@@ -36,6 +36,7 @@ void Query::Init(Napi::Object &exports) {
   });
 
 	constructor.Reset(ctor, 1);
+  constructor.SuppressDestruct(); // statics should not destruct
   exports["Query"] = ctor;
 }
 

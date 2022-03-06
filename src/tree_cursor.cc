@@ -33,6 +33,7 @@ class TreeCursor : public Napi::ObjectWrap<TreeCursor> {
     });
 
     constructor.Reset(ctor, 1);
+    constructor.SuppressDestruct(); // statics should not destruct
     exports.Set("TreeCursor", ctor);
   }
 

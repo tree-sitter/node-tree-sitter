@@ -51,6 +51,7 @@ class Parser : public ObjectWrap<Parser> {
     assert(status == napi_ok);
 
     constructor.Reset(ctor, 1);
+    constructor.SuppressDestruct(); // statics should not destruct
     // string_slice.Reset(string_slice_fn.As<Function>(), 1);
     exports["Parser"] = ctor;
     exports["LANGUAGE_VERSION"] = Number::New(env, TREE_SITTER_LANGUAGE_VERSION);
