@@ -22,6 +22,7 @@ void Tree::Init(Object &exports) {
     InstanceMethod("getChangedRanges", &Tree::GetChangedRanges),
     InstanceMethod("getEditedRange", &Tree::GetEditedRange),
     InstanceMethod("_cacheNode", &Tree::CacheNode),
+    InstanceMethod("_cacheNodes", &Tree::CacheNodes),
   });
 
   constructor.Reset(ctor, 1);
@@ -183,14 +184,11 @@ static void FinalizeNode(Env env, Tree::NodeCacheEntry *cache_entry) {
   delete cache_entry;
 }
 
-Napi::Value Tree::CacheNode(const CallbackInfo &info) {
-  auto env = info.Env();
-  Object js_node = info[0].As<Object>();
-
+static void CacheNodeForTree(Tree *tree, Napi::Env env, Object js_node) {
   Napi::Value js_node_field1 = js_node[0u];
   Napi::Value js_node_field2 = js_node[1u];
   if (!js_node_field1.IsNumber() || !js_node_field2.IsNumber()) {
-    return env.Undefined();
+    return;
   }
   uint32_t key_parts[2] = {
     js_node_field1.As<Number>().Uint32Value(),
@@ -198,14 +196,29 @@ Napi::Value Tree::CacheNode(const CallbackInfo &info) {
   };
   const void *key = UnmarshalPointer(key_parts);
 
-  auto cache_entry = new NodeCacheEntry{this, key, {}};
+  auto cache_entry = new Tree::NodeCacheEntry{tree, key, {}};
   cache_entry->node.Reset(js_node, 0);
   js_node.AddFinalizer(&FinalizeNode, cache_entry);
 
   //assert(!cached_nodes_.count(key));
 
-  cached_nodes_[key] = cache_entry;
-  return env.Undefined();
+  tree->cached_nodes_[key] = cache_entry;
+}
+
+Napi::Value Tree::CacheNode(const CallbackInfo &info) {
+  Object js_node = info[0].As<Object>();
+  CacheNodeForTree(this, info.Env(), js_node);
+  return info.Env().Undefined();
+}
+
+Napi::Value Tree::CacheNodes(const CallbackInfo &info) {
+  Array js_nodes = info[0].As<Array>();
+  uint32_t length = js_nodes.Length();
+
+  for (uint32_t i = 0; i < length; i++) {
+    CacheNodeForTree(this, info.Env(), js_nodes.Get(i).As<Object>());
+  }
+  return info.Env().Undefined();
 }
 
 

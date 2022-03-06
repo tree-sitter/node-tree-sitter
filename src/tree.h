@@ -33,6 +33,7 @@ class Tree : public Napi::ObjectWrap<Tree> {
   Napi::Value GetEditedRange(const Napi::CallbackInfo &);
   Napi::Value GetChangedRanges(const Napi::CallbackInfo &);
   Napi::Value CacheNode(const Napi::CallbackInfo &);
+  Napi::Value CacheNodes(const Napi::CallbackInfo &);
 
   static Napi::FunctionReference constructor;
 };

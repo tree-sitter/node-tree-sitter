@@ -15,7 +15,7 @@ const TSLanguage *UnwrapLanguage(const Napi::Value &value) {
   Env env = value.Env();
 
   const TSLanguage *language
-    = value.IsString()
+    = value.IsObject()
     && value.As<Object>().Has("_language")
     && value.As<Object>().Get("_language").IsExternal()
     ? value.As<Object>().Get("_language").As<External<TSLanguage>>().Data()

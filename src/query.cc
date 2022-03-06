@@ -7,6 +7,7 @@
 #include "./logger.h"
 #include "./util.h"
 #include "./conversions.h"
+#include "tree_sitter/api.h"
 
 namespace node_tree_sitter {
 
@@ -26,6 +27,7 @@ TSQueryCursor *Query::ts_query_cursor;
 Napi::FunctionReference Query::constructor;
 
 void Query::Init(Napi::Object &exports) {
+  ts_query_cursor = ts_query_cursor_new();
   Napi::Env env = exports.Env();
   Function ctor = DefineClass(env, "Query", {
     InstanceMethod("_matches", &Query::Matches),
@@ -40,17 +42,6 @@ void Query::Init(Napi::Object &exports) {
 Query::~Query() {
   ts_query_delete(query_);
 }
-
-/*
-Napi::Value Query::NewInstance(Napi::Env env, TSQuery *query) {
-  if (query) {
-    Object js_query = constructor.Value().New({});
-    Query::Unwrap(js_query)->query_ = query;
-    return js_query;
-  }
-  return env.Null();
-}
-*/
 
 Query *Query::UnwrapQuery(const Napi::Value &value) {
   return Query::Unwrap(value.As<Napi::Object>());
@@ -98,7 +89,7 @@ Query::Query(const Napi::CallbackInfo& info)
     return;
   }
 
-	info.This().As<Napi::Object>().Get("_init").As<Napi::Function>().Call({});
+	info.This().As<Napi::Object>().Get("_init").As<Napi::Function>().Call(info.This(), {});
 }
 
 Napi::Value Query::GetPredicates(const Napi::CallbackInfo &info) {
