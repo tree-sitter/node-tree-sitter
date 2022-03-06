@@ -1,6 +1,6 @@
 #include "./tree.h"
 #include <string>
-#include <nan.h>
+#include <napi.h>
 #include "./node.h"
 #include "./logger.h"
 #include "./util.h"

@@ -17,7 +17,7 @@ Object Init(Env env, Object exports) {
   InitLanguage(exports);
   InitParser(exports);
   InitTreeCursor(exports);
-  InitQuery(exports);
+  Query::Init(exports);
   Tree::Init(exports);
   return exports;
 }
