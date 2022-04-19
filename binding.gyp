@@ -49,4 +49,8 @@
       ]
     }
   ],
+  'variables': { 'runtime%': 'node' },
+  'conditions': [
+      ['runtime=="electron"', { 'defines': ['NODE_RUNTIME_ELECTRON=1'] }],
+  ]
 }
