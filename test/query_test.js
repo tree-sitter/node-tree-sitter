@@ -55,6 +55,25 @@ describe("Query", () => {
         { pattern: 0, captures: [{ name: "element", text: "g" }] },
       ]);
     });
+
+    it("finds optional nodes even when using #eq? predicate", () => {
+      const tree = parser.parse(`
+        { one: true };
+        { one: true, two: true };
+      `);
+      const query = new Query(JavaScript, `
+        (
+          (object (pair key: (property_identifier) @a) (pair key: (property_identifier) @b)?)
+          (#eq? @a one)
+          (#eq? @b two)
+        )
+      `);
+      const matches = query.matches(tree.rootNode);
+      assert.deepEqual(formatMatches(tree, matches), [
+        { pattern: 0, captures: [{ name: 'a', text: 'one' }] },
+        { pattern: 0, captures: [{ name: 'a', text: 'one' }, { name: 'b', text: 'two' }] },
+      ]);
+    });
   });
 
   describe(".captures", () => {
