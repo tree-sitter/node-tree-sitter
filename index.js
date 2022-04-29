@@ -438,6 +438,7 @@ Query.prototype._init = function() {
                 if (c.name === captureName1) node1 = c.node;
                 if (c.name === captureName2) node2 = c.node;
               }
+              if (node1 === undefined || node2 === undefined) return true;
               return (node1.text === node2.text) === isPositive;
             });
           } else {
@@ -449,7 +450,7 @@ Query.prototype._init = function() {
                   return (c.node.text === stringValue) === isPositive;
                 };
               }
-              return false;
+              return true;
             });
           }
           break;
@@ -470,7 +471,7 @@ Query.prototype._init = function() {
             for (const c of captures) {
               if (c.name === captureName) return regex.test(c.node.text);
             }
-            return false;
+            return true;
           });
           break;
 
