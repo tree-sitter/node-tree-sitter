@@ -676,6 +676,9 @@ function unmarshalNodes(nodes, tree) {
 }
 
 function marshalNode(node) {
+  if (!(node.tree instanceof Tree)){
+    throw new Error("This node does not belong to a valid tree")
+  }
   const {nodeTransferArray} = binding;
   for (let i = 0; i < NODE_FIELD_COUNT; i++) {
     nodeTransferArray[i] = node[i];
