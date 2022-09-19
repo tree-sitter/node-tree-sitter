@@ -41,14 +41,14 @@ void Logger::Log(void *payload, TSLogType type, const char *message_str) {
 
   Local<Value> argv[3] = { name, params, type_name };
   TryCatch try_catch(Isolate::GetCurrent());
-  Nan::Call(fn, fn->CreationContext()->Global(), 3, argv);
+  Nan::Call(fn, fn->GetCreationContextChecked()->Global(), 3, argv);
   if (try_catch.HasCaught()) {
     Local<Value> log_argv[2] = {
       Nan::New("Error in debug callback:").ToLocalChecked(),
       try_catch.Exception()
     };
 
-    Local<Object> console = Local<Object>::Cast(Nan::Get(fn->CreationContext()->Global(), Nan::New("console").ToLocalChecked()).ToLocalChecked());
+    Local<Object> console = Local<Object>::Cast(Nan::Get(fn->GetCreationContextChecked()->Global(), Nan::New("console").ToLocalChecked()).ToLocalChecked());
     Local<Function> error_fn = Local<Function>::Cast(Nan::Get(console, Nan::New("error").ToLocalChecked()).ToLocalChecked());
     Nan::Call(error_fn, console, 2, log_argv);
   }
