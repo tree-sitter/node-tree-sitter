@@ -246,6 +246,11 @@ class SyntaxNode {
     cursor.tree = this.tree;
     return cursor;
   }
+
+  childNodeForFieldName(fieldName) {
+    marshalNode(this);
+    return unmarshalNode(NodeMethods.childNodeForFieldName(this.tree, fieldName), this.tree);
+  }
 }
 
 /*
