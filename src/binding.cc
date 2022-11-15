@@ -22,6 +22,6 @@ void InitAll(Local<Object> exports) {
   TreeCursor::Init(exports);
 }
 
-NODE_MODULE(tree_sitter_runtime_binding, InitAll)
+NAN_MODULE_WORKER_ENABLED(tree_sitter_runtime_binding, InitAll)
 
 }  // namespace node_tree_sitter

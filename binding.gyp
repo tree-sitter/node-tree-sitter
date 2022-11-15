@@ -24,15 +24,13 @@
         ['OS == "mac"', {
           'xcode_settings': {
             'MACOSX_DEPLOYMENT_TARGET': '10.9',
+            'CLANG_CXX_LANGUAGE_STANDARD': 'c++17',
           },
         }]
       ],
       "cflags": [
         "-std=c++17",
       ],
-      'xcode_settings': {
-        'CLANG_CXX_LANGUAGE_STANDARD': 'c++17',
-      },
     },
     {
       "target_name": "tree_sitter",
