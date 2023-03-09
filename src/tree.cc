@@ -171,7 +171,7 @@ Napi::Value Tree::GetEditedRange(const CallbackInfo &info) {
 }
 
 Napi::Value Tree::PrintDotGraph(const CallbackInfo &info) {
-  ts_tree_print_dot_graph(tree_, stderr);
+  ts_tree_print_dot_graph(tree_, fileno(stderr));
   return info.This();
 }
 
