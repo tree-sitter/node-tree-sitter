@@ -24,6 +24,11 @@ jobs:
           - 14
           - 16
           - 18
+        exclude:
+          - os: windows-latest
+            node: 16
+          - os: windows-latest
+            node: 18
       fail-fast: false
     name: Testing Node ${{ matrix.node }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -43,10 +48,6 @@ jobs:
           $NodeModulesPath = $NodeDirPath + "\node_modules\npm\node_modules\npm-lifecycle"
           cd $NodeModulesPath
           npm install node-gyp@8.x
-      - name: Install windows-build-tools
-        if: ${{ matrix.os == 'windows-latest' && (matrix.node == '16' || matrix.node == '18') }}
-        run: |
-          npm install --omit=dev windows-build-tools@4.0.0
       - run: npm install
       - run: npm test
 
@@ -85,7 +86,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 14
       - name: Update node-gyp
         if: ${{ matrix.os == 'windows-latest' && matrix.node == '14' }}
         run: |
@@ -94,10 +95,6 @@ jobs:
           $NodeModulesPath = $NodeDirPath + "\node_modules\npm\node_modules\npm-lifecycle"
           cd $NodeModulesPath
           npm install node-gyp@8.x
-      - name: Install windows-build-tools
-        if: ${{ matrix.os == 'windows-latest' && (matrix.node == '16' || matrix.node == '18') }}
-        run: |
-          npm install --omit=dev windows-build-tools@4.0.0
       - run: npm install --ignore-scripts
       - run: npx --no-install prebuild -r node -t 10.0.0 -t 12.0.0 -t 14.0.0 -t 16.0.0 -t 18.0.0 -u ${{ secrets.GITHUB_TOKEN }}
       - run: npx --no-install prebuild -r electron -t 11.0.0 -t 12.0.0 -t 13.0.0 -t 14.0.0 -t 15.0.0 -t 16.0.0 -t 17.0.0 -t 18.0.0 -t 19.0.0 -t 20.0.0 -t 21.0.0 -t 22.0.0 -t 23.0.0 -u ${{ secrets.GITHUB_TOKEN }}
