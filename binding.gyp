@@ -49,7 +49,10 @@
       ]
     }
   ],
-  'variables': { 'runtime%': 'node' },
+  'variables': {
+    'runtime%': 'node',
+    'openssl_fips': '',
+  },
   'conditions': [
       ['runtime=="electron"', { 'defines': ['NODE_RUNTIME_ELECTRON=1'] }],
   ]
