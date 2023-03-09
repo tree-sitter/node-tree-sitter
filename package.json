@@ -15,16 +15,22 @@
   "main": "index.js",
   "types": "tree-sitter.d.ts",
   "dependencies": {
-    "nan": "^2.14.0",
-    "prebuild-install": "^6.0.1"
+    "nan": "^2.17.0",
+    "prebuild-install": "^7.1.1"
   },
   "devDependencies": {
-    "@types/node": "^14.14.31",
-    "chai": "^4.3.3",
-    "mocha": "^8.3.1",
-    "prebuild": "^10.0.1",
-    "superstring": "^2.4.2",
+    "@types/node": "^18.14.6",
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "node-gyp": "9.3.1",
+    "prebuild": "^11.0.4",
+    "superstring": "https://github.com/pulsar-edit/superstring#node-api-upgrade",
     "tree-sitter-javascript": "https://github.com/tree-sitter/tree-sitter-javascript.git#master"
+  },
+  "overrides": {
+    "prebuild": {
+      "node-gyp": "$node-gyp"
+    }
   },
   "scripts": {
     "install": "prebuild-install || node-gyp rebuild",
