@@ -35,7 +35,7 @@ static inline void setup_transfer_buffer(uint32_t node_count) {
       v8::Local<v8::Object> bufferView;
       bufferView = node::Buffer::New(Isolate::GetCurrent(), transfer_buffer, 0, transfer_buffer_length * sizeof(uint32_t)).ToLocalChecked();
       auto js_point_transfer_buffer = node::Buffer::Data(bufferView);
-    #elif V8_MAJOR_VERSION >= 9
+    #elif (V8_MAJOR_VERSION > 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERION > 3))
       auto backing_store = ArrayBuffer::NewBackingStore(transfer_buffer, transfer_buffer_length * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
       auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
     #else
