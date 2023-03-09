@@ -36,7 +36,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Update node-gyp
-        if: matrix.os == 'windows-latest'
+        if: ${{ matrix.os == 'windows-latest' && matrix.node == '14' }}
         run: |
           $WhereNode = Get-Command node | Select-Object -ExpandProperty Definition
           $NodeDirPath = Split-Path $WhereNode -Parent
@@ -83,7 +83,7 @@ jobs:
         with:
           node-version: 18
       - name: Update node-gyp
-        if: matrix.os == 'windows-latest'
+        if: ${{ matrix.os == 'windows-latest' && matrix.node == '14' }}
         run: |
           $WhereNode = Get-Command node | Select-Object -ExpandProperty Definition
           $NodeDirPath = Split-Path $WhereNode -Parent
