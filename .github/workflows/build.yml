@@ -35,6 +35,14 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
+      - name: Update node-gyp
+        if: matrix.os == 'windows-latest'
+        run: |
+          $WhereNode = Get-Command node | Select-Object -ExpandProperty Definition
+          $NodeDirPath = Split-Path $WhereNode -Parent
+          $NodeModulesPath = $NodeDirPath + "\node_modules\npm\node_modules\npm-lifecycle"
+          cd $NodeModulesPath
+          npm install node-gyp@8.x
       - run: npm install
       - run: npm test
 
@@ -74,6 +82,14 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
+      - name: Update node-gyp
+        if: matrix.os == 'windows-latest'
+        run: |
+          $WhereNode = Get-Command node | Select-Object -ExpandProperty Definition
+          $NodeDirPath = Split-Path $WhereNode -Parent
+          $NodeModulesPath = $NodeDirPath + "\node_modules\npm\node_modules\npm-lifecycle"
+          cd $NodeModulesPath
+          npm install node-gyp@8.x
       - run: npm install --ignore-scripts
       - run: npx --no-install prebuild -r node -t 10.0.0 -t 12.0.0 -t 14.0.0 -t 16.0.0 -t 18.0.0 -u ${{ secrets.GITHUB_TOKEN }}
       - run: npx --no-install prebuild -r electron -t 11.0.0 -t 12.0.0 -t 13.0.0 -t 14.0.0 -t 15.0.0 -t 16.0.0 -t 17.0.0 -t 18.0.0 -t 19.0.0 -t 20.0.0 -t 21.0.0 -t 22.0.0 -t 23.0.0 -u ${{ secrets.GITHUB_TOKEN }}
