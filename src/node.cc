@@ -769,6 +769,7 @@ void InitNode(Object &exports) {
   Env env = exports.Env();
   NodeMethods::Init(env, exports);
   module_exports.Reset(exports, 1);
+  module_exports.SuppressDestruct();
   setup_transfer_buffer(env, 1);
 }
 
