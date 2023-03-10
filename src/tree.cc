@@ -203,7 +203,8 @@ static void CacheNodeForTree(Tree *tree, Napi::Env env, Object js_node) {
 
   //assert(!cached_nodes_.count(key));
 
-  tree->cached_nodes_[key] = cache_entry;
+  cached_nodes_[key] = cache_entry;
+  return env.Undefined();
 }
 
 Napi::Value Tree::CacheNode(const CallbackInfo &info) {
