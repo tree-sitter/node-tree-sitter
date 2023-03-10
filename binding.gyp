@@ -7,7 +7,7 @@
         "<!(node -p \"require('node-addon-api').gyp\")"
       ],
       "defines": [
-        "NAPI_DISABLE_CPP_EXCEPTIONS=",
+        "NAPI_DISABLE_CPP_EXCEPTIONS",
       ],
       "sources": [
         "src/binding.cc",
@@ -37,9 +37,6 @@
       "cflags": [
         "-std=c++17",
       ],
-      'xcode_settings': {
-        'CLANG_CXX_LANGUAGE_STANDARD': 'c++17',
-      },
     },
     {
       "target_name": "tree_sitter",
