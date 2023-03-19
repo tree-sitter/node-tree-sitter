@@ -1,0 +1,18 @@
+# https://github.com/nodejs/release#release-schedule
+# https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+name: ci
+on: [push]
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [14.x, 16.x, 18.x, 19.x]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: npm test
