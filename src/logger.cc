@@ -41,14 +41,24 @@ void Logger::Log(void *payload, TSLogType type, const char *message_str) {
 
   Local<Value> argv[3] = { name, params, type_name };
   TryCatch try_catch(Isolate::GetCurrent());
-  Nan::Call(fn, fn->CreationContext()->Global(), 3, argv);
+
+  #if (V8_MAJOR_VERSION > 9 || (V8_MAJOR_VERSION == 9 && V8_MINOR_VERION > 4))
+    Nan::Call(fn, fn->GetCreationContext().ToLocalChecked()->Global(), 3, argv);
+  #else
+    Nan::Call(fn, fn->CreationContext()->Global(), 3, argv);
+  #endif
   if (try_catch.HasCaught()) {
     Local<Value> log_argv[2] = {
       Nan::New("Error in debug callback:").ToLocalChecked(),
       try_catch.Exception()
     };
 
-    Local<Object> console = Local<Object>::Cast(Nan::Get(fn->CreationContext()->Global(), Nan::New("console").ToLocalChecked()).ToLocalChecked());
+
+    #if (V8_MAJOR_VERSION > 9 || (V8_MAJOR_VERSION == 9 && V8_MINOR_VERION > 4))
+      Local<Object> console = Local<Object>::Cast(Nan::Get(fn->GetCreationContext().ToLocalChecked()->Global(), Nan::New("console").ToLocalChecked()).ToLocalChecked());
+    #else
+      Local<Object> console = Local<Object>::Cast(Nan::Get(fn->CreationContext()->Global(), Nan::New("console").ToLocalChecked()).ToLocalChecked());
+    #endif
     Local<Function> error_fn = Local<Function>::Cast(Nan::Get(console, Nan::New("error").ToLocalChecked()).ToLocalChecked());
     Nan::Call(error_fn, console, 2, log_argv);
   }
