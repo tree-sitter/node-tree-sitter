@@ -252,7 +252,7 @@ class SyntaxNode {
  * Parser
  */
 
-const {parse, parseTextBuffer, parseTextBufferSync, setLanguage} = Parser.prototype;
+const {parse, setLanguage} = Parser.prototype;
 const languageSymbol = Symbol('parser.language');
 
 Parser.prototype.setLanguage = function(language) {
@@ -290,50 +290,6 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
     tree.language = this.getLanguage()
   }
   return tree
-};
-
-Parser.prototype.parseTextBuffer = function(
-  buffer, oldTree,
-  {syncTimeoutMicros, includedRanges} = {}
-) {
-  let tree
-  let resolveTreePromise
-  const treePromise = new Promise(resolve => { resolveTreePromise = resolve })
-  const snapshot = buffer.getSnapshot();
-  parseTextBuffer.call(
-    this,
-    result => {
-      tree = result
-      snapshot.destroy();
-      if (tree) {
-        tree.input = buffer
-        tree.getText = getTextFromTextBuffer
-        tree.language = this.getLanguage()
-      }
-      resolveTreePromise(tree);
-    },
-    snapshot,
-    oldTree,
-    includedRanges,
-    syncTimeoutMicros
-  );
-
-  // If the parse finished synchronously within the time specified by the
-  // `syncTimeoutMicros` parameter, then return the tree immediately
-  // so that callers have the option of continuing synchronously.
-  return tree || treePromise
-};
-
-Parser.prototype.parseTextBufferSync = function(buffer, oldTree, {includedRanges}={}) {
-  const snapshot = buffer.getSnapshot();
-  const tree = parseTextBufferSync.call(this, snapshot, oldTree, includedRanges);
-  if (tree) {
-    tree.input = buffer;
-    tree.getText = getTextFromTextBuffer;
-    tree.language = this.getLanguage()
-  }
-  snapshot.destroy();
-  return tree;
 };
 
 /*
@@ -605,10 +561,6 @@ function getTextFromFunction ({startIndex, endIndex}) {
     result += text;
   }
   return result.substr(0, goalLength);
-}
-
-function getTextFromTextBuffer ({startPosition, endPosition}) {
-  return this.input.getTextInRange({start: startPosition, end: endPosition});
 }
 
 const {pointTransferArray} = binding;

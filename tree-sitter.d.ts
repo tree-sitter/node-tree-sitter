@@ -1,8 +1,6 @@
 declare module "tree-sitter" {
   class Parser {
     parse(input: string | Parser.Input | Parser.InputReader, oldTree?: Parser.Tree, options?: { bufferSize?: number, includedRanges?: Parser.Range[] }): Parser.Tree;
-    parseTextBuffer(buffer: Parser.TextBuffer, oldTree?: Parser.Tree, options?: { syncTimeoutMicros?: number, includedRanges?: Parser.Range[] }): Parser.Tree | Promise<Parser.Tree>;
-    parseTextBufferSync(buffer: Parser.TextBuffer, oldTree?: Parser.Tree, options?: { includedRanges?: Parser.Range[] }): Parser.Tree;
     getLanguage(): any;
     setLanguage(language: any): void;
     getLogger(): Parser.Logger;
@@ -37,8 +35,6 @@ declare module "tree-sitter" {
       params: {[param: string]: string},
       type: "parse" | "lex"
     ) => void;
-
-    export type TextBuffer = Buffer;
 
     export interface InputReader {
       (index: any, position: Point): string;
