@@ -60,11 +60,7 @@ class CallbackInput {
       uint32_t utf16_unit = byte / 2;
       Local<Value> argv[2] = { Nan::New<Number>(utf16_unit), PointToJS(position) };
       TryCatch try_catch(Isolate::GetCurrent());
-      #if (V8_MAJOR_VERSION > 9 || (V8_MAJOR_VERSION == 9 && V8_MINOR_VERION > 4))
-        auto maybe_result_value = Nan::Call(callback, callback->GetCreationContext().ToLocalChecked()->Global(), 2, argv);
-      #else
-        auto maybe_result_value = Nan::Call(callback, callback->CreationContext()->Global(), 2, argv);
-      #endif
+      auto maybe_result_value = Nan::Call(callback, GetGlobal(callback), 2, argv);
       if (try_catch.HasCaught()) return nullptr;
 
       Local<Value> result_value;
@@ -368,11 +364,7 @@ void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
       delete input;
       Local<Value> argv[] = {Tree::NewInstance(result)};
       auto callback = info[0].As<Function>();
-      #if (V8_MAJOR_VERSION > 9 || (V8_MAJOR_VERSION == 9 && V8_MINOR_VERION > 4))
-        Nan::Call(callback, callback->GetCreationContext().ToLocalChecked()->Global(), 1, argv);
-      #else
-        Nan::Call(callback, callback->CreationContext()->Global(), 1, argv);
-      #endif
+      Nan::Call(callback, GetGlobal(callback), 1, argv);
       return;
     }
   }

@@ -20,6 +20,8 @@ struct FunctionPair {
 
 bool instance_of(v8::Local<v8::Value> value, v8::Local<v8::Object> object);
 
+v8::Local<v8::Object> GetGlobal(v8::Local<v8::Function>& callback);
+
 }  // namespace node_tree_sitter
 
 #endif  // NODE_TREE_SITTER_UTIL_H_
