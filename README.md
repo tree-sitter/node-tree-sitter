@@ -1,9 +1,6 @@
 node tree-sitter
 ================
 
-[![Build Status](https://travis-ci.org/tree-sitter/node-tree-sitter.svg?branch=master)](https://travis-ci.org/tree-sitter/node-tree-sitter)
-[![Build status](https://ci.appveyor.com/api/projects/status/0pqlhnnk6i9rsakj/branch/master?svg=true)](https://ci.appveyor.com/project/maxbrunsfeld/node-tree-sitter/branch/master)
-
 Incremental parsers for node
 
 ### Installation
