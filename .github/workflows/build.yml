@@ -1,0 +1,37 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+env:
+  NODE_BUILD_CMD: npx --no-install prebuild -t 10.12.0 -t 12.13.0 --strip
+  ELECTRON_BUILD_CMD: npx --no-install prebuild -r electron -t 3.0.0 -t 4.0.0 -t 4.0.4 -t 5.0.0 --strip
+
+jobs:
+
+  test:
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+        node:
+          - 10
+      fail-fast: false
+    name: Testing Node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+
+      - run: npm install
+      - run: npm test
