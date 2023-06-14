@@ -49,7 +49,12 @@
       ]
     }
   ],
-  'variables': { 'runtime%': 'node' },
+  'variables': {
+    'runtime%': 'node',
+    'openssl_fips': '',
+    'v8_enable_pointer_compression%': 0,
+    'v8_enable_31bit_smis_on_64bit_arch%': 0,
+  },
   'conditions': [
       ['runtime=="electron"', { 'defines': ['NODE_RUNTIME_ELECTRON=1'] }],
   ]
