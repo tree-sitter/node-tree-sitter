@@ -9,8 +9,8 @@ on:
       - master
 
 env:
-  NODE_BUILD_CMD: npx --no-install prebuild -t 10.12.0 -t 12.13.0 --strip
-  ELECTRON_BUILD_CMD: npx --no-install prebuild -r electron -t 3.0.0 -t 4.0.0 -t 4.0.4 -t 5.0.0 --strip
+  NODE_PREBUILD_CMD: npx prebuild -t 10.0.0 -t 12.0.0 -t 14.0.0 -t 16.0.0 --strip
+  ELECTRON_PREBUILD_CMD: npx prebuild -r electron -t 3.0.0 -t 4.0.0 -t 4.0.4 -t 5.0.0 --strip
 
 jobs:
 
@@ -19,8 +19,16 @@ jobs:
       matrix:
         os:
           - windows-2019
+          - ubuntu-latest
+          - macos-latest
         node:
           - 10
+          - 12
+          - 14
+          - 16
+          # Not supported until superstring is removed or updated to support Node 18+
+          # - 18
+          # - 20
       fail-fast: false
     name: Testing Node ${{ matrix.node }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -35,3 +43,52 @@ jobs:
 
       - run: npm install
       - run: npm test
+
+  prebuild:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-2019
+          - macos-latest
+        node:
+          - 10
+          - 12
+          - 14
+          - 16
+          # Not supported until superstring is removed or updated to support Node 18+
+          # - 18
+          # - 20
+        exclude:
+          # macos-latest's Python version is too new to work with the node-gyp
+          # bundled by prebuild and the "overrides" in package.json for node-gyp
+          # doesn't work before npm 8.3 (Node 16)
+          - os: macos-latest
+            node: 10
+          - os: macos-latest
+            node: 12
+          - os: macos-latest
+            node: 14
+      fail-fast: false
+    name: Prebuild with Node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    # needs: test
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install
+      - if: matrix.os == 'windows-latest'
+        run: |
+          ${{ env.NODE_PREBUILD_CMD }} --arch ia32
+          ${{ env.ELECTRON_PREBUILD_CMD }} --arch ia32
+      - if: matrix.os == 'macos-latest'
+        run: |
+          ${{ env.NODE_PREBUILD_CMD }} --arch arm64
+          ${{ env.ELECTRON_PREBUILD_CMD }} --arch arm64
+      - run: ${{ env.NODE_PREBUILD_CMD }}
+      - run: ${{ env.ELECTRON_PREBUILD_CMD }}
