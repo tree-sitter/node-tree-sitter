@@ -29,19 +29,21 @@ void InitConversions(Local<Object> exports) {
 
   point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
 
-  #if _MSC_VER && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
+  // #if _MSC_VER && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
     // this is a terrible thing we have to do because of https://github.com/electron/electron/issues/29893
     v8::Local<v8::Object> bufferView;
-    bufferView = node::Buffer::New(Isolate::GetCurrent(), point_transfer_buffer, 0, 2 * sizeof(uint32_t)).ToLocalChecked();
-    auto js_point_transfer_buffer = node::Buffer::Data(bufferView);
-  #elif (V8_MAJOR_VERSION > 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERION > 3))
-    auto backing_store = ArrayBuffer::NewBackingStore(point_transfer_buffer, 2 * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
-    auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
-  #else
-    auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
-  #endif
+    bufferView = node::Buffer::New(Isolate::GetCurrent(), (char *) point_transfer_buffer, (size_t) (2 * sizeof(uint32_t))).ToLocalChecked();
+    // bufferView = node::Buffer::New(Isolate::GetCurrent(), point_transfer_buffer, 0, 2 * sizeof(uint32_t)).ToLocalChecked();
+    // auto js_point_transfer_buffer = node::Buffer::Data(bufferView);
+  // #elif (V8_MAJOR_VERSION > 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERION > 3))
+    // auto backing_store = ArrayBuffer::NewBackingStore(point_transfer_buffer, 2 * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
+    // auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
+  // #else
+  //   auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
+  // #endif
 
-  Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
+  // Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
+  Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), bufferView);
 }
 
 void TransferPoint(const TSPoint &point) {

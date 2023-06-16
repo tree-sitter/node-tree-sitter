@@ -30,22 +30,24 @@ static inline void setup_transfer_buffer(uint32_t node_count) {
     transfer_buffer_length = new_length;
     transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
 
-    #if _MSC_VER && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
+    // #if _MSC_VER && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
       // this is a terrible thing we have to do because of https://github.com/electron/electron/issues/29893
       v8::Local<v8::Object> bufferView;
-      bufferView = node::Buffer::New(Isolate::GetCurrent(), transfer_buffer, 0, transfer_buffer_length * sizeof(uint32_t)).ToLocalChecked();
+      // bufferView = node::Buffer::New(Isolate::GetCurrent(), transfer_buffer, 0, transfer_buffer_length * sizeof(uint32_t)).ToLocalChecked();
+      bufferView = node::Buffer::New(Isolate::GetCurrent(), (char *) transfer_buffer, (size_t) (transfer_buffer_length * sizeof(uint32_t))).ToLocalChecked();
       auto js_point_transfer_buffer = node::Buffer::Data(bufferView);
-    #elif (V8_MAJOR_VERSION > 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERION > 3))
-      auto backing_store = ArrayBuffer::NewBackingStore(transfer_buffer, transfer_buffer_length * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
-      auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
-    #else
-      auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
-    #endif
+    // #elif (V8_MAJOR_VERSION > 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERION > 3))
+    //   auto backing_store = ArrayBuffer::NewBackingStore(transfer_buffer, transfer_buffer_length * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
+    //   auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
+    // #else
+    //   auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
+    // #endif
 
     Nan::Set(
       Nan::New(module_exports),
       Nan::New("nodeTransferArray").ToLocalChecked(),
-      Uint32Array::New(js_transfer_buffer, 0, transfer_buffer_length)
+      // Uint32Array::New(js_transfer_buffer, 0, transfer_buffer_length)
+      bufferView
     );
   }
 }
