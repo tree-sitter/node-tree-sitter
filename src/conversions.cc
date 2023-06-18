@@ -37,10 +37,10 @@ void InitConversions(Local<Object> exports) {
   #elif (V8_MAJOR_VERSION > 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERION > 3))
     auto backing_store = ArrayBuffer::NewBackingStore(point_transfer_buffer, 2 * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
     auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
-    Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), bufferView);
+    Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
   #else
     auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
-    Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), bufferView);
+    Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
   #endif
 }
 
