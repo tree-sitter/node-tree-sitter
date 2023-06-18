@@ -32,7 +32,7 @@ void InitConversions(Local<Object> exports) {
   #if /*_MSC_VER && NODE_RUNTIME_ELECTRON && */ NODE_MODULE_VERSION >= 89
     // this is a terrible thing we have to do because of https://github.com/electron/electron/issues/29893
     v8::Local<v8::Object> bufferView;
-    bufferView = node::Buffer::New(Isolate::GetCurrent(), (char *) point_transfer_buffer, (size_t) (2 * sizeof(uint32_t))).ToLocalChecked();
+    bufferView = node::Buffer::New(Isolate::GetCurrent(), (char *) point_transfer_buffer, (2 * sizeof(uint32_t))).ToLocalChecked();
     Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), bufferView);
   #elif (V8_MAJOR_VERSION > 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERION > 3))
     auto backing_store = ArrayBuffer::NewBackingStore(point_transfer_buffer, 2 * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
