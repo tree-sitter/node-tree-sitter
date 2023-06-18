@@ -611,7 +611,8 @@ function getTextFromTextBuffer ({startPosition, endPosition}) {
   return this.input.getTextInRange({start: startPosition, end: endPosition});
 }
 
-const {pointTransferArray} = binding;
+let {pointTransferArray} = binding;
+pointTransferArray = new Uint32Array(pointTransferArray.buffer);
 
 const NODE_FIELD_COUNT = 6;
 const ERROR_TYPE_ID = 0xFFFF
@@ -635,7 +636,9 @@ function unmarshalNode(value, tree, offset = 0, cache = null) {
     ? SyntaxNode
     : tree.language.nodeSubclasses[nodeTypeId];
 
-  const {nodeTransferArray} = binding;
+  let {nodeTransferArray} = binding;
+  nodeTransferArray = new Uint32Array(nodeTransferArray.buffer);
+
   const id = getID(nodeTransferArray, offset)
   if (id === 0n) {
     return null
@@ -676,7 +679,8 @@ function unmarshalNodes(nodes, tree) {
 }
 
 function marshalNode(node) {
-  const {nodeTransferArray} = binding;
+  let {nodeTransferArray} = binding;
+  nodeTransferArray = new Uint32Array(nodeTransferArray.buffer);
   for (let i = 0; i < NODE_FIELD_COUNT; i++) {
     nodeTransferArray[i] = node[i];
   }
