@@ -9,7 +9,6 @@
 #include "./logger.h"
 #include "./tree.h"
 #include "./util.h"
-#include "text-buffer-snapshot-wrapper.h"
 #include <cmath>
 
 namespace node_tree_sitter {
@@ -104,63 +103,6 @@ class CallbackInput {
   size_t partial_string_offset;
 };
 
-class TextBufferInput {
-public:
-  TextBufferInput(const vector<pair<const char16_t *, uint32_t>> *slices)
-    : slices_(slices),
-      byte_offset(0),
-      slice_index_(0),
-      slice_offset_(0) {}
-
-  TSInput input() {
-    return TSInput{this, Read, TSInputEncodingUTF16};
-  }
-
-private:
-  void seek(uint32_t byte_offset) {
-    this->byte_offset = byte_offset;
-
-    uint32_t total_length = 0;
-    uint32_t goal_index = byte_offset / 2;
-    for (unsigned i = 0, n = this->slices_->size(); i < n; i++) {
-      uint32_t next_total_length = total_length + this->slices_->at(i).second;
-      if (next_total_length > goal_index) {
-        this->slice_index_ = i;
-        this->slice_offset_ = goal_index - total_length;
-        return;
-      }
-      total_length = next_total_length;
-    }
-
-    this->slice_index_ = this->slices_->size();
-    this->slice_offset_ = 0;
-  }
-
-  static const char *Read(void *payload, uint32_t byte, TSPoint position, uint32_t *length) {
-    auto self = static_cast<TextBufferInput *>(payload);
-
-    if (byte != self->byte_offset) self->seek(byte);
-
-    if (self->slice_index_ == self->slices_->size()) {
-      *length = 0;
-      return "";
-    }
-
-    auto &slice = self->slices_->at(self->slice_index_);
-    const char16_t *result = slice.first + self->slice_offset_;
-    *length = 2 * (slice.second - self->slice_offset_);
-    self->byte_offset += *length;
-    self->slice_index_++;
-    self->slice_offset_ = 0;
-    return reinterpret_cast<const char *>(result);
-  }
-
-  const vector<pair<const char16_t *, uint32_t>> *slices_;
-  uint32_t byte_offset;
-  uint32_t slice_index_;
-  uint32_t slice_offset_;
-};
-
 void Parser::Init(Local<Object> exports) {
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -173,8 +115,6 @@ void Parser::Init(Local<Object> exports) {
     {"setLanguage", SetLanguage},
     {"printDotGraphs", PrintDotGraphs},
     {"parse", Parse},
-    {"parseTextBuffer", ParseTextBuffer},
-    {"parseTextBufferSync", ParseTextBufferSync},
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
@@ -186,7 +126,7 @@ void Parser::Init(Local<Object> exports) {
   Nan::Set(exports, Nan::New("LANGUAGE_VERSION").ToLocalChecked(), Nan::New<Number>(TREE_SITTER_LANGUAGE_VERSION));
 }
 
-Parser::Parser() : parser_(ts_parser_new()), is_parsing_async_(false) {}
+Parser::Parser() : parser_(ts_parser_new()) {}
 
 Parser::~Parser() { ts_parser_delete(parser_); }
 
@@ -234,10 +174,6 @@ void Parser::New(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Parser::SetLanguage(const Nan::FunctionCallbackInfo<Value> &info) {
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
-  if (parser->is_parsing_async_) {
-    Nan::ThrowError("Parser is in use");
-    return;
-  }
 
   const TSLanguage *language = language_methods::UnwrapLanguage(info[0]);
   if (language) {
@@ -248,10 +184,6 @@ void Parser::SetLanguage(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
-  if (parser->is_parsing_async_) {
-    Nan::ThrowError("Parser is in use");
-    return;
-  }
 
   if (!info[0]->IsFunction()) {
     Nan::ThrowTypeError("Input must be a function");
@@ -282,128 +214,6 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(result);
 }
 
-class ParseWorker : public Nan::AsyncWorker {
-  Parser *parser_;
-  TSTree *new_tree_;
-  TextBufferInput *input_;
-
-public:
-  ParseWorker(Nan::Callback *callback, Parser *parser, TextBufferInput *input) :
-    AsyncWorker(callback, "tree-sitter.parseTextBuffer"),
-    parser_(parser),
-    new_tree_(nullptr),
-    input_(input) {}
-
-  void Execute() {
-    TSLogger logger = ts_parser_logger(parser_->parser_);
-    ts_parser_set_logger(parser_->parser_, TSLogger{0, 0});
-    new_tree_ = ts_parser_parse(parser_->parser_, nullptr, input_->input());
-    ts_parser_set_logger(parser_->parser_, logger);
-  }
-
-  void HandleOKCallback() {
-    parser_->is_parsing_async_ = false;
-    delete input_;
-    Local<Value> argv[] = {Tree::NewInstance(new_tree_)};
-    callback->Call(1, argv, async_resource);
-  }
-};
-
-void Parser::ParseTextBuffer(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
-  if (parser->is_parsing_async_) {
-    Nan::ThrowError("Parser is in use");
-    return;
-  }
-
-  Local<Object> js_old_tree;
-  const TSTree *old_tree = nullptr;
-  if (info.Length() > 2 && info[2]->IsObject() && Nan::To<Object>(info[2]).ToLocal(&js_old_tree)) {
-    const Tree *tree = Tree::UnwrapTree(js_old_tree);
-    if (!tree) {
-      Nan::ThrowTypeError("Second argument must be a tree");
-      return;
-    }
-    old_tree = tree->tree_;
-  }
-
-  if (!handle_included_ranges(parser->parser_, info[3])) return;
-
-  auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[1].As<Object>());
-  auto input = new TextBufferInput(snapshot->slices());
-
-  // If a `syncTimeoutMicros` option is passed, parse synchronously
-  // for the given amount of time before queuing an async task.
-  double js_sync_timeout = Nan::To<double>(info[4]).FromMaybe(-1);
-  if (js_sync_timeout > 0) {
-    size_t sync_timeout;
-
-    // If the timeout is `Infinity`, then parse synchronously with no timeout.
-    if (js_sync_timeout && !std::isfinite(js_sync_timeout)) {
-      sync_timeout = 0;
-    } else {
-      auto maybe_sync_timeout = Nan::To<uint32_t>(info[4]);
-      if (maybe_sync_timeout.IsJust()) {
-        sync_timeout = maybe_sync_timeout.FromJust();
-      } else {
-        Nan::ThrowTypeError("The `syncTimeoutMicros` option must be a positive integer.");
-        return;
-      }
-    }
-
-    // Logging is disabled for this method, because we can't call the
-    // logging callback from an async worker.
-    TSLogger logger = ts_parser_logger(parser->parser_);
-    ts_parser_set_timeout_micros(parser->parser_, sync_timeout);
-    ts_parser_set_logger(parser->parser_, TSLogger{0, 0});
-    TSTree *result = ts_parser_parse(parser->parser_, old_tree, input->input());
-    ts_parser_set_timeout_micros(parser->parser_, 0);
-    ts_parser_set_logger(parser->parser_, logger);
-
-    if (result) {
-      delete input;
-      Local<Value> argv[] = {Tree::NewInstance(result)};
-      auto callback = info[0].As<Function>();
-      Nan::Call(callback, GetGlobal(callback), 1, argv);
-      return;
-    }
-  }
-
-  auto callback = new Nan::Callback(info[0].As<Function>());
-  parser->is_parsing_async_ = true;
-  Nan::AsyncQueueWorker(new ParseWorker(
-    callback,
-    parser,
-    input
-  ));
-}
-
-void Parser::ParseTextBufferSync(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
-  if (parser->is_parsing_async_) {
-    Nan::ThrowError("Parser is in use");
-    return;
-  }
-
-  Local<Object> js_old_tree;
-  const TSTree *old_tree = nullptr;
-  if (info.Length() > 1 && info[1]->IsObject() && Nan::To<Object>(info[1]).ToLocal(&js_old_tree)) {
-    const Tree *tree = Tree::UnwrapTree(js_old_tree);
-    if (!tree) {
-      Nan::ThrowTypeError("Second argument must be a tree");
-      return;
-    }
-    old_tree = ts_tree_copy(tree->tree_);
-  }
-
-  if (!handle_included_ranges(parser->parser_, info[2])) return;
-
-  auto snapshot = Nan::ObjectWrap::Unwrap<TextBufferSnapshotWrapper>(info[0].As<Object>());
-  TextBufferInput input(snapshot->slices());
-  TSTree *result = ts_parser_parse(parser->parser_, old_tree, input.input());
-  info.GetReturnValue().Set(Tree::NewInstance(result));
-}
-
 void Parser::GetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
 
@@ -418,10 +228,6 @@ void Parser::GetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Parser::SetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
-  if (parser->is_parsing_async_) {
-    Nan::ThrowError("Parser is in use");
-    return;
-  }
 
   TSLogger current_logger = ts_parser_logger(parser->parser_);
 
@@ -441,10 +247,6 @@ void Parser::SetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Parser::PrintDotGraphs(const Nan::FunctionCallbackInfo<Value> &info) {
   Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
-  if (parser->is_parsing_async_) {
-    Nan::ThrowError("Parser is in use");
-    return;
-  }
 
   if (Nan::To<bool>(info[0]).FromMaybe(false)) {
     ts_parser_print_dot_graphs(parser->parser_, 2);

@@ -17,7 +17,6 @@
       ],
       "include_dirs": [
         "vendor/tree-sitter/lib/include",
-        "vendor/superstring",
         "<!(node -e \"require('nan')\")",
       ],
       'cflags': [
