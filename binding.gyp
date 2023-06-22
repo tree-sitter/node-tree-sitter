@@ -20,19 +20,38 @@
         "vendor/superstring",
         "<!(node -e \"require('nan')\")",
       ],
+      'cflags': [
+        '-std=c++17'
+      ],
+      'cflags_cc': [
+        '-std=c++17'
+      ],
       'conditions': [
-        ['OS == "mac"', {
+        ['OS=="mac"', {
           'xcode_settings': {
             'MACOSX_DEPLOYMENT_TARGET': '10.9',
+            'CLANG_CXX_LANGUAGE_STANDARD': 'c++17',
+            'CLANG_CXX_LIBRARY': 'libc++',
           },
+        }],
+        ['OS=="win"', {
+          'msvs_settings': {
+            'VCCLCompilerTool': {
+              'AdditionalOptions': [
+                '/std:c++17',
+              ],
+              'RuntimeLibrary': 0,
+            },
+          },
+          'variables': {
+            # fix this error when prebuilding for Node 18 on Node 14 or older
+            #
+            # gyp: name 'llvm_version' is not defined while evaluating condition
+            # 'llvm_version=="0.0"' in binding.gyp while trying to load binding.gyp
+            'llvm_version': 0,
+          }
         }]
       ],
-      "cflags": [
-        "-std=c++17",
-      ],
-      'xcode_settings': {
-        'CLANG_CXX_LANGUAGE_STANDARD': 'c++17',
-      },
     },
     {
       "target_name": "tree_sitter",
