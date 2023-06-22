@@ -51,34 +51,27 @@ jobs:
           - macos-latest
           - ubuntu-latest
         node:
-          - 10
-          - 12
-          - 14
-          - 16
-          - 18
-          - 20
-        exclude:
+          # Node 10-14 fails to prebuild for Node 18+
+          #
           # macos-latest's Python version is too new to work with the node-gyp
           # bundled by prebuild and the "overrides" in package.json for node-gyp
           # doesn't work before npm 8.3 (Node 16)
-          - os: macos-latest
-            node: 10
-          - os: macos-latest
-            node: 12
-          - os: macos-latest
-            node: 14
-          # Similar issue but in this case the error is more direct:
           #
+          # ubuntu-latest has a similar issue but in this case the error is more direct:
           # #error "It looks like you are building this native module without
           # using the right config.gypi.  This normally means that you need to
           # update electron-rebuild (>=3.2.8) or node-gyp (>=8.4.0) if you're
           # building modules directly."
-          - os: ubuntu-latest
-            node: 10
-          - os: ubuntu-latest
-            node: 12
-          - os: ubuntu-latest
-            node: 14
+          #
+          # windows-2019 fails with
+          # gyp: name 'llvm_version' is not defined while evaluating condition
+          # 'llvm_version=="0.0"' in binding.gyp while trying to load binding.gyp
+          # - 10
+          # - 12
+          # - 14
+          - 16
+          - 18
+          - 20
       fail-fast: false
     name: Prebuild with Node ${{ matrix.node }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
