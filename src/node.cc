@@ -30,11 +30,11 @@ static inline void setup_transfer_buffer(uint32_t node_count) {
     transfer_buffer_length = new_length;
     transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
 
-    #if (V8_MAJOR_VERSION > 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERSION > 3))
+    #if (V8_MAJOR_VERSION < 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERSION < 4) || (V8_MAJOR_VERSION == 8 && NODE_RUNTIME_ELECTRON))
+      auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
+    #else
       auto backing_store = ArrayBuffer::NewBackingStore(transfer_buffer, transfer_buffer_length * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
       auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
-    #else
-      auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
     #endif
 
     Nan::Set(
