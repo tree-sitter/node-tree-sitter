@@ -9,8 +9,8 @@ on:
       - master
 
 env:
-  NODE_PREBUILD_CMD: npx prebuild -t 10.0.0 -t 12.0.0 -t 14.0.0 -t 16.0.0 --strip
-  ELECTRON_PREBUILD_CMD: npx prebuild -r electron -t 3.0.0 -t 4.0.0 -t 4.0.4 -t 5.0.0 --strip
+  NODE_PREBUILD_CMD: npx prebuild -t 10.0.0 -t 12.0.0 -t 14.0.0 -t 16.0.0 -t 18.0.0 -t 20.0.0 --strip
+  ELECTRON_PREBUILD_CMD: npx prebuild -r electron -t 3.0.0 -t 4.0.0 -t 5.0.0 -t 6.0.0 -t 7.0.0 -t 8.0.0 -t 9.0.0 -t 10.0.0 -t 11.0.0 -t 12.0.0 -t 13.0.0 -t 14.0.0 -t 15.0.0 -t 16.0.0 -t 17.0.0 -t 18.0.0 -t 19.0.0 -t 20.0.0 -t 21.0.0 -t 22.0.0 -t 23.0.0 -t 24.0.0 -t 25.0.0 --strip
 
 jobs:
 
@@ -19,16 +19,15 @@ jobs:
       matrix:
         os:
           - windows-2019
-          - ubuntu-latest
           - macos-latest
+          - ubuntu-latest
         node:
           - 10
           - 12
           - 14
           - 16
-          # Not supported until superstring is removed or updated to support Node 18+
-          # - 18
-          # - 20
+          - 18
+          - 20
       fail-fast: false
     name: Testing Node ${{ matrix.node }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -48,17 +47,16 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-latest
           - windows-2019
           - macos-latest
+          - ubuntu-latest
         node:
           - 10
           - 12
           - 14
           - 16
-          # Not supported until superstring is removed or updated to support Node 18+
-          # - 18
-          # - 20
+          - 18
+          - 20
         exclude:
           # macos-latest's Python version is too new to work with the node-gyp
           # bundled by prebuild and the "overrides" in package.json for node-gyp
@@ -68,6 +66,18 @@ jobs:
           - os: macos-latest
             node: 12
           - os: macos-latest
+            node: 14
+          # Similar issue but in this case the error is more direct:
+          #
+          # #error "It looks like you are building this native module without
+          # using the right config.gypi.  This normally means that you need to
+          # update electron-rebuild (>=3.2.8) or node-gyp (>=8.4.0) if you're
+          # building modules directly."
+          - os: ubuntu-latest
+            node: 10
+          - os: ubuntu-latest
+            node: 12
+          - os: ubuntu-latest
             node: 14
       fail-fast: false
     name: Prebuild with Node ${{ matrix.node }} on ${{ matrix.os }}
@@ -83,12 +93,12 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm install
       - if: matrix.os == 'windows-latest'
-        run: |
-          ${{ env.NODE_PREBUILD_CMD }} --arch ia32
-          ${{ env.ELECTRON_PREBUILD_CMD }} --arch ia32
+        run: ${{ env.NODE_PREBUILD_CMD }} --arch ia32
+      - if: matrix.os == 'windows-latest'
+        run: ${{ env.ELECTRON_PREBUILD_CMD }} --arch ia32
       - if: matrix.os == 'macos-latest'
-        run: |
-          ${{ env.NODE_PREBUILD_CMD }} --arch arm64
-          ${{ env.ELECTRON_PREBUILD_CMD }} --arch arm64
+        run: ${{ env.NODE_PREBUILD_CMD }} --arch arm64
+      - if: matrix.os == 'macos-latest'
+        run: ${{ env.ELECTRON_PREBUILD_CMD }} --arch arm64
       - run: ${{ env.NODE_PREBUILD_CMD }}
       - run: ${{ env.ELECTRON_PREBUILD_CMD }}
