@@ -43,13 +43,6 @@
               'RuntimeLibrary': 0,
             },
           },
-          'variables': {
-            # fix this error when prebuilding for Node 18 on Node 14 or older
-            #
-            # gyp: name 'llvm_version' is not defined while evaluating condition
-            # 'llvm_version=="0.0"' in binding.gyp while trying to load binding.gyp
-            'llvm_version': 0,
-          }
         }]
       ],
     },
