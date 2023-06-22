@@ -42,7 +42,10 @@
               'RuntimeLibrary': 0,
             },
           },
-        }]
+        }],
+        ['runtime=="electron"', {
+          'defines': ['NODE_RUNTIME_ELECTRON=1']
+        }],
       ],
     },
     {
