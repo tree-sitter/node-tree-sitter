@@ -2,9 +2,11 @@ test
 
 out
 build
+prebuilds
 
 vendor/tree-sitter/**/*
 !vendor/tree-sitter/lib/src/**/*.{c,h}
 !vendor/tree-sitter/lib/include/tree_sitter/*.h
 
 .github/
+.vscode/
