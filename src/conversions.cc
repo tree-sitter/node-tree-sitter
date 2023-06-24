@@ -29,7 +29,12 @@ void InitConversions(Local<Object> exports) {
 
   point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
 
-  #if (V8_MAJOR_VERSION < 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERSION < 4) || (V8_MAJOR_VERSION == 8 && NODE_RUNTIME_ELECTRON))
+  #if defined(_MSC_VER) && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
+    auto nodeBuffer = node::Buffer::New(Isolate::GetCurrent(), (char *)point_transfer_buffer, 2 * sizeof(uint32_t), [](char *data, void *hint) {}, nullptr)
+      .ToLocalChecked()
+      .As<v8::TypedArray>();
+    v8::Local<v8::ArrayBuffer> js_point_transfer_buffer = nodeBuffer.As<v8::TypedArray>()->Buffer();
+  #elif V8_MAJOR_VERSION < 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERSION < 4) || (defined(_MSC_VER) && NODE_RUNTIME_ELECTRON)
     auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
   #else
     auto backing_store = ArrayBuffer::NewBackingStore(point_transfer_buffer, 2 * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
