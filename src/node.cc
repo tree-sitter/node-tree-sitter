@@ -30,7 +30,12 @@ static inline void setup_transfer_buffer(uint32_t node_count) {
     transfer_buffer_length = new_length;
     transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
 
-    #if (V8_MAJOR_VERSION < 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERSION < 4) || (V8_MAJOR_VERSION == 8 && NODE_RUNTIME_ELECTRON))
+    #if defined(_MSC_VER) && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
+      auto nodeBuffer = node::Buffer::New(Isolate::GetCurrent(), (char *)transfer_buffer, transfer_buffer_length * sizeof(uint32_t), [](char *data, void *hint) {}, nullptr)
+        .ToLocalChecked()
+        .As<v8::TypedArray>();
+      v8::Local<v8::ArrayBuffer> js_transfer_buffer = nodeBuffer.As<v8::TypedArray>()->Buffer();
+    #elif V8_MAJOR_VERSION < 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERSION < 4) || (defined(_MSC_VER) && NODE_RUNTIME_ELECTRON)
       auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
     #else
       auto backing_store = ArrayBuffer::NewBackingStore(transfer_buffer, transfer_buffer_length * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
