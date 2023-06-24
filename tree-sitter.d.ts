@@ -96,6 +96,7 @@ declare module "tree-sitter" {
       nodeType: string;
       nodeText: string;
       nodeIsNamed: boolean;
+      nodeIsMissing: boolean;
       startPosition: Point;
       endPosition: Point;
       startIndex: number;
