@@ -143,6 +143,8 @@ void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
     Nan::Set(result, i, RangeToJS(ranges[i]));
   }
 
+  free(ranges);
+
   info.GetReturnValue().Set(result);
 }
 
