@@ -50,30 +50,8 @@ jobs:
           - windows-2019
           - macos-latest
           - ubuntu-latest
-        node:
-          # Node 10-14 fails to prebuild for Node 18+
-          #
-          # macos-latest's Python version is too new to work with the node-gyp
-          # bundled by prebuild and the "overrides" in package.json for node-gyp
-          # doesn't work before npm 8.3 (Node 16)
-          #
-          # ubuntu-latest has a similar issue but in this case the error is more direct:
-          # #error "It looks like you are building this native module without
-          # using the right config.gypi.  This normally means that you need to
-          # update electron-rebuild (>=3.2.8) or node-gyp (>=8.4.0) if you're
-          # building modules directly."
-          #
-          # windows-2019 fails with
-          # gyp: name 'llvm_version' is not defined while evaluating condition
-          # 'llvm_version=="0.0"' in binding.gyp while trying to load binding.gyp
-          # - 10
-          # - 12
-          # - 14
-          - 16
-          - 18
-          - 20
       fail-fast: false
-    name: Prebuild with Node ${{ matrix.node }} on ${{ matrix.os }}
+    name: Prebuild for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     # needs: test
     steps:
@@ -83,15 +61,11 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v3
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 20
       - run: npm install
-      - if: matrix.os == 'windows-latest'
-        run: ${{ env.NODE_PREBUILD_CMD }} --arch ia32
-      - if: matrix.os == 'windows-latest'
-        run: ${{ env.ELECTRON_PREBUILD_CMD }} --arch ia32
-      - if: matrix.os == 'macos-latest'
+      - if: runner.os == 'macOS'
         run: ${{ env.NODE_PREBUILD_CMD }} --arch arm64
-      - if: matrix.os == 'macos-latest'
+      - if: runner.os == 'macOS'
         run: ${{ env.ELECTRON_PREBUILD_CMD }} --arch arm64
       - run: ${{ env.NODE_PREBUILD_CMD }}
       - run: ${{ env.ELECTRON_PREBUILD_CMD }}
