@@ -5,6 +5,10 @@
 #include "./conversions.h"
 #include <cmath>
 
+#if defined(_MSC_VER) && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
+  #include <node_buffer.h>
+#endif
+
 namespace node_tree_sitter {
 
 using namespace v8;

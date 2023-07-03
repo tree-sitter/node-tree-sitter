@@ -8,6 +8,11 @@
 #include "./tree.h"
 #include "./tree_cursor.h"
 
+#if defined(_MSC_VER) && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
+  #include <node_buffer.h>
+#endif
+
+
 namespace node_tree_sitter {
 namespace node_methods {
 
