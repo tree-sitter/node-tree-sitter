@@ -409,5 +409,62 @@ describe("Node", () => {
         assert.equal('/', slash.text,                  '"/" text');
       })
     )
-  })
+  });
+
+  describe("VSCode", () => {
+    it("shouldn't segfault when accessing properties on the prototype", () => {
+      const tree = parser.parse('2 + 2');
+      const nodePrototype = Object.getPrototypeOf(tree.rootNode);
+      // const nodePrototype = tree.rootNode.__proto__;
+
+      const properties = [
+        "type",
+        "typeId",
+        "isNamed",
+        "text",
+        "startPosition",
+        "endPosition",
+        "startIndex",
+        "endIndex",
+        "parent",
+        "children",
+        "namedChildren",
+        "childCount",
+        "namedChildCount",
+        "firstChild",
+        "firstNamedChild",
+        "lastChild",
+        "lastNamedChild",
+        "nextSibling",
+        "nextNamedSibling",
+        "previousSibling",
+        "previousNamedSibling",
+      ];
+      for (const property of properties) {
+        assert.throws(() => { nodePrototype[property]; }, TypeError)
+      }
+
+      const methods = [
+        "hasChanges",
+        "hasError",
+        "isMissing",
+        "toString",
+        "walk",
+        // these take arguments but the "this" check happens first
+        "child",
+        "namedChild",
+        "firstChildForIndex",
+        "firstNamedChildForIndex",
+        "namedDescendantForIndex",
+        "descendantForIndex",
+        "descendantsOfType",
+        "namedDescendantForPosition",
+        "descendantForPosition",
+        "closest",
+      ];
+      for (const method of methods) {
+        assert.throws(nodePrototype[method], TypeError)
+      }
+    });
+  });
 });
