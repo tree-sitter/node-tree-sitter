@@ -12,7 +12,7 @@ namespace node_tree_sitter {
 
 using namespace v8;
 
-void InitAll(Local<Object> exports) {
+void InitAll(Local<Object> exports, Local<Value> m_, void* v_) {
   InitConversions(exports);
   node_methods::Init(exports);
   language_methods::Init(exports);
