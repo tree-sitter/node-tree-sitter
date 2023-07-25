@@ -43,6 +43,11 @@
             },
           },
         }],
+        ['OS == "linux"', {
+          'cflags_cc': [
+            '-Wno-cast-function-type'
+          ]
+        }],
         ['runtime=="electron"', {
           'defines': ['NODE_RUNTIME_ELECTRON=1']
         }],
