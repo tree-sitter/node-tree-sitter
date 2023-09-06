@@ -19,17 +19,12 @@
     "prebuild-install": "^7.1.1"
   },
   "devDependencies": {
-    "@types/node": "^20.3.1",
-    "chai": "^4.3.7",
+    "@types/node": "^20.5.9",
+    "chai": "^4.3.8",
     "mocha": "^8.4.0",
     "node-gyp": "^9.4.0",
-    "prebuild": "^11.0.4",
+    "prebuild": "^12.0.0",
     "tree-sitter-javascript": "https://github.com/tree-sitter/tree-sitter-javascript.git#master"
-  },
-  "overrides": {
-    "prebuild": {
-      "node-gyp": "$node-gyp"
-    }
   },
   "scripts": {
     "install": "prebuild-install || node-gyp rebuild",
