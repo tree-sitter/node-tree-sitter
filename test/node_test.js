@@ -1,6 +1,40 @@
 const Parser = require("..");
+const C = require('tree-sitter-c');
+const EmbeddedTemplate = require('tree-sitter-embedded-template');
 const JavaScript = require('tree-sitter-javascript');
+const JSON = require('tree-sitter-json');
+const Python = require('tree-sitter-python');
 const { assert } = require("chai");
+
+const JSON_EXAMPLE = `
+
+[
+  123,
+  false,
+  {
+    "x": null
+  }
+]
+`
+
+function getAllNodes(tree) {
+  const result = [];
+  let visitedChildren = false;
+  let cursor = tree.walk();
+  while (true) {
+    if (!visitedChildren) {
+      result.push(cursor.currentNode);
+      if (!cursor.gotoFirstChild()) {
+        visitedChildren = true;
+      }
+    } else if (cursor.gotoNextSibling()) {
+      visitedChildren = false;
+    } else if (!cursor.gotoParent()) {
+      break;
+    }
+  }
+  return result;
+}
 
 describe("Node", () => {
   let parser;
@@ -51,6 +85,171 @@ describe("Node", () => {
     })
   });
 
+  describe(".child", () => {
+    it("returns the child at the given index", () => {
+      parser.setLanguage(JSON);
+      const tree = parser.parse(JSON_EXAMPLE);
+      const arrayNode = tree.rootNode.child(0);
+
+      assert.equal(arrayNode.type, "array");
+      assert.equal(arrayNode.namedChildCount, 3);
+      assert.equal(arrayNode.startIndex, JSON_EXAMPLE.indexOf("["));
+      assert.equal(arrayNode.endIndex, JSON_EXAMPLE.indexOf("]") + 1);
+      assert.deepEqual(arrayNode.startPosition, { row: 2, column: 0 });
+      assert.deepEqual(arrayNode.endPosition, { row: 8, column: 1 });
+      assert.equal(arrayNode.childCount, 7);
+
+      const leftBracketNode = arrayNode.child(0);
+      const numberNode = arrayNode.child(1);
+      const commaNode1 = arrayNode.child(2);
+      const falseNode = arrayNode.child(3);
+      const commaNode2 = arrayNode.child(4);
+      const objectNode = arrayNode.child(5);
+      const rightBracketNode = arrayNode.child(6);
+
+      assert.equal(leftBracketNode.type, "[");
+      assert.equal(numberNode.type, "number");
+      assert.equal(commaNode1.type, ",");
+      assert.equal(falseNode.type, "false");
+      assert.equal(commaNode2.type, ",");
+      assert.equal(objectNode.type, "object");
+      assert.equal(rightBracketNode.type, "]");
+
+      assert(!leftBracketNode.isNamed);
+      assert(numberNode.isNamed);
+      assert(!commaNode1.isNamed);
+      assert(falseNode.isNamed);
+      assert(!commaNode2.isNamed);
+      assert(objectNode.isNamed);
+      assert(!rightBracketNode.isNamed);
+
+      assert.equal(numberNode.startIndex, JSON_EXAMPLE.indexOf("123"));
+      assert.equal(numberNode.endIndex, JSON_EXAMPLE.indexOf("123") + 3);
+      assert.deepEqual(numberNode.startPosition, { row: 3, column: 2 });
+      assert.deepEqual(numberNode.endPosition, { row: 3, column: 5 });
+
+      assert.equal(falseNode.startIndex, JSON_EXAMPLE.indexOf("false"));
+      assert.equal(falseNode.endIndex, JSON_EXAMPLE.indexOf("false") + 5);
+      assert.deepEqual(falseNode.startPosition, { row: 4, column: 2 });
+      assert.deepEqual(falseNode.endPosition, { row: 4, column: 7 });
+
+      assert.equal(objectNode.startIndex, JSON_EXAMPLE.indexOf("{"));
+      assert.equal(objectNode.endIndex, JSON_EXAMPLE.indexOf("}") + 1);
+      assert.deepEqual(objectNode.startPosition, { row: 5, column: 2 });
+      assert.deepEqual(objectNode.endPosition, { row: 7, column: 3 });
+
+      assert.equal(objectNode.childCount, 3);
+      const leftBraceNode = objectNode.child(0);
+      const pairNode = objectNode.child(1);
+      const rightBraceNode = objectNode.child(2);
+
+      assert.equal(leftBraceNode.type, "{");
+      assert.equal(pairNode.type, "pair");
+      assert.equal(rightBraceNode.type, "}");
+
+      assert(!leftBraceNode.isNamed);
+      assert(pairNode.isNamed);
+      assert(!rightBraceNode.isNamed);
+
+      assert.equal(pairNode.startIndex, JSON_EXAMPLE.indexOf('"x"'));
+      assert.equal(pairNode.endIndex, JSON_EXAMPLE.indexOf("null") + 4);
+      assert.deepEqual(pairNode.startPosition, { row: 6, column: 4 });
+      assert.deepEqual(pairNode.endPosition, { row: 6, column: 13 });
+
+      assert.equal(pairNode.childCount, 3);
+      const stringNode = pairNode.child(0);
+      const colonNode = pairNode.child(1);
+      const nullNode = pairNode.child(2);
+
+      assert.equal(stringNode.type, "string");
+      assert.equal(colonNode.type, ":");
+      assert.equal(nullNode.type, "null");
+
+      assert(stringNode.isNamed);
+      assert(!colonNode.isNamed);
+      assert(nullNode.isNamed);
+
+      assert.equal(stringNode.startIndex, JSON_EXAMPLE.indexOf('"x"'));
+      assert.equal(stringNode.endIndex, JSON_EXAMPLE.indexOf('"x"') + 3);
+      assert.deepEqual(stringNode.startPosition, { row: 6, column: 4 });
+      assert.deepEqual(stringNode.endPosition, { row: 6, column: 7 });
+
+      assert.equal(nullNode.startIndex, JSON_EXAMPLE.indexOf("null"));
+      assert.equal(nullNode.endIndex, JSON_EXAMPLE.indexOf("null") + 4);
+      assert.deepEqual(nullNode.startPosition, { row: 6, column: 9 });
+      assert.deepEqual(nullNode.endPosition, { row: 6, column: 13 });
+
+      assert.equal(stringNode.parent, pairNode);
+      assert.equal(nullNode.parent, pairNode);
+      assert.equal(pairNode.parent, objectNode);
+      assert.equal(numberNode.parent, arrayNode);
+      assert.equal(falseNode.parent, arrayNode);
+      assert.equal(objectNode.parent, arrayNode);
+      assert.equal(arrayNode.parent, tree.rootNode);
+      assert.equal(tree.rootNode.parent, null);
+    });
+  });
+
+  describe(".namedChild", () => {
+    it("returns the named child at the given index", () => {
+      parser.setLanguage(JSON);
+      const tree = parser.parse(JSON_EXAMPLE);
+      const arrayNode = tree.rootNode.namedChild(0);
+
+      const numberNode = arrayNode.namedChild(0);
+      const falseNode = arrayNode.namedChild(1);
+      const objectNode = arrayNode.namedChild(2);
+
+      assert.equal(numberNode.type, "number");
+      assert.equal(numberNode.startIndex, JSON_EXAMPLE.indexOf("123"));
+      assert.equal(numberNode.endIndex, JSON_EXAMPLE.indexOf("123") + 3);
+      assert.deepEqual(numberNode.startPosition, { row: 3, column: 2 });
+      assert.deepEqual(numberNode.endPosition, { row: 3, column: 5 });
+
+      assert.equal(falseNode.type, "false");
+      assert.equal(falseNode.startIndex, JSON_EXAMPLE.indexOf("false"));
+      assert.equal(falseNode.endIndex, JSON_EXAMPLE.indexOf("false") + 5);
+      assert.deepEqual(falseNode.startPosition, { row: 4, column: 2 });
+      assert.deepEqual(falseNode.endPosition, { row: 4, column: 7 });
+
+      assert.equal(objectNode.type, "object");
+      assert.equal(objectNode.startIndex, JSON_EXAMPLE.indexOf("{"));
+      assert.deepEqual(objectNode.startPosition, { row: 5, column: 2 });
+      assert.deepEqual(objectNode.endPosition, { row: 7, column: 3 });
+
+      assert.equal(objectNode.namedChildCount, 1);
+
+      const pairNode = objectNode.namedChild(0);
+      assert.equal(pairNode.type, "pair");
+      assert.equal(pairNode.startIndex, JSON_EXAMPLE.indexOf('"x"'));
+      assert.equal(pairNode.endIndex, JSON_EXAMPLE.indexOf("null") + 4);
+      assert.deepEqual(pairNode.startPosition, { row: 6, column: 4 });
+      assert.deepEqual(pairNode.endPosition, { row: 6, column: 13 });
+
+      const stringNode = pairNode.namedChild(0);
+      const nullNode = pairNode.namedChild(1);
+
+      assert.equal(stringNode.startIndex, JSON_EXAMPLE.indexOf('"x"'));
+      assert.equal(stringNode.endIndex, JSON_EXAMPLE.indexOf('"x"') + 3);
+      assert.deepEqual(stringNode.startPosition, { row: 6, column: 4 });
+      assert.deepEqual(stringNode.endPosition, { row: 6, column: 7 });
+
+      assert.equal(nullNode.startIndex, JSON_EXAMPLE.indexOf("null"));
+      assert.equal(nullNode.endIndex, JSON_EXAMPLE.indexOf("null") + 4);
+      assert.deepEqual(nullNode.startPosition, { row: 6, column: 9 });
+      assert.deepEqual(nullNode.endPosition, { row: 6, column: 13 });
+
+      assert.equal(stringNode.parent, pairNode);
+      assert.equal(nullNode.parent, pairNode);
+      assert.equal(pairNode.parent, objectNode);
+      assert.equal(numberNode.parent, arrayNode);
+      assert.equal(falseNode.parent, arrayNode);
+      assert.equal(objectNode.parent, arrayNode);
+      assert.equal(arrayNode.parent, tree.rootNode);
+      assert.equal(tree.rootNode.parent, null);
+    });
+  });
+
   describe(".children", () => {
     it("returns an array of child nodes", () => {
       const tree = parser.parse("x10 + 1000");
@@ -72,6 +271,74 @@ describe("Node", () => {
         ["identifier", "number"],
         sumNode.namedChildren.map(child => child.type)
       );
+    });
+  });
+
+  describe(".childrenForFieldName", () => {
+    it("returns an array of child nodes for the given field name", () => {
+      parser.setLanguage(Python);
+      const source = `
+        if one:
+            a()
+        elif two:
+            b()
+        elif three:
+            c()
+        elif four:
+            d()`
+
+      const tree = parser.parse(source);
+      const node = tree.rootNode.firstChild;
+      assert.equal(node.type, 'if_statement');
+      const cursor = tree.walk();
+      const alternatives = node.childrenForFieldName('alternative', cursor);
+      const alternative_texts = alternatives.map(n => {
+        const condition = n.childForFieldName('condition');
+        return source.slice(condition.startIndex, condition.endIndex);
+      });
+      assert.deepEqual(alternative_texts, ['two', 'three', 'four']);
+    });
+  });
+
+  describe(".childForFieldName", () => {
+    it("checks the parent node", () => {
+      const tree = parser.parse("foo(a().b[0].c.d.e())");
+      const callNode = tree.rootNode.firstNamedChild.firstNamedChild;
+      assert.equal(callNode.type, "call_expression");
+
+      // Regression test - when a field points to a hidden node (in this case, `_expression`)
+      // the hidden node should not be added to the node parent cache.
+      assert.equal(
+        callNode.childForFieldName("function").parent,
+        callNode
+      );
+    });
+
+    it("checks that extra hidden children are skipped", () => {
+      parser.setLanguage(Python);
+      const tree = parser.parse("while a:\n  pass");
+      const whileNode = tree.rootNode.firstChild;
+      assert.equal(whileNode.type, "while_statement");
+      assert.equal(whileNode.childForFieldName("body"), whileNode.child(3));
+    });
+  });
+
+  describe(".fieldNameForChild", () => {
+    it("returns the field name for the given child node", () => {
+      parser.setLanguage(C);
+      const tree = parser.parse("int w = x + y;");
+      const translation_unit_node = tree.rootNode;
+      const declaration_node = translation_unit_node.firstNamedChild;
+
+      const binary_expression_node = declaration_node
+                                      .childForFieldName("declarator")
+                                      .childForFieldName("value");
+
+      assert.equal(binary_expression_node.fieldNameForChild(0), "left");
+      assert.equal(binary_expression_node.fieldNameForChild(1), "operator");
+      assert.equal(binary_expression_node.fieldNameForChild(2), "right");
+      // Negative test - Not a valid child index
+      assert.equal(binary_expression_node.fieldNameForChild(3), null);
     });
   });
 
@@ -389,6 +656,19 @@ describe("Node", () => {
     });
   });
 
+  describe(".isExtra()", () => {
+    it("returns true if the node is an extra node like comments", () => {
+      const tree = parser.parse("foo(/* hi */);");
+      const node = tree.rootNode;
+      const comment_node = node.descendantForIndex(7, 7);
+
+      assert.equal(node.type, "program");
+      assert.equal(comment_node.type, "comment");
+      assert(!node.isExtra());
+      assert(comment_node.isExtra());
+    });
+  });
+
   describe(".text", () => {
     Object.entries({
       '.parse(String)': (parser, src) => parser.parse(src),
@@ -411,11 +691,172 @@ describe("Node", () => {
     )
   });
 
-  describe("VSCode", () => {
+  describe(".descendantCount", () => {
+    it("returns the number of descendants", () => {
+      parser.setLanguage(JSON);
+      const tree = parser.parse(JSON_EXAMPLE);
+      const valueNode = tree.rootNode;
+      const allNodes = getAllNodes(tree);
+
+      assert.equal(valueNode.descendantCount, allNodes.length);
+
+      const cursor = tree.walk();
+      for (let i = 0; i < allNodes.length; i++) {
+        const node = allNodes[i];
+        cursor.gotoDescendant(i)
+        assert.equal(cursor.currentNode, node, `index ${i}`);
+      }
+
+      for (let i = allNodes.length - 1; i >= 0; i--) {
+        const node = allNodes[i];
+        cursor.gotoDescendant(i)
+        assert.equal(cursor.currentNode, node, `rev index ${i}`);
+      }
+    });
+
+    it("tests a single node tree", () => {
+      parser.setLanguage(EmbeddedTemplate);
+      const tree = parser.parse("hello");
+
+      const nodes = getAllNodes(tree);
+      assert.equal(nodes.length, 2);
+      assert.equal(tree.rootNode.descendantCount, 2);
+
+      const cursor = tree.walk();
+
+      cursor.gotoDescendant(0);
+      assert.equal(cursor.currentDepth, 0);
+      assert.equal(cursor.currentNode, nodes[0]);
+
+      cursor.gotoDescendant(1);
+      assert.equal(cursor.currentDepth, 1);
+      assert.equal(cursor.currentNode, nodes[1]);
+    });
+  });
+
+  describe(".descendantFor{Index, Position}", () => {
+    it("returns the descendant at the given index", () => {
+      parser.setLanguage(JSON);
+      const tree = parser.parse(JSON_EXAMPLE);
+      const arrayNode = tree.rootNode;
+      
+      // Leaf node exactly matches the given bounds - index query
+      const colonIndex = JSON_EXAMPLE.indexOf(":");
+      let colonNode = arrayNode.descendantForIndex(colonIndex, colonIndex + 1);
+      assert.equal(colonNode.type, ":");
+      assert.equal(colonNode.startIndex, colonIndex);
+      assert.equal(colonNode.endIndex, colonIndex + 1);
+      assert.deepEqual(colonNode.startPosition, { row: 6, column: 7 });
+      assert.deepEqual(colonNode.endPosition, { row: 6, column: 8 });
+
+      // Leaf node exactly matches the given bounds - point query
+      colonNode = arrayNode.descendantForPosition({ row: 6, column: 7 }, { row: 6, column: 8 });
+      assert.equal(colonNode.type, ":");
+      assert.equal(colonNode.startIndex, colonIndex);
+      assert.equal(colonNode.endIndex, colonIndex + 1);
+      assert.deepEqual(colonNode.startPosition, { row: 6, column: 7 });
+      assert.deepEqual(colonNode.endPosition, { row: 6, column: 8 });
+
+      // The given point is between two adjacent leaf nodes - index query
+      colonNode = arrayNode.descendantForIndex(colonIndex, colonIndex);
+      assert.equal(colonNode.type, ":");
+      assert.equal(colonNode.startIndex, colonIndex);
+      assert.equal(colonNode.endIndex, colonIndex + 1);
+      assert.deepEqual(colonNode.startPosition, { row: 6, column: 7 });
+      assert.deepEqual(colonNode.endPosition, { row: 6, column: 8 });
+
+      // The given point is between two adjacent leaf nodes - point query
+      colonNode = arrayNode.descendantForPosition({ row: 6, column: 7 }, { row: 6, column: 7 });
+      assert.equal(colonNode.type, ":");
+      assert.equal(colonNode.startIndex, colonIndex);
+      assert.equal(colonNode.endIndex, colonIndex + 1);
+      assert.deepEqual(colonNode.startPosition, { row: 6, column: 7 });
+      assert.deepEqual(colonNode.endPosition, { row: 6, column: 8 });
+
+      // Leaf node starts at the lower bound, ends after the upper bound - index query
+      const stringIndex = JSON_EXAMPLE.indexOf('"x"');
+      let stringNode = arrayNode.descendantForIndex(stringIndex, stringIndex + 2);
+      assert.equal(stringNode.type, "string");
+      assert.equal(stringNode.startIndex, stringIndex);
+      assert.equal(stringNode.endIndex, stringIndex + 3);
+      assert.deepEqual(stringNode.startPosition, { row: 6, column: 4 });
+      assert.deepEqual(stringNode.endPosition, { row: 6, column: 7 });
+
+      // Leaf node starts at the lower bound, ends after the upper bound - point query
+      stringNode = arrayNode.descendantForPosition({ row: 6, column: 4 }, { row: 6, column: 6 });
+      assert.equal(stringNode.type, "string");
+      assert.equal(stringNode.startIndex, stringIndex);
+      assert.equal(stringNode.endIndex, stringIndex + 3);
+      assert.deepEqual(stringNode.startPosition, { row: 6, column: 4 });
+      assert.deepEqual(stringNode.endPosition, { row: 6, column: 7 });
+
+      // Leaf node starts before the lower bound, ends at the upper bound - index query
+      const nullIndex = JSON_EXAMPLE.indexOf("null");
+      let nullNode = arrayNode.descendantForIndex(nullIndex + 1, nullIndex + 4);
+      assert.equal(nullNode.type, "null");
+      assert.equal(nullNode.startIndex, nullIndex);
+      assert.equal(nullNode.endIndex, nullIndex + 4);
+      assert.deepEqual(nullNode.startPosition, { row: 6, column: 9 });
+      assert.deepEqual(nullNode.endPosition, { row: 6, column: 13 });
+
+      // Leaf node starts before the lower bound, ends at the upper bound - point query
+      nullNode = arrayNode.descendantForPosition({ row: 6, column: 11 }, { row: 6, column: 13 });
+      assert.equal(nullNode.type, "null");
+      assert.equal(nullNode.startIndex, nullIndex);
+      assert.equal(nullNode.endIndex, nullIndex + 4);
+      assert.deepEqual(nullNode.startPosition, { row: 6, column: 9 });
+      assert.deepEqual(nullNode.endPosition, { row: 6, column: 13 });
+
+      // The bounds span multiple leaf nodes - return the smallest node that does span it.
+      let pairNode = arrayNode.descendantForIndex(stringIndex + 2, stringIndex + 4);
+      assert.equal(pairNode.type, "pair");
+      assert.equal(pairNode.startIndex, stringIndex);
+      assert.equal(pairNode.endIndex, stringIndex + 9);
+      assert.deepEqual(pairNode.startPosition, { row: 6, column: 4 });
+      assert.deepEqual(pairNode.endPosition, { row: 6, column: 13 });
+
+      assert.equal(colonNode.parent, pairNode);
+
+      // No leaf spans the given range - return the smallest node that does span it.
+      pairNode = arrayNode.descendantForPosition({ row: 6, column: 6 }, { row: 6, column: 8 });
+      assert.equal(pairNode.type, "pair");
+      assert.equal(pairNode.startIndex, stringIndex);
+      assert.equal(pairNode.endIndex, stringIndex + 9);
+      assert.deepEqual(pairNode.startPosition, { row: 6, column: 4 });
+      assert.deepEqual(pairNode.endPosition, { row: 6, column: 13 });
+    });
+  });
+
+  describe("Numeric symbols respect simple aliases", () => {
+    it("should ensure numeric symbol ids for an alias match the normal id", () => {
+      parser.setLanguage(Python);
+
+      // Example 1:
+      // Python argument lists can contain "splat" arguments, which are not allowed within
+      // other expressions. This includes `parenthesized_list_splat` nodes like `(*b)`. These
+      // `parenthesized_list_splat` nodes are aliased as `parenthesized_expression`. Their numeric
+      // `symbol`, aka `kind_id` should match that of a normal `parenthesized_expression`.
+      const tree = parser.parse("(a((*b)))");
+      const root = tree.rootNode;
+      assert.equal(
+        root.toString(),
+        "(module (expression_statement (parenthesized_expression (call function: (identifier) arguments: (argument_list (parenthesized_expression (list_splat (identifier))))))))"
+      );
+
+      const outerExprNode = root.firstChild.firstChild;
+      assert.equal(outerExprNode.type, "parenthesized_expression");
+
+      const innerExprNode = outerExprNode.firstNamedChild.childForFieldName("arguments").firstNamedChild;
+      assert.equal(innerExprNode.type, "parenthesized_expression");
+      assert.equal(innerExprNode.typeId, outerExprNode.typeId);
+    });
+  });
+
+
+  describe("Property accesses", () => {
     it("shouldn't segfault when accessing properties on the prototype", () => {
       const tree = parser.parse('2 + 2');
       const nodePrototype = Object.getPrototypeOf(tree.rootNode);
-      // const nodePrototype = tree.rootNode.__proto__;
 
       const properties = [
         "type",
@@ -440,6 +881,7 @@ describe("Node", () => {
         "previousSibling",
         "previousNamedSibling",
       ];
+
       for (const property of properties) {
         assert.throws(() => { nodePrototype[property]; }, TypeError)
       }
@@ -462,6 +904,7 @@ describe("Node", () => {
         "descendantForPosition",
         "closest",
       ];
+
       for (const method of methods) {
         assert.throws(nodePrototype[method], TypeError)
       }

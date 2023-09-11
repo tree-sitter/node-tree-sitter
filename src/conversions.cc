@@ -77,9 +77,9 @@ Nan::Maybe<TSRange> RangeFromJS(const Local<Value> &arg) {
       Nan::ThrowTypeError("Range must be a {startPosition, endPosition, startIndex, endIndex} object"); \
       return Nan::Nothing<TSRange>(); \
     } \
-    auto field = Convert(value.ToLocalChecked()); \
-    if (field.IsJust()) { \
-      result.field = field.FromJust(); \
+    auto (field) = Convert(value.ToLocalChecked()); \
+    if ((field).IsJust()) { \
+      result.field = (field).FromJust(); \
     } else { \
       return Nan::Nothing<TSRange>(); \
     } \

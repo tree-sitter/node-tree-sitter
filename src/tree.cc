@@ -26,8 +26,10 @@ void Tree::Init(Local<Object> exports) {
   FunctionPair methods[] = {
     {"edit", Edit},
     {"rootNode", RootNode},
+    {"rootNodeWithOffset", RootNodeWithOffset},
     {"printDotGraph", PrintDotGraph},
     {"getChangedRanges", GetChangedRanges},
+    {"getIncludedRanges", GetIncludedRanges},
     {"getEditedRange", GetEditedRange},
     {"_cacheNode", CacheNode},
     {"_cacheNodes", CacheNodes},
@@ -45,29 +47,6 @@ void Tree::Init(Local<Object> exports) {
 }
 
 Tree::Tree(TSTree *tree) : tree_(tree) {}
-
-Tree::Tree(const Tree &other) : tree_(ts_tree_copy(other.tree_)) {}
-
-Tree::Tree(Tree &&other) noexcept: tree_(other.tree_) {
-  other.tree_ = nullptr;
-}
-
-Tree &Tree::operator=(const Tree &other) {
-  if (this != &other) {
-	ts_tree_delete(tree_);
-	tree_ = ts_tree_copy(other.tree_);
-  }
-  return *this;
-}
-
-Tree &Tree::operator=(Tree &&other) noexcept {
-  if (this != &other) {
-    ts_tree_delete(tree_);
-    tree_ = other.tree_;
-    other.tree_ = nullptr;
-  }
-  return *this;
-}
 
 Tree::~Tree() {
   ts_tree_delete(tree_);
@@ -111,7 +90,7 @@ void Tree::New(const Nan::FunctionCallbackInfo<Value> &info) {}
 
 #define read_byte_count_from_js(out, value, name)   \
   read_number_from_js(out, value, name);            \
-  (*out) *= 2
+  *(out) *= 2
 
 void Tree::Edit(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
@@ -156,6 +135,19 @@ void Tree::RootNode(const Nan::FunctionCallbackInfo<Value> &info) {
   node_methods::MarshalNode(info, tree, ts_tree_root_node(tree->tree_));
 }
 
+void Tree::RootNodeWithOffset(const Nan::FunctionCallbackInfo<Value> &info) {
+  Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
+
+  uint32_t offset_bytes = 0;
+  TSPoint offset_extent;
+  Nan::Maybe<uint32_t> maybe_number = Nan::Nothing<uint32_t>();
+  read_byte_count_from_js(&offset_bytes, info[0], "offsetBytes");
+  read_number_from_js(&offset_extent.row, info[1], "offsetExtent.row");
+  read_byte_count_from_js(&offset_extent.column, info[2], "offsetExtent.column");
+
+  node_methods::MarshalNode(info, tree, ts_tree_root_node_with_offset(tree->tree_, offset_bytes, offset_extent));
+}
+
 void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
   const Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
   const Tree *other_tree = UnwrapTree(info[0]);
@@ -166,6 +158,22 @@ void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
 
   uint32_t range_count;
   TSRange *ranges = ts_tree_get_changed_ranges(tree->tree_, other_tree->tree_, &range_count);
+
+  Local<Array> result = Nan::New<Array>();
+  for (size_t i = 0; i < range_count; i++) {
+    Nan::Set(result, i, RangeToJS(ranges[i]));
+  }
+
+  free(ranges);
+
+  info.GetReturnValue().Set(result);
+}
+
+void Tree::GetIncludedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
+  const Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
+  uint32_t range_count;
+
+  TSRange *ranges = ts_tree_included_ranges(tree->tree_, &range_count);
 
   Local<Array> result = Nan::New<Array>();
   for (size_t i = 0; i < range_count; i++) {
@@ -234,7 +242,19 @@ void Tree::GetEditedRange(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Tree::PrintDotGraph(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  ts_tree_print_dot_graph(tree->tree_, (long)stderr);
+
+  if (info[1]->IsNumber()) {
+    auto fd = Nan::To<int32_t>(info[1]).FromJust();
+    FILE *file = fdopen(fd, "w");
+    if (file != nullptr) {
+      ts_tree_print_dot_graph(tree->tree_, (long)file);
+    } else {
+      Nan::ThrowError("Failed to open file in write mode using file descriptor");
+    }
+  } else {
+    ts_tree_print_dot_graph(tree->tree_, (long)stderr);
+  }
+
   info.GetReturnValue().Set(info.This());
 }
 
@@ -249,19 +269,22 @@ void FinalizeNode(const v8::WeakCallbackInfo<Tree::NodeCacheEntry> &info) {
   }
   delete cache_entry;
 }
-} // namespace
 
-static void CacheNodeForTree(Tree *tree, Isolate *isolate, Local<Object> js_node) {
+void CacheNodeForTree(Tree *tree, Isolate *isolate, Local<Object> js_node) {
   Local<Value> js_node_field1, js_node_field2;
-  if (!Nan::Get(js_node, 0).ToLocal(&js_node_field1)) return;
-  if (!Nan::Get(js_node, 1).ToLocal(&js_node_field2)) return;
+  if (!Nan::Get(js_node, 0).ToLocal(&js_node_field1)) {
+    return;
+  }
+  if (!Nan::Get(js_node, 1).ToLocal(&js_node_field2)) {
+    return;
+  }
   uint32_t key_parts[2] = {
     Nan::To<uint32_t>(js_node_field1).FromMaybe(0),
     Nan::To<uint32_t>(js_node_field2).FromMaybe(0)
   };
   const void *key = UnmarshalNodeId(key_parts);
 
-  auto cache_entry = new Tree::NodeCacheEntry{tree, key, {}};
+  auto *cache_entry = new Tree::NodeCacheEntry{tree, key, {}};
   cache_entry->node.Reset(isolate, js_node);
   cache_entry->node.SetWeak(cache_entry, &FinalizeNode, Nan::WeakCallbackType::kParameter);
 
@@ -269,6 +292,7 @@ static void CacheNodeForTree(Tree *tree, Isolate *isolate, Local<Object> js_node
 
   tree->cached_nodes_[key] = cache_entry;
 }
+} // namespace
 
 void Tree::CacheNode(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());

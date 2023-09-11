@@ -7,6 +7,7 @@
 
 #include <climits>
 #include <cmath>
+#include <iostream>
 #include <nan.h>
 #include <string>
 #include <v8.h>
@@ -19,7 +20,7 @@ using std::vector;
 
 Nan::Persistent<Function> Parser::constructor;
 
-class CallbackInput {
+class CallbackInput final {
  public:
   CallbackInput(v8::Local<v8::Function> callback, v8::Local<v8::Value> js_buffer_size)
     : callback(callback) {
@@ -84,11 +85,11 @@ class CallbackInput {
       #endif
 
       reader->buffer.data(),
-      start,
-      reader->buffer.size(),
+      static_cast<int>(start),
+      static_cast<int>(reader->buffer.size()),
       String::NO_NULL_TERMINATION
     );
-    int end = start + utf16_units_read;
+    int end = static_cast<int>(start) + utf16_units_read;
     *bytes_read = 2 * utf16_units_read;
 
     reader->byte_offset += *bytes_read;
@@ -118,11 +119,15 @@ void Parser::Init(Local<Object> exports) {
   tpl->SetClassName(class_name);
 
   FunctionPair methods[] = {
+    {"setLanguage", SetLanguage},
+    {"parse", Parse},
+    {"getIncludedRanges", IncludedRanges},
+    {"getTimeoutMicros", TimeoutMicros},
+    {"setTimeoutMicros", SetTimeoutMicros},
     {"getLogger", GetLogger},
     {"setLogger", SetLogger},
-    {"setLanguage", SetLanguage},
     {"printDotGraphs", PrintDotGraphs},
-    {"parse", Parse},
+    {"reset", Reset},
   };
 
   for (auto & method : methods) {
@@ -136,7 +141,11 @@ void Parser::Init(Local<Object> exports) {
 
 Parser::Parser() : parser_(ts_parser_new()) {}
 
-Parser::~Parser() { ts_parser_delete(parser_); }
+Parser::~Parser() {
+  ts_parser_print_dot_graphs(parser_, -1);
+  ts_parser_set_logger(parser_, { nullptr, nullptr });
+  ts_parser_delete(parser_);
+}
 
 namespace {
 bool handle_included_ranges(TSParser *parser, Local<Value> arg) {
@@ -222,7 +231,7 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
     buffer_size = info[2];
   }
 
-  if (!handle_included_ranges(parser->parser_, info[3])) { 
+  if (!handle_included_ranges(parser->parser_, info[3])) {
     return;
   }
 
@@ -230,6 +239,38 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
   TSTree *tree = ts_parser_parse(parser->parser_, old_tree, callback_input.Input());
   Local<Value> result = Tree::NewInstance(tree);
   info.GetReturnValue().Set(result);
+}
+
+void Parser::IncludedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
+  auto *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  uint32_t count;
+
+  const TSRange *ranges = ts_parser_included_ranges(parser->parser_, &count);
+
+  Local<Array> result = Nan::New<Array>(count);
+  for (uint32_t i = 0; i < count; i++) {
+	Nan::Set(result, i, RangeToJS(ranges[i]));
+  }
+
+  info.GetReturnValue().Set(result);
+}
+
+void Parser::TimeoutMicros(const Nan::FunctionCallbackInfo<Value> &info) {
+  auto *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  uint64_t timeout_micros = ts_parser_timeout_micros(parser->parser_);
+  info.GetReturnValue().Set(Nan::New<Number>(timeout_micros));
+}
+
+void Parser::SetTimeoutMicros(const Nan::FunctionCallbackInfo<Value> &info) {
+  auto *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  uint64_t timeout_micros;
+  if (info[0]->IsNumber()) {
+    timeout_micros = Nan::To<Number>(info[0]).ToLocalChecked()->IntegerValue(Nan::GetCurrentContext()).FromJust();
+    ts_parser_set_timeout_micros(parser->parser_, timeout_micros);
+  } else {
+    Nan::ThrowTypeError("First argument must be a number");
+    return;
+  }
 }
 
 void Parser::GetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
@@ -270,8 +311,23 @@ void Parser::SetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
 void Parser::PrintDotGraphs(const Nan::FunctionCallbackInfo<Value> &info) {
   auto *parser = ObjectWrap::Unwrap<Parser>(info.This());
 
+  if (!info[0]->IsBoolean()) {
+    Nan::ThrowTypeError("First argument must be a boolean");
+    return;
+  }
+
+  int32_t fd = 2;
+
+  if (info.Length() > 1) {
+    if (!info[1]->IsNumber()) {
+      Nan::ThrowTypeError("Second argument must be a number (file descriptor)");
+      return;
+    }
+    fd = Nan::To<int32_t>(info[1]).FromJust();
+  }
+
   if (Nan::To<bool>(info[0]).FromMaybe(false)) {
-    ts_parser_print_dot_graphs(parser->parser_, 2);
+    ts_parser_print_dot_graphs(parser->parser_, (fd >= 0) ? fd : 2);
   } else {
     ts_parser_print_dot_graphs(parser->parser_, -1);
   }
@@ -279,4 +335,11 @@ void Parser::PrintDotGraphs(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(info.This());
 }
 
+void Parser::Reset(const Nan::FunctionCallbackInfo<Value> &info) {
+  auto *parser = ObjectWrap::Unwrap<Parser>(info.This());
+
+  ts_parser_reset(parser->parser_);
+
+  info.GetReturnValue().Set(info.This());
+}
 }  // namespace node_tree_sitter

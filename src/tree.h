@@ -12,10 +12,6 @@ namespace node_tree_sitter {
 
 class Tree final : public Nan::ObjectWrap {
  public:
-  Tree(const Tree &);
-  Tree(Tree &&) noexcept;
-  Tree &operator=(const Tree &);
-  Tree &operator=(Tree &&) noexcept;
   static void Init(v8::Local<v8::Object> exports);
   static v8::Local<v8::Value> NewInstance(TSTree *);
   static const Tree *UnwrapTree(const v8::Local<v8::Value> &);
@@ -36,9 +32,11 @@ class Tree final : public Nan::ObjectWrap {
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Edit(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void RootNode(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void RootNodeWithOffset(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void PrintDotGraph(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GetEditedRange(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GetChangedRanges(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void GetIncludedRanges(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void CacheNode(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void CacheNodes(const Nan::FunctionCallbackInfo<v8::Value> &);
 

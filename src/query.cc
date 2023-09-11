@@ -1,21 +1,21 @@
 #include "./query.h"
-#include <string>
-#include <vector>
-#include <v8.h>
-#include <nan.h>
-#include "./node.h"
+#include "./conversions.h"
 #include "./language.h"
 #include "./logger.h"
+#include "./node.h"
 #include "./util.h"
-#include "./conversions.h"
+
+#include <nan.h>
+#include <string>
+#include <v8.h>
+#include <vector>
 
 namespace node_tree_sitter {
 
 using std::vector;
 using namespace v8;
-using node_methods::UnmarshalNodeId;
 
-const char *query_error_names[] = {
+const char *const query_error_names[] = {
   "TSQueryErrorNone",
   "TSQueryErrorSyntax",
   "TSQueryErrorNodeType",
@@ -36,11 +36,30 @@ void Query::Init(Local<Object> exports) {
   Local<String> class_name = Nan::New("Query").ToLocalChecked();
   tpl->SetClassName(class_name);
 
+  GetterPair getters[] = {
+    {"matchLimit", MatchLimit},
+  };
+
   FunctionPair methods[] = {
     {"_matches", Matches},
     {"_captures", Captures},
     {"_getPredicates", GetPredicates},
+    {"disableCapture", DisableCapture},
+    {"disablePattern", DisablePattern},
+	{"isPatternGuaranteedAtStep", IsPatternGuaranteedAtStep},
+    {"isPatternRooted", IsPatternRooted},
+    {"isPatternNonLocal", IsPatternNonLocal},
+    {"startIndexForPattern", StartIndexForPattern},
+    {"didExceedMatchLimit", DidExceedMatchLimit},
   };
+
+  for (auto & getter : getters) {
+    Nan::SetAccessor(
+      tpl->InstanceTemplate(),
+      Nan::New(getter.name).ToLocalChecked(),
+      getter.callback
+    );
+  }
 
   for (auto & method : methods) {
     Nan::SetPrototypeMethod(tpl, method.name, method.callback);
@@ -60,7 +79,7 @@ Query::~Query() {
 }
 
 Local<Value> Query::NewInstance(TSQuery *query) {
-  if (query) {
+  if (query != nullptr) {
     Local<Object> self;
     MaybeLocal<Object> maybe_self = Nan::NewInstance(Nan::New(constructor));
     if (maybe_self.ToLocal(&self)) {
@@ -72,9 +91,13 @@ Local<Value> Query::NewInstance(TSQuery *query) {
 }
 
 Query *Query::UnwrapQuery(const Local<Value> &value) {
-  if (!value->IsObject()) return nullptr;
+  if (!value->IsObject()) {
+    return nullptr;
+  }
   Local<Object> js_query = Local<Object>::Cast(value);
-  if (!Nan::New(constructor_template)->HasInstance(js_query)) return nullptr;
+  if (!Nan::New(constructor_template)->HasInstance(js_query)) {
+    return nullptr;
+  }
   return ObjectWrap::Unwrap<Query>(js_query);
 }
 
@@ -131,7 +154,7 @@ void Query::New(const Nan::FunctionCallbackInfo<Value> &info) {
 
   auto self = info.This();
 
-  Query *query_wrapper = new Query(query);
+  auto *query_wrapper = new Query(query);
   query_wrapper->Wrap(self);
 
   auto init =
@@ -145,7 +168,7 @@ void Query::New(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Query::GetPredicates(const Nan::FunctionCallbackInfo<Value> &info) {
   Query *query = Query::UnwrapQuery(info.This());
-  auto ts_query = query->query_;
+  auto *ts_query = query->query_;
 
   auto pattern_len = ts_query_pattern_count(ts_query);
 
@@ -203,6 +226,10 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
   uint32_t start_column = Nan::To<uint32_t>(info[2]).ToChecked() << 1;
   uint32_t end_row      = Nan::To<uint32_t>(info[3]).ToChecked();
   uint32_t end_column   = Nan::To<uint32_t>(info[4]).ToChecked() << 1;
+  uint32_t start_index = Nan::To<uint32_t>(info[5]).ToChecked();
+  uint32_t end_index = Nan::To<uint32_t>(info[6]).ToChecked() << 1;
+  uint32_t match_limit = Nan::To<uint32_t>(info[7]).ToChecked();
+  uint32_t max_start_depth = Nan::To<uint32_t>(info[8]).ToChecked();
 
   if (query == nullptr) {
     Nan::ThrowError("Missing argument query");
@@ -219,6 +246,9 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
   ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
+  ts_query_cursor_set_byte_range(ts_query_cursor, start_index, end_index);
+  ts_query_cursor_set_match_limit(ts_query_cursor, match_limit);
+  ts_query_cursor_set_max_start_depth(ts_query_cursor, max_start_depth);
   ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
 
   Local<Array> js_matches = Nan::New<Array>();
@@ -259,6 +289,10 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
   uint32_t start_column = Nan::To<uint32_t>(info[2]).ToChecked() << 1;
   uint32_t end_row      = Nan::To<uint32_t>(info[3]).ToChecked();
   uint32_t end_column   = Nan::To<uint32_t>(info[4]).ToChecked() << 1;
+  uint32_t start_index = Nan::To<uint32_t>(info[5]).ToChecked();
+  uint32_t end_index = Nan::To<uint32_t>(info[6]).ToChecked() << 1;
+  uint32_t match_limit = Nan::To<uint32_t>(info[7]).ToChecked();
+  uint32_t max_start_depth = Nan::To<uint32_t>(info[8]).ToChecked();
 
   if (query == nullptr) {
     Nan::ThrowError("Missing argument query");
@@ -275,6 +309,9 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
   ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
+  ts_query_cursor_set_byte_range(ts_query_cursor, start_index, end_index);
+  ts_query_cursor_set_match_limit(ts_query_cursor, match_limit);
+  ts_query_cursor_set_max_start_depth(ts_query_cursor, max_start_depth);
   ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
 
   Local<Array> js_matches = Nan::New<Array>();
@@ -315,5 +352,52 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
   info.GetReturnValue().Set(result);
 }
 
+void Query::DisableCapture(const Nan::FunctionCallbackInfo<Value> &info) {
+  Query *query = Query::UnwrapQuery(info.This());
+  auto string = Nan::To<String>(info[0]).ToLocalChecked();
+  Nan::Utf8String utf8_string(string);
+  const char *capture_name = *utf8_string;
+  ts_query_disable_capture(query->query_, capture_name, utf8_string.length());
+}
+
+void Query::DisablePattern(const Nan::FunctionCallbackInfo<Value> &info) {
+  Query *query = Query::UnwrapQuery(info.This());
+  uint32_t pattern_index = Nan::To<uint32_t>(info[0]).ToChecked();
+  ts_query_disable_pattern(query->query_, pattern_index);
+}
+
+void Query::IsPatternGuaranteedAtStep(const Nan::FunctionCallbackInfo<Value> &info) {
+  Query *query = Query::UnwrapQuery(info.This());
+  uint32_t byte_offset = Nan::To<uint32_t>(info[0]).ToChecked();
+  info.GetReturnValue().Set(Nan::New(ts_query_is_pattern_guaranteed_at_step(query->query_, byte_offset)));
+}
+
+void Query::IsPatternRooted(const Nan::FunctionCallbackInfo<Value> &info) {
+  Query *query = Query::UnwrapQuery(info.This());
+  uint32_t pattern_index = Nan::To<uint32_t>(info[0]).ToChecked();
+  info.GetReturnValue().Set(Nan::New(ts_query_is_pattern_rooted(query->query_, pattern_index)));
+}
+
+void Query::IsPatternNonLocal(const Nan::FunctionCallbackInfo<Value> &info) {
+  Query *query = Query::UnwrapQuery(info.This());
+  uint32_t pattern_index = Nan::To<uint32_t>(info[0]).ToChecked();
+  info.GetReturnValue().Set(Nan::New(ts_query_is_pattern_non_local(query->query_, pattern_index)));
+}
+
+void Query::StartIndexForPattern(const Nan::FunctionCallbackInfo<Value> &info) {
+  Query *query = Query::UnwrapQuery(info.This());
+  uint32_t pattern_index = Nan::To<uint32_t>(info[0]).ToChecked();
+  info.GetReturnValue().Set(Nan::New(ts_query_start_byte_for_pattern(query->query_, pattern_index)));
+}
+
+void Query::DidExceedMatchLimit(const Nan::FunctionCallbackInfo<Value> &info) {
+  Query *query = Query::UnwrapQuery(info.This());
+  info.GetReturnValue().Set(Nan::New(ts_query_cursor_did_exceed_match_limit(ts_query_cursor)));
+}
+
+void Query::MatchLimit(Local<String> /*prop*/, const Nan::PropertyCallbackInfo<Value> &info) {
+  Query *query = Query::UnwrapQuery(info.This());
+  info.GetReturnValue().Set(Nan::New(ts_query_cursor_match_limit(ts_query_cursor)));
+}
 
 }  // namespace node_tree_sitter

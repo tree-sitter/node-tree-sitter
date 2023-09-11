@@ -7,7 +7,7 @@
 
 namespace node_tree_sitter {
 
-class Logger {
+class Logger final {
  public:
   static TSLogger Make(v8::Local<v8::Function>);
   Nan::Persistent<v8::Function> func;

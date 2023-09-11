@@ -1,5 +1,6 @@
 #include "./language.h"
 #include "./conversions.h"
+#include "./lookaheaditerator.h"
 #include "./node.h"
 #include "./parser.h"
 #include "./query.h"
@@ -17,6 +18,7 @@ void InitAll(Local<Object> exports, Local<Value> m_, void* v_) {
   InitConversions(exports);
   node_methods::Init(exports);
   language_methods::Init(exports);
+  LookaheadIterator::Init(exports);
   Parser::Init(exports);
   Query::Init(exports);
   Tree::Init(exports);

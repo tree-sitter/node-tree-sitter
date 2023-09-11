@@ -1,6 +1,7 @@
 const Parser = require("..");
 const JavaScript = require('tree-sitter-javascript');
 const { assert } = require("chai");
+const { constants } = require("perf_hooks");
 
 describe("Tree", () => {
   let parser;
@@ -8,6 +9,38 @@ describe("Tree", () => {
   beforeEach(() => {
     parser = new Parser();
     parser.setLanguage(JavaScript)
+  });
+
+  describe('.rootNodeWithOffset', () => {
+    it('returns the root node of the tree, offset by the given byte offset', () => {
+      const tree = parser.parse('  if (a) b');
+      const node = tree.rootNodeWithOffset(6, {row: 2, column: 2});
+      assert.equal(node.startIndex, 8);
+      assert.equal(node.endIndex, 16);
+      assert.deepEqual(node.startPosition, {row: 2, column: 4});
+      assert.deepEqual(node.endPosition, {row: 2, column: 12});
+
+      const child = node.firstChild.child(2);
+      assert.equal(child.type, 'expression_statement');
+      assert.equal(child.startIndex, 15);
+      assert.equal(child.endIndex, 16);
+      assert.deepEqual(child.startPosition, {row: 2, column: 11});
+      assert.deepEqual(child.endPosition, {row: 2, column: 12});
+
+      const cursor = node.walk();
+      cursor.gotoFirstChild();
+      cursor.gotoFirstChild();
+      cursor.gotoNextSibling();
+      assertCursorState(cursor, {
+        nodeType: 'parenthesized_expression',
+        nodeIsNamed: true,
+        nodeIsMissing: false,
+        startPosition: {row: 2, column: 7},
+        endPosition: {row: 2, column: 10},
+        startIndex: 11,
+        endIndex: 14
+      });
+    });
   });
 
   describe('.edit', () => {

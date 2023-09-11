@@ -11,8 +11,7 @@ namespace node_tree_sitter {
 
 class Parser final : public Nan::ObjectWrap {
  public:
-  static void Init(v8::Local<v8::Object> exports);
-
+   static void Init(v8::Local<v8::Object> exports);
 
  private:
   explicit Parser();
@@ -20,10 +19,14 @@ class Parser final : public Nan::ObjectWrap {
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void SetLanguage(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Parse(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void IncludedRanges(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void TimeoutMicros(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void SetTimeoutMicros(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GetLogger(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void SetLogger(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void Parse(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void PrintDotGraphs(const Nan::FunctionCallbackInfo<v8::Value> &);
+  static void Reset(const Nan::FunctionCallbackInfo<v8::Value> &);
 
   TSParser *parser_;
   static Nan::Persistent<v8::Function> constructor;
