@@ -1,11 +1,13 @@
 #include "./tree.h"
+#include "./conversions.h"
+#include "./logger.h"
+#include "./node.h"
+#include "./util.h"
+#include "tree_sitter/api.h"
+
+#include <nan.h>
 #include <string>
 #include <v8.h>
-#include <nan.h>
-#include "./node.h"
-#include "./logger.h"
-#include "./util.h"
-#include "./conversions.h"
 
 namespace node_tree_sitter {
 
@@ -31,8 +33,8 @@ void Tree::Init(Local<Object> exports) {
     {"_cacheNodes", CacheNodes},
   };
 
-  for (size_t i = 0; i < length_of_array(methods); i++) {
-    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
+  for (auto & method : methods) {
+    Nan::SetPrototypeMethod(tpl, method.name, method.callback);
   }
 
   Local<Function> ctor = Nan::GetFunction(tpl).ToLocalChecked();
@@ -44,6 +46,29 @@ void Tree::Init(Local<Object> exports) {
 
 Tree::Tree(TSTree *tree) : tree_(tree) {}
 
+Tree::Tree(const Tree &other) : tree_(ts_tree_copy(other.tree_)) {}
+
+Tree::Tree(Tree &&other) noexcept: tree_(other.tree_) {
+  other.tree_ = nullptr;
+}
+
+Tree &Tree::operator=(const Tree &other) {
+  if (this != &other) {
+	ts_tree_delete(tree_);
+	tree_ = ts_tree_copy(other.tree_);
+  }
+  return *this;
+}
+
+Tree &Tree::operator=(Tree &&other) noexcept {
+  if (this != &other) {
+    ts_tree_delete(tree_);
+    tree_ = other.tree_;
+    other.tree_ = nullptr;
+  }
+  return *this;
+}
+
 Tree::~Tree() {
   ts_tree_delete(tree_);
   for (auto &entry : cached_nodes_) {
@@ -52,7 +77,7 @@ Tree::~Tree() {
 }
 
 Local<Value> Tree::NewInstance(TSTree *tree) {
-  if (tree) {
+  if (tree != nullptr) {
     Local<Object> self;
     MaybeLocal<Object> maybe_self = Nan::NewInstance(Nan::New(constructor));
     if (maybe_self.ToLocal(&self)) {
@@ -64,9 +89,13 @@ Local<Value> Tree::NewInstance(TSTree *tree) {
 }
 
 const Tree *Tree::UnwrapTree(const Local<Value> &value) {
-  if (!value->IsObject()) return nullptr;
+  if (!value->IsObject()) {
+    return nullptr;
+  }
   Local<Object> js_tree = Local<Object>::Cast(value);
-  if (!Nan::New(constructor_template)->HasInstance(js_tree)) return nullptr;
+  if (!Nan::New(constructor_template)->HasInstance(js_tree)) {
+    return nullptr;
+  }
   return ObjectWrap::Unwrap<Tree>(js_tree);
 }
 
@@ -130,7 +159,7 @@ void Tree::RootNode(const Nan::FunctionCallbackInfo<Value> &info) {
 void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
   const Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
   const Tree *other_tree = UnwrapTree(info[0]);
-  if (!other_tree) {
+  if (other_tree == nullptr) {
     Nan::ThrowTypeError("Argument must be a tree");
     return;
   }
@@ -151,7 +180,9 @@ void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
 void Tree::GetEditedRange(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
   TSNode root = ts_tree_root_node(tree->tree_);
-  if (!ts_node_has_changes(root)) return;
+  if (!ts_node_has_changes(root)) { 
+    return;
+  }
   TSRange result = {
     ts_node_start_point(root),
     ts_node_end_point(root),
@@ -162,14 +193,17 @@ void Tree::GetEditedRange(const Nan::FunctionCallbackInfo<Value> &info) {
   TSTreeCursor cursor = ts_tree_cursor_new(root);
 
   while (true) {
-    if (!ts_tree_cursor_goto_first_child(&cursor)) break;
+    if (!ts_tree_cursor_goto_first_child(&cursor)) { 
+      break;
+    }
     while (true) {
       TSNode node = ts_tree_cursor_current_node(&cursor);
       if (ts_node_has_changes(node)) {
         result.start_byte = ts_node_start_byte(node);
         result.start_point = ts_node_start_point(node);
         break;
-      } else if (!ts_tree_cursor_goto_next_sibling(&cursor)) {
+      }
+      if (!ts_tree_cursor_goto_next_sibling(&cursor)) {
         break;
       }
     }
@@ -178,7 +212,9 @@ void Tree::GetEditedRange(const Nan::FunctionCallbackInfo<Value> &info) {
   while (ts_tree_cursor_goto_parent(&cursor)) {}
 
   while (true) {
-    if (!ts_tree_cursor_goto_first_child(&cursor)) break;
+    if (!ts_tree_cursor_goto_first_child(&cursor)) { 
+      break;
+    }
     while (true) {
       TSNode node = ts_tree_cursor_current_node(&cursor);
       if (ts_node_has_changes(node)) {
@@ -198,20 +234,22 @@ void Tree::GetEditedRange(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Tree::PrintDotGraph(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  ts_tree_print_dot_graph(tree->tree_, stderr);
+  ts_tree_print_dot_graph(tree->tree_, (long)stderr);
   info.GetReturnValue().Set(info.This());
 }
 
-static void FinalizeNode(const v8::WeakCallbackInfo<Tree::NodeCacheEntry> &info) {
+namespace {
+void FinalizeNode(const v8::WeakCallbackInfo<Tree::NodeCacheEntry> &info) {
   Tree::NodeCacheEntry *cache_entry = info.GetParameter();
   assert(!cache_entry->node.IsEmpty());
   cache_entry->node.Reset();
-  if (cache_entry->tree) {
+  if (cache_entry->tree != nullptr) {
     assert(cache_entry->tree->cached_nodes_.count(cache_entry->key));
     cache_entry->tree->cached_nodes_.erase(cache_entry->key);
   }
   delete cache_entry;
 }
+} // namespace
 
 static void CacheNodeForTree(Tree *tree, Isolate *isolate, Local<Object> js_node) {
   Local<Value> js_node_field1, js_node_field2;

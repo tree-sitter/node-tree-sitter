@@ -4,18 +4,18 @@
 #include <v8.h>
 #include <nan.h>
 #include <node_object_wrap.h>
-#include <tree_sitter/api.h>
+#include "tree_sitter/api.h"
 
 namespace node_tree_sitter {
 
-class TreeCursor : public Nan::ObjectWrap {
+class TreeCursor final : public Nan::ObjectWrap {
  public:
   static void Init(v8::Local<v8::Object> exports);
   static v8::Local<v8::Value> NewInstance(TSTreeCursor);
 
  private:
   explicit TreeCursor(TSTreeCursor);
-  ~TreeCursor();
+  ~TreeCursor() final;
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GotoParent(const Nan::FunctionCallbackInfo<v8::Value> &);

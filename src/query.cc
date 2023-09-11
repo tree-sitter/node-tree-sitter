@@ -42,8 +42,8 @@ void Query::Init(Local<Object> exports) {
     {"_getPredicates", GetPredicates},
   };
 
-  for (size_t i = 0; i < length_of_array(methods); i++) {
-    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
+  for (auto & method : methods) {
+    Nan::SetPrototypeMethod(tpl, method.name, method.callback);
   }
 
   Local<Function> ctor = Nan::GetFunction(tpl).ToLocalChecked();

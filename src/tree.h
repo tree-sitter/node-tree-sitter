@@ -1,16 +1,21 @@
 #ifndef NODE_TREE_SITTER_TREE_H_
 #define NODE_TREE_SITTER_TREE_H_
 
-#include <v8.h>
+#include "tree_sitter/api.h"
+
 #include <nan.h>
 #include <node_object_wrap.h>
 #include <unordered_map>
-#include <tree_sitter/api.h>
+#include <v8.h>
 
 namespace node_tree_sitter {
 
-class Tree : public Nan::ObjectWrap {
+class Tree final : public Nan::ObjectWrap {
  public:
+  Tree(const Tree &);
+  Tree(Tree &&) noexcept;
+  Tree &operator=(const Tree &);
+  Tree &operator=(Tree &&) noexcept;
   static void Init(v8::Local<v8::Object> exports);
   static v8::Local<v8::Value> NewInstance(TSTree *);
   static const Tree *UnwrapTree(const v8::Local<v8::Value> &);
@@ -26,7 +31,7 @@ class Tree : public Nan::ObjectWrap {
 
  private:
   explicit Tree(TSTree *);
-  ~Tree();
+  ~Tree() final;
 
   static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Edit(const Nan::FunctionCallbackInfo<v8::Value> &);

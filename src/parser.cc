@@ -1,38 +1,38 @@
 #include "./parser.h"
-#include <string>
-#include <vector>
-#include <climits>
-#include <v8.h>
-#include <nan.h>
 #include "./conversions.h"
 #include "./language.h"
 #include "./logger.h"
 #include "./tree.h"
 #include "./util.h"
+
+#include <climits>
 #include <cmath>
+#include <nan.h>
+#include <string>
+#include <v8.h>
+#include <vector>
 
 namespace node_tree_sitter {
 
 using namespace v8;
 using std::vector;
-using std::pair;
 
 Nan::Persistent<Function> Parser::constructor;
 
 class CallbackInput {
  public:
   CallbackInput(v8::Local<v8::Function> callback, v8::Local<v8::Value> js_buffer_size)
-    : callback(callback),
-      byte_offset(0),
-      partial_string_offset(0) {
+    : callback(callback) {
     uint32_t buffer_size = Nan::To<uint32_t>(js_buffer_size).FromMaybe(0);
-    if (buffer_size == 0) buffer_size = 32 * 1024;
+    if (buffer_size == 0) {
+      buffer_size = 32 * 1024;
+    }
     buffer.resize(buffer_size);
   }
 
   TSInput Input() {
     TSInput result;
-    result.payload = (void *)this;
+    result.payload = static_cast<void *>(this);
     result.encoding = TSInputEncodingUTF16;
     result.read = Read;
     return result;
@@ -40,7 +40,7 @@ class CallbackInput {
 
  private:
   static const char * Read(void *payload, uint32_t byte, TSPoint position, uint32_t *bytes_read) {
-    CallbackInput *reader = (CallbackInput *)payload;
+    auto *reader = static_cast<CallbackInput *>(payload);
 
     if (byte != reader->byte_offset) {
       reader->byte_offset = byte;
@@ -51,7 +51,7 @@ class CallbackInput {
     *bytes_read = 0;
     Local<String> result;
     uint32_t start = 0;
-    if (reader->partial_string_offset) {
+    if (reader->partial_string_offset != 0) {
       result = Nan::New(reader->partial_string);
       start = reader->partial_string_offset;
     } else {
@@ -60,12 +60,20 @@ class CallbackInput {
       Local<Value> argv[2] = { Nan::New<Number>(utf16_unit), PointToJS(position) };
       TryCatch try_catch(Isolate::GetCurrent());
       auto maybe_result_value = Nan::Call(callback, GetGlobal(callback), 2, argv);
-      if (try_catch.HasCaught()) return nullptr;
+      if (try_catch.HasCaught()) {
+        return nullptr;
+      }
 
       Local<Value> result_value;
-      if (!maybe_result_value.ToLocal(&result_value)) return nullptr;
-      if (!result_value->IsString()) return nullptr;
-      if (!Nan::To<String>(result_value).ToLocal(&result)) return nullptr;
+      if (!maybe_result_value.ToLocal(&result_value)) {
+        return nullptr;
+      }
+      if (!result_value->IsString()) {
+        return nullptr;
+      }
+      if (!Nan::To<String>(result_value).ToLocal(&result)) {
+        return nullptr;
+      }
     }
 
     int utf16_units_read = result->Write(
@@ -93,14 +101,14 @@ class CallbackInput {
       reader->partial_string.Reset();
     }
 
-    return (const char *)reader->buffer.data();
+    return reinterpret_cast<const char *>(reader->buffer.data());
   }
 
   Nan::Persistent<v8::Function> callback;
   std::vector<uint16_t> buffer;
-  size_t byte_offset;
+  size_t byte_offset{};
   Nan::Persistent<v8::String> partial_string;
-  size_t partial_string_offset;
+  size_t partial_string_offset{};
 };
 
 void Parser::Init(Local<Object> exports) {
@@ -117,8 +125,8 @@ void Parser::Init(Local<Object> exports) {
     {"parse", Parse},
   };
 
-  for (size_t i = 0; i < length_of_array(methods); i++) {
-    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
+  for (auto & method : methods) {
+    Nan::SetPrototypeMethod(tpl, method.name, method.callback);
   }
 
   constructor.Reset(Nan::Persistent<Function>(Nan::GetFunction(tpl).ToLocalChecked()));
@@ -130,16 +138,21 @@ Parser::Parser() : parser_(ts_parser_new()) {}
 
 Parser::~Parser() { ts_parser_delete(parser_); }
 
-static bool handle_included_ranges(TSParser *parser, Local<Value> arg) {
+namespace {
+bool handle_included_ranges(TSParser *parser, Local<Value> arg) {
   uint32_t last_included_range_end = 0;
   if (arg->IsArray()) {
     auto js_included_ranges = Local<Array>::Cast(arg);
     vector<TSRange> included_ranges;
     for (unsigned i = 0; i < js_included_ranges->Length(); i++) {
       Local<Value> range_value;
-      if (!Nan::Get(js_included_ranges, i).ToLocal(&range_value)) return false;
+      if (!Nan::Get(js_included_ranges, i).ToLocal(&range_value)) {
+        return false;
+      }
       auto maybe_range = RangeFromJS(range_value);
-      if (!maybe_range.IsJust()) return false;
+      if (!maybe_range.IsJust()) {
+        return false;
+      }
       auto range = maybe_range.FromJust();
       if (range.start_byte < last_included_range_end) {
         Nan::ThrowRangeError("Overlapping ranges");
@@ -155,10 +168,11 @@ static bool handle_included_ranges(TSParser *parser, Local<Value> arg) {
 
   return true;
 }
+} // namespace
 
 void Parser::New(const Nan::FunctionCallbackInfo<Value> &info) {
   if (info.IsConstructCall()) {
-    Parser *parser = new Parser();
+    auto *parser = new Parser();
     parser->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } else {
@@ -173,17 +187,17 @@ void Parser::New(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void Parser::SetLanguage(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  auto *parser = ObjectWrap::Unwrap<Parser>(info.This());
 
   const TSLanguage *language = language_methods::UnwrapLanguage(info[0]);
-  if (language) {
+  if (language != nullptr) {
     ts_parser_set_language(parser->parser_, language);
     info.GetReturnValue().Set(info.This());
   }
 }
 
 void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  auto *parser = ObjectWrap::Unwrap<Parser>(info.This());
 
   if (!info[0]->IsFunction()) {
     Nan::ThrowTypeError("Input must be a function");
@@ -196,7 +210,7 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
   const TSTree *old_tree = nullptr;
   if (info.Length() > 1 && !info[1]->IsNull() && !info[1]->IsUndefined() && Nan::To<Object>(info[1]).ToLocal(&js_old_tree)) {
     const Tree *tree = Tree::UnwrapTree(js_old_tree);
-    if (!tree) {
+    if (tree == nullptr) {
       Nan::ThrowTypeError("Second argument must be a tree");
       return;
     }
@@ -204,9 +218,13 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 
   Local<Value> buffer_size = Nan::Null();
-  if (info.Length() > 2) buffer_size = info[2];
+  if (info.Length() > 2) {
+    buffer_size = info[2];
+  }
 
-  if (!handle_included_ranges(parser->parser_, info[3])) return;
+  if (!handle_included_ranges(parser->parser_, info[3])) { 
+    return;
+  }
 
   CallbackInput callback_input(callback, buffer_size);
   TSTree *tree = ts_parser_parse(parser->parser_, old_tree, callback_input.Input());
@@ -215,11 +233,11 @@ void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void Parser::GetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  auto *parser = ObjectWrap::Unwrap<Parser>(info.This());
 
   TSLogger current_logger = ts_parser_logger(parser->parser_);
-  if (current_logger.payload && current_logger.log == Logger::Log) {
-    Logger *logger = (Logger *)current_logger.payload;
+  if ((current_logger.payload != nullptr) && current_logger.log == Logger::Log) {
+    auto *logger = static_cast<Logger *>(current_logger.payload);
     info.GetReturnValue().Set(Nan::New(logger->func));
   } else {
     info.GetReturnValue().Set(Nan::Null());
@@ -227,16 +245,20 @@ void Parser::GetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void Parser::SetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  auto *parser = ObjectWrap::Unwrap<Parser>(info.This());
 
   TSLogger current_logger = ts_parser_logger(parser->parser_);
 
   if (info[0]->IsFunction()) {
-    if (current_logger.payload) delete (Logger *)current_logger.payload;
+    if (current_logger.payload != nullptr) {
+      delete static_cast<Logger *>(current_logger.payload);
+    }
     ts_parser_set_logger(parser->parser_, Logger::Make(Local<Function>::Cast(info[0])));
   } else if (!Nan::To<bool>(info[0]).FromMaybe(true)) {
-    if (current_logger.payload) delete (Logger *)current_logger.payload;
-    ts_parser_set_logger(parser->parser_, { 0, 0 });
+    if (current_logger.payload != nullptr) {
+      delete static_cast<Logger *>(current_logger.payload);
+    }
+    ts_parser_set_logger(parser->parser_, { nullptr, nullptr });
   } else {
     Nan::ThrowTypeError("Logger callback must either be a function or a falsy value");
     return;
@@ -246,7 +268,7 @@ void Parser::SetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void Parser::PrintDotGraphs(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+  auto *parser = ObjectWrap::Unwrap<Parser>(info.This());
 
   if (Nan::To<bool>(info[0]).FromMaybe(false)) {
     ts_parser_print_dot_graphs(parser->parser_, 2);

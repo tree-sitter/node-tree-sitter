@@ -5,7 +5,7 @@
 #include <nan.h>
 #include <node_object_wrap.h>
 #include <unordered_map>
-#include <tree_sitter/api.h>
+#include "tree_sitter/api.h"
 
 namespace node_tree_sitter {
 

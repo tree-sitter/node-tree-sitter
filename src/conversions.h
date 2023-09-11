@@ -1,9 +1,10 @@
 #ifndef NODE_TREE_SITTER_CONVERSIONS_H_
 #define NODE_TREE_SITTER_CONVERSIONS_H_
 
+#include "tree_sitter/api.h"
+
 #include <nan.h>
 #include <v8.h>
-#include <tree_sitter/api.h>
 
 namespace node_tree_sitter {
 

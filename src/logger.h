@@ -1,9 +1,9 @@
 #ifndef NODE_TREE_SITTER_LOGGER_H_
 #define NODE_TREE_SITTER_LOGGER_H_
 
-#include <v8.h>
+#include "tree_sitter/api.h"
 #include <nan.h>
-#include <tree_sitter/api.h>
+#include <v8.h>
 
 namespace node_tree_sitter {
 

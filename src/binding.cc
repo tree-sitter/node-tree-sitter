@@ -1,12 +1,13 @@
-#include <node.h>
-#include <v8.h>
 #include "./language.h"
+#include "./conversions.h"
 #include "./node.h"
 #include "./parser.h"
 #include "./query.h"
 #include "./tree.h"
 #include "./tree_cursor.h"
-#include "./conversions.h"
+
+#include <node.h>
+#include <v8.h>
 
 namespace node_tree_sitter {
 

@@ -1,9 +1,10 @@
 #include "./logger.h"
+#include "./util.h"
+#include "tree_sitter/api.h"
+
+#include <nan.h>
 #include <string>
 #include <v8.h>
-#include <nan.h>
-#include <tree_sitter/api.h>
-#include "./util.h"
 
 namespace node_tree_sitter {
 
@@ -11,10 +12,11 @@ using namespace v8;
 using std::string;
 
 void Logger::Log(void *payload, TSLogType type, const char *message_str) {
-  Logger *debugger = (Logger *)payload;
+  auto *debugger = static_cast<Logger *>(payload);
   Local<Function> fn = Nan::New(debugger->func);
-  if (!fn->IsFunction())
+  if (!fn->IsFunction()) {
     return;
+  }
 
   string message(message_str);
   string param_sep = " ";
@@ -26,10 +28,11 @@ void Logger::Log(void *payload, TSLogType type, const char *message_str) {
 
   while (param_sep_pos != string::npos) {
     size_t key_pos = param_sep_pos + param_sep.size();
-    size_t value_sep_pos = message.find(":", key_pos);
+    size_t value_sep_pos = message.find(':', key_pos);
 
-    if (value_sep_pos == string::npos)
+    if (value_sep_pos == string::npos) {
       break;
+    }
 
     size_t val_pos = value_sep_pos + 1;
     param_sep = ", ";
@@ -57,9 +60,9 @@ void Logger::Log(void *payload, TSLogType type, const char *message_str) {
 
 TSLogger Logger::Make(Local<Function> func) {
   TSLogger result;
-  Logger *logger = new Logger();
+  auto *logger = new Logger();
   logger->func.Reset(Nan::Persistent<Function>(func));
-  result.payload = (void *)logger;
+  result.payload = static_cast<void *>(logger);
   result.log = Log;
   return result;
 }

@@ -1,9 +1,10 @@
 #include "./node.h"
-#include <nan.h>
-#include <tree_sitter/api.h>
-#include <v8.h>
 #include "./conversions.h"
+#include "tree_sitter/api.h"
+
 #include <cmath>
+#include <nan.h>
+#include <v8.h>
 
 namespace node_tree_sitter {
 
@@ -16,8 +17,10 @@ Nan::Persistent<String> start_position_key;
 Nan::Persistent<String> end_index_key;
 Nan::Persistent<String> end_position_key;
 
-static unsigned BYTES_PER_CHARACTER = 2;
-static uint32_t *point_transfer_buffer;
+namespace {
+  const unsigned BYTES_PER_CHARACTER = 2;
+  uint32_t *point_transfer_buffer;
+} // namespace
 
 void InitConversions(Local<Object> exports) {
   row_key.Reset(Nan::Persistent<String>(Nan::New("row").ToLocalChecked()));
@@ -27,7 +30,7 @@ void InitConversions(Local<Object> exports) {
   end_index_key.Reset(Nan::Persistent<String>(Nan::New("endIndex").ToLocalChecked()));
   end_position_key.Reset(Nan::Persistent<String>(Nan::New("endPosition").ToLocalChecked()));
 
-  point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
+  point_transfer_buffer = new uint32_t[2];
 
   #if defined(_MSC_VER) && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
     auto nodeBuffer = node::Buffer::New(Isolate::GetCurrent(), (char *)point_transfer_buffer, 2 * sizeof(uint32_t), [](char *data, void *hint) {}, nullptr)
