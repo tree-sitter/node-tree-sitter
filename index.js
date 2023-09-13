@@ -253,11 +253,11 @@ class SyntaxNode {
  * Parser
  */
 
-const {parse, setLanguage} = Parser.prototype;
+const {_parse, _setLanguage} = Parser.prototype;
 const languageSymbol = Symbol('parser.language');
 
 Parser.prototype.setLanguage = function(language) {
-  setLanguage.call(this, language);
+  _setLanguage.call(this, language);
   this[languageSymbol] = language;
   if (!language.nodeSubclasses) {
     initializeLanguageNodeClasses(language)
@@ -278,7 +278,7 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
   } else {
     getText = getTextFromFunction
   }
-  const tree = parse.call(
+  const tree = _parse.call(
     this,
     input,
     oldTree,
@@ -320,6 +320,11 @@ Object.defineProperties(TreeCursor.prototype, {
     },
     configurable: true,
   },
+  nodeText: {
+    get() {
+      return this.tree.getText(this)
+    }
+  }
 });
 
 TreeCursor.prototype.reset = function(node) {
