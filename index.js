@@ -16,7 +16,7 @@ const {Query, Parser, NodeMethods, Tree, TreeCursor} = binding;
  * Tree
  */
 
-const {_rootNode, _edit} = Tree.prototype;
+const {rootNode: _rootNode, edit: _edit} = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
@@ -253,7 +253,7 @@ class SyntaxNode {
  * Parser
  */
 
-const {_parse, _setLanguage} = Parser.prototype;
+const {parse: _parse, setLanguage: _setLanguage} = Parser.prototype;
 const languageSymbol = Symbol('parser.language');
 
 Parser.prototype.setLanguage = function(language) {
@@ -297,7 +297,7 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
  * TreeCursor
  */
 
-const {_startPosition, _endPosition, _currentNode, _reset} = TreeCursor.prototype;
+const {startPosition: _startPosition, endPosition: _endPosition, currentNode: _currentNode, reset: _reset} = TreeCursor.prototype;
 
 Object.defineProperties(TreeCursor.prototype, {
   currentNode: {
@@ -319,11 +319,6 @@ Object.defineProperties(TreeCursor.prototype, {
       return unmarshalPoint();
     },
     configurable: true,
-  },
-  nodeText: {
-    get() {
-      return this.tree.getText(this)
-    }
   }
 });
 
@@ -336,7 +331,7 @@ TreeCursor.prototype.reset = function(node) {
  * Query
  */
 
-const {_matches, _captures} = Query.prototype;
+const {matches: _matches, captures: _captures} = Query.prototype;
 
 const PREDICATE_STEP_TYPE = {
   DONE: 0,

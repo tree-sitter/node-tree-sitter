@@ -1,12 +1,9 @@
-const Parser = require(".");
+const Parser = require("..");
+const constants = require("./constants");
 const Javascript = require("tree-sitter-javascript");
 const jsParser = new Parser();
 jsParser.setLanguage(Javascript);
 
-const code = jsParser.parse(`
-const Parser = require(".");
-const Javascript = require("tree-sitter-javascript");
-const jsParser = new Parser();
-`)
+const code = jsParser.parse(constants.INPUT)
 const output = code.rootNode.toString()
 console.log(output);

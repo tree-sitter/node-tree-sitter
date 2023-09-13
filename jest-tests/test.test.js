@@ -1,27 +1,21 @@
 const Parser = require("..");
-const dothings = require("./dothings");
+const constants = require("./constants");
+const parse_input = require("./parse_input.js");
 const Javascript = require("tree-sitter-javascript");
 
 const { Query } = Parser;
 const jsParser = new Parser();
 jsParser.setLanguage(Javascript);
 
-const input = `
-const Parser = require(".");
-const Javascript = require("tree-sitter-javascript");
-const jsParser = new Parser();
-`;
-const output =
-  "(program (lexical_declaration (variable_declarator name: (identifier) value: (call_expression function: (identifier) arguments: (arguments (string))))) (lexical_declaration (variable_declarator name: (identifier) value: (call_expression function: (identifier) arguments: (arguments (string))))) (lexical_declaration (variable_declarator name: (identifier) value: (new_expression constructor: (identifier) arguments: (arguments)))))";
 describe("Jest test 1", () => {
   it("should work", () => {
-    const code = jsParser.parse(input);
+    const code = jsParser.parse(constants.INPUT);
     const output = code.rootNode.toString();
-    expect(output).toBe(output);
+    expect(output).toBe(constants.OUTPUT);
   });
 
   it("should work with separate import", () => {
-    expect(dothings(input).toString()).toBe(output);
+    expect(parse_input(constants.INPUT).toString()).toBe(constants.OUTPUT);
   });
   function assertCursorState(cursor, params) {
     expect(cursor.nodeType).toBe(params.nodeType);
