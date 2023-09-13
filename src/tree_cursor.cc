@@ -29,14 +29,14 @@ void TreeCursor::Init(v8::Local<v8::Object> exports) {
   };
 
   FunctionPair methods[] = {
-    {"startPosition", StartPosition},
-    {"endPosition", EndPosition},
+    {"_startPosition", StartPosition},
+    {"_endPosition", EndPosition},
     {"gotoParent", GotoParent},
     {"gotoFirstChild", GotoFirstChild},
     {"gotoFirstChildForIndex", GotoFirstChildForIndex},
     {"gotoNextSibling", GotoNextSibling},
-    {"currentNode", CurrentNode},
-    {"reset", Reset},
+    {"_currentNode", CurrentNode},
+    {"_reset", Reset},
   };
 
   for (size_t i = 0; i < length_of_array(getters); i++) {
