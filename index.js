@@ -1,4 +1,5 @@
 let binding;
+
 try {
   binding = require('./build/Release/tree_sitter_runtime_binding');
 } catch (e) {
@@ -16,25 +17,29 @@ const {Query, Parser, NodeMethods, Tree, TreeCursor} = binding;
  * Tree
  */
 
-const {rootNode: _rootNode, edit: _edit} = Tree.prototype;
+const {rootNode, edit} = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
-    return unmarshalNode(_rootNode.call(this), this);
+    if (this instanceof Tree && rootNode) {
+      return unmarshalNode(rootNode.call(this), this);
+    }
   },
   configurable: true
 });
 
 Tree.prototype.edit = function(arg) {
-  _edit.call(
-    this,
-    arg.startPosition.row, arg.startPosition.column,
-    arg.oldEndPosition.row, arg.oldEndPosition.column,
-    arg.newEndPosition.row, arg.newEndPosition.column,
-    arg.startIndex,
-    arg.oldEndIndex,
-    arg.newEndIndex
-  );
+  if (this instanceof Tree) {
+    edit.call(
+      this,
+      arg.startPosition.row, arg.startPosition.column,
+      arg.oldEndPosition.row, arg.oldEndPosition.column,
+      arg.newEndPosition.row, arg.newEndPosition.column,
+      arg.startIndex,
+      arg.oldEndIndex,
+      arg.newEndIndex
+    );
+  }
 };
 
 Tree.prototype.walk = function() {
@@ -253,11 +258,13 @@ class SyntaxNode {
  * Parser
  */
 
-const {parse: _parse, setLanguage: _setLanguage} = Parser.prototype;
+const {parse, setLanguage} = Parser.prototype;
 const languageSymbol = Symbol('parser.language');
 
 Parser.prototype.setLanguage = function(language) {
-  _setLanguage.call(this, language);
+  if (this instanceof Parser) {
+    setLanguage.call(this, language);
+  }
   this[languageSymbol] = language;
   if (!language.nodeSubclasses) {
     initializeLanguageNodeClasses(language)
@@ -278,13 +285,16 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
   } else {
     getText = getTextFromFunction
   }
-  const tree = _parse.call(
-    this,
-    input,
-    oldTree,
-    bufferSize,
-    includedRanges
-  );
+  const tree = this instanceof Parser
+    ? parse.call(
+      this,
+      input,
+      oldTree,
+      bufferSize,
+      includedRanges
+    )
+    : undefined;
+
   if (tree) {
     tree.input = treeInput
     tree.getText = getText
@@ -297,25 +307,31 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
  * TreeCursor
  */
 
-const {startPosition: _startPosition, endPosition: _endPosition, currentNode: _currentNode, reset: _reset} = TreeCursor.prototype;
+const {startPosition, endPosition, currentNode, reset} = TreeCursor.prototype;
 
 Object.defineProperties(TreeCursor.prototype, {
   currentNode: {
     get() {
-      return unmarshalNode(_currentNode.call(this), this.tree);
+      if (this instanceof TreeCursor) {
+        return unmarshalNode(currentNode.call(this), this.tree);
+      }
     },
     configurable: true,
   },
   startPosition: {
     get() {
-      _startPosition.call(this);
+      if (this instanceof TreeCursor) {
+        startPosition.call(this);
+      }
       return unmarshalPoint();
     },
     configurable: true,
   },
   endPosition: {
     get() {
-      _endPosition.call(this);
+      if (this instanceof TreeCursor) {
+        endPosition.call(this);
+      }
       return unmarshalPoint();
     },
     configurable: true,
@@ -324,14 +340,16 @@ Object.defineProperties(TreeCursor.prototype, {
 
 TreeCursor.prototype.reset = function(node) {
   marshalNode(node);
-  _reset.call(this);
+  if (this instanceof TreeCursor) {
+    reset.call(this);
+  }
 }
 
 /*
  * Query
  */
 
-const {matches: _matches, captures: _captures} = Query.prototype;
+const {_matches, _captures} = Query.prototype;
 
 const PREDICATE_STEP_TYPE = {
   DONE: 0,

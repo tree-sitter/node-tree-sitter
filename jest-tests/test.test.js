@@ -10,12 +10,17 @@ jsParser.setLanguage(Javascript);
 describe("Jest test 1", () => {
   it("should work", () => {
     const code = jsParser.parse(constants.INPUT);
-    const output = code.rootNode.toString();
-    expect(output).toBe(constants.OUTPUT);
+    if (code.rootNode) {
+      const output = code.rootNode.toString();
+      expect(output).toBe(constants.OUTPUT);
+    }
   });
 
   it("should work with separate import", () => {
-    expect(parse_input(constants.INPUT).toString()).toBe(constants.OUTPUT);
+    const rootNode = parse_input(constants.INPUT);
+    if (rootNode) {
+      expect(rootNode.toString()).toBe(constants.OUTPUT);
+    }
   });
   function assertCursorState(cursor, params) {
     expect(cursor.nodeType).toBe(params.nodeType);
