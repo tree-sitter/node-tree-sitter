@@ -31,8 +31,7 @@ Object.defineProperty(Tree.prototype, 'rootNode', {
     if (this instanceof Tree && rootNode) {
       return unmarshalNode(rootNode.call(this), this);
     }
-  },
-  configurable: true
+  }
 });
 
 Tree.prototype.edit = function(arg) {
@@ -298,8 +297,7 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
       input,
       oldTree,
       bufferSize,
-      includedRanges
-    )
+      includedRanges)
     : undefined;
 
   if (tree) {
@@ -322,8 +320,7 @@ Object.defineProperties(TreeCursor.prototype, {
       if (this instanceof TreeCursor) {
         return unmarshalNode(currentNode.call(this), this.tree);
       }
-    },
-    configurable: true,
+    }
   },
   startPosition: {
     get() {
@@ -332,7 +329,13 @@ Object.defineProperties(TreeCursor.prototype, {
       }
       return unmarshalPoint();
     },
-    configurable: true,
+    nodeText: {
+      get() {
+        if (this instanceof TreeCursor) {
+          return this.tree.getText(this);
+        }
+      }
+    }
   },
   endPosition: {
     get() {
@@ -340,8 +343,7 @@ Object.defineProperties(TreeCursor.prototype, {
         endPosition.call(this);
       }
       return unmarshalPoint();
-    },
-    configurable: true,
+    }
   }
 });
 
