@@ -1,5 +1,4 @@
 let binding;
-
 try {
   binding = require('./build/Release/tree_sitter_runtime_binding');
 } catch (e) {
@@ -328,13 +327,6 @@ Object.defineProperties(TreeCursor.prototype, {
         startPosition.call(this);
       }
       return unmarshalPoint();
-    },
-    nodeText: {
-      get() {
-        if (this instanceof TreeCursor) {
-          return this.tree.getText(this);
-        }
-      }
     }
   },
   endPosition: {
@@ -343,6 +335,13 @@ Object.defineProperties(TreeCursor.prototype, {
         endPosition.call(this);
       }
       return unmarshalPoint();
+    }
+  },
+  nodeText: {
+    get() {
+      if (this instanceof TreeCursor) {
+        return this.tree.getText(this);
+      }
     }
   }
 });
