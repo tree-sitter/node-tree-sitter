@@ -336,13 +336,6 @@ Object.defineProperties(TreeCursor.prototype, {
       }
       return unmarshalPoint();
     }
-  },
-  nodeText: {
-    get() {
-      if (this instanceof TreeCursor) {
-        return this.tree.getText(this);
-      }
-    }
   }
 });
 
