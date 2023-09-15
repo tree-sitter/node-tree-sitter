@@ -23,9 +23,12 @@ Object.defineProperty(Tree.prototype, 'rootNode', {
     /*
       Due to the race condition arising from Jest's worker pool, "this"
       has no knowledge of the native extension if the extension has not
-      yet loaded when multiple Jest tests are being run simultaneously
+      yet loaded when multiple Jest tests are being run simultaneously.
       If the extension has correctly loaded "this" should be an instance 
       of the class whose prototype we are acting on (in this case, Tree).
+      Furthermore, the race condition sometimes results in the function in 
+      question being undefined even when the context is correct, so we also 
+      add the null function check.
     */
     if (this instanceof Tree && rootNode) {
       return unmarshalNode(rootNode.call(this), this);
@@ -34,7 +37,7 @@ Object.defineProperty(Tree.prototype, 'rootNode', {
 });
 
 Tree.prototype.edit = function(arg) {
-  if (this instanceof Tree) {
+  if (this instanceof Tree && edit) {
     edit.call(
       this,
       arg.startPosition.row, arg.startPosition.column,
@@ -267,7 +270,7 @@ const {parse, setLanguage} = Parser.prototype;
 const languageSymbol = Symbol('parser.language');
 
 Parser.prototype.setLanguage = function(language) {
-  if (this instanceof Parser) {
+  if (this instanceof Parser && setLanguage) {
     setLanguage.call(this, language);
   }
   this[languageSymbol] = language;
@@ -290,7 +293,7 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
   } else {
     getText = getTextFromFunction
   }
-  const tree = this instanceof Parser
+  const tree = this instanceof Parser && parse
     ? parse.call(
       this,
       input,
@@ -316,14 +319,14 @@ const {startPosition, endPosition, currentNode, reset} = TreeCursor.prototype;
 Object.defineProperties(TreeCursor.prototype, {
   currentNode: {
     get() {
-      if (this instanceof TreeCursor) {
+      if (this instanceof TreeCursor && currentNode) {
         return unmarshalNode(currentNode.call(this), this.tree);
       }
     }
   },
   startPosition: {
     get() {
-      if (this instanceof TreeCursor) {
+      if (this instanceof TreeCursor && startPosition) {
         startPosition.call(this);
       }
       return unmarshalPoint();
@@ -331,7 +334,7 @@ Object.defineProperties(TreeCursor.prototype, {
   },
   endPosition: {
     get() {
-      if (this instanceof TreeCursor) {
+      if (this instanceof TreeCursor && endPosition) {
         endPosition.call(this);
       }
       return unmarshalPoint();
@@ -341,7 +344,7 @@ Object.defineProperties(TreeCursor.prototype, {
 
 TreeCursor.prototype.reset = function(node) {
   marshalNode(node);
-  if (this instanceof TreeCursor) {
+  if (this instanceof TreeCursor && reset) {
     reset.call(this);
   }
 }
