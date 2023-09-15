@@ -33,7 +33,10 @@ Object.defineProperty(Tree.prototype, 'rootNode', {
     if (this instanceof Tree && rootNode) {
       return unmarshalNode(rootNode.call(this), this);
     }
-  }
+  },
+  // Jest worker pool may attempt to override property due to race condition,
+  // we don't want to error on this
+  configurable: true 
 });
 
 Tree.prototype.edit = function(arg) {
@@ -322,23 +325,32 @@ Object.defineProperties(TreeCursor.prototype, {
       if (this instanceof TreeCursor && currentNode) {
         return unmarshalNode(currentNode.call(this), this.tree);
       }
-    }
+    },
+    configurable: true
   },
   startPosition: {
     get() {
       if (this instanceof TreeCursor && startPosition) {
         startPosition.call(this);
+        return unmarshalPoint();
       }
-      return unmarshalPoint();
-    }
+    },
+    configurable: true
   },
   endPosition: {
     get() {
       if (this instanceof TreeCursor && endPosition) {
         endPosition.call(this);
+        return unmarshalPoint();
       }
-      return unmarshalPoint();
-    }
+    },
+    configurable: true
+  },
+  nodeText: {
+    get() {
+      return this.tree.getText(this)
+    },
+    configurable: true
   }
 });
 
