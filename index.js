@@ -21,14 +21,14 @@ const {rootNode, edit} = Tree.prototype;
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
     /*
-      Due to the race condition arising from Jest's worker pool, "this"
+      Due to a race condition arising from Jest's worker pool, "this"
       has no knowledge of the native extension if the extension has not
       yet loaded when multiple Jest tests are being run simultaneously.
-      If the extension has correctly loaded "this" should be an instance 
+      If the extension has correctly loaded, "this" should be an instance 
       of the class whose prototype we are acting on (in this case, Tree).
       Furthermore, the race condition sometimes results in the function in 
       question being undefined even when the context is correct, so we also 
-      add the null function check.
+      perform a null function check.
     */
     if (this instanceof Tree && rootNode) {
       return unmarshalNode(rootNode.call(this), this);
