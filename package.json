@@ -21,6 +21,7 @@
   "devDependencies": {
     "@types/node": "^20.5.9",
     "chai": "^4.3.8",
+    "jest": "^24.0.0",
     "mocha": "^8.4.0",
     "node-gyp": "^9.4.0",
     "prebuild": "^12.0.0",
@@ -31,6 +32,6 @@
     "build": "node-gyp build",
     "prebuild": "prebuild -t 10.0.0 -t 12.0.0 -t 14.0.0 -t 16.0.0 -t 18.0.0 -t 20.0.0 --strip && prebuild -r electron -t 3.0.0 -t 4.0.0 -t 5.0.0 -t 20.0.0 -t 21.0.0 -t 22.0.0 -t 23.0.0 -t 24.0.0 -t 25.0.0 --strip",
     "prebuild:upload": "prebuild --upload-all",
-    "test": "mocha"
+    "test": "mocha && jest"
   }
 }

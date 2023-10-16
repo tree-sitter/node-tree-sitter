@@ -20,20 +20,37 @@ const {rootNode, edit} = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
-    return unmarshalNode(rootNode.call(this), this);
-  }
+    /*
+      Due to a race condition arising from Jest's worker pool, "this"
+      has no knowledge of the native extension if the extension has not
+      yet loaded when multiple Jest tests are being run simultaneously.
+      If the extension has correctly loaded, "this" should be an instance 
+      of the class whose prototype we are acting on (in this case, Tree).
+      Furthermore, the race condition sometimes results in the function in 
+      question being undefined even when the context is correct, so we also 
+      perform a null function check.
+    */
+    if (this instanceof Tree && rootNode) {
+      return unmarshalNode(rootNode.call(this), this);
+    }
+  },
+  // Jest worker pool may attempt to override property due to race condition,
+  // we don't want to error on this
+  configurable: true 
 });
 
 Tree.prototype.edit = function(arg) {
-  edit.call(
-    this,
-    arg.startPosition.row, arg.startPosition.column,
-    arg.oldEndPosition.row, arg.oldEndPosition.column,
-    arg.newEndPosition.row, arg.newEndPosition.column,
-    arg.startIndex,
-    arg.oldEndIndex,
-    arg.newEndIndex
-  );
+  if (this instanceof Tree && edit) {
+    edit.call(
+      this,
+      arg.startPosition.row, arg.startPosition.column,
+      arg.oldEndPosition.row, arg.oldEndPosition.column,
+      arg.newEndPosition.row, arg.newEndPosition.column,
+      arg.startIndex,
+      arg.oldEndIndex,
+      arg.newEndIndex
+    );
+  }
 };
 
 Tree.prototype.walk = function() {
@@ -256,7 +273,9 @@ const {parse, setLanguage} = Parser.prototype;
 const languageSymbol = Symbol('parser.language');
 
 Parser.prototype.setLanguage = function(language) {
-  setLanguage.call(this, language);
+  if (this instanceof Parser && setLanguage) {
+    setLanguage.call(this, language);
+  }
   this[languageSymbol] = language;
   if (!language.nodeSubclasses) {
     initializeLanguageNodeClasses(language)
@@ -277,13 +296,15 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
   } else {
     getText = getTextFromFunction
   }
-  const tree = parse.call(
-    this,
-    input,
-    oldTree,
-    bufferSize,
-    includedRanges
-  );
+  const tree = this instanceof Parser && parse
+    ? parse.call(
+      this,
+      input,
+      oldTree,
+      bufferSize,
+      includedRanges)
+    : undefined;
+
   if (tree) {
     tree.input = treeInput
     tree.getText = getText
@@ -301,31 +322,43 @@ const {startPosition, endPosition, currentNode, reset} = TreeCursor.prototype;
 Object.defineProperties(TreeCursor.prototype, {
   currentNode: {
     get() {
-      return unmarshalNode(currentNode.call(this), this.tree);
-    }
+      if (this instanceof TreeCursor && currentNode) {
+        return unmarshalNode(currentNode.call(this), this.tree);
+      }
+    },
+    configurable: true
   },
   startPosition: {
     get() {
-      startPosition.call(this);
-      return unmarshalPoint();
-    }
+      if (this instanceof TreeCursor && startPosition) {
+        startPosition.call(this);
+        return unmarshalPoint();
+      }
+    },
+    configurable: true
   },
   endPosition: {
     get() {
-      endPosition.call(this);
-      return unmarshalPoint();
-    }
+      if (this instanceof TreeCursor && endPosition) {
+        endPosition.call(this);
+        return unmarshalPoint();
+      }
+    },
+    configurable: true
   },
   nodeText: {
     get() {
       return this.tree.getText(this)
-    }
+    },
+    configurable: true
   }
 });
 
 TreeCursor.prototype.reset = function(node) {
   marshalNode(node);
-  reset.call(this);
+  if (this instanceof TreeCursor && reset) {
+    reset.call(this);
+  }
 }
 
 /*
