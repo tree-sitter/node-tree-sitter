@@ -6,7 +6,7 @@ prebuilds
 
 vendor/tree-sitter/**/*
 !vendor/tree-sitter/lib/src/**/*.{c,h}
-!vendor/tree-sitter/lib/include/tree_sitter/*.h
+!vendor/tree-sitter/lib/include/tree_sitter/api.h
 
 .github/
 .vscode/
