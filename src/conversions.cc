@@ -31,8 +31,10 @@ void InitConversions(Local<Object> exports) {
     auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), 2 * sizeof(uint32_t));
     point_transfer_buffer = (uint32_t *)(js_point_transfer_buffer->Data());
   #elif V8_MAJOR_VERSION < 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERSION < 4) || (defined(_MSC_VER) && NODE_RUNTIME_ELECTRON)
+    point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
     auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
   #else
+    point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
     auto backing_store = ArrayBuffer::NewBackingStore(point_transfer_buffer, 2 * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
     auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
   #endif
