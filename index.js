@@ -444,6 +444,7 @@ Query.prototype._init = function() {
           }
           break;
 
+        case 'not-match?':
         case 'match?':
           if (stepsLength !== 3) throw new Error(
             `Wrong number of arguments to \`#match?\` predicate. Expected 2, got ${stepsLength - 1}.`
@@ -456,9 +457,11 @@ Query.prototype._init = function() {
           );
           const captureName = steps[SECOND + 1];
           const regex = new RegExp(steps[THIRD + 1]);
+          const isNotMatch = operator.startsWith('not')
           predicates[i].push(function(captures) {
             for (const c of captures) {
-              if (c.name === captureName) return regex.test(c.node.text);
+              const matchResult = regex.test(c.node.text)
+              if (c.name === captureName) return isNotMatch ? !matchResult : matchResult;
             }
             return true;
           });
