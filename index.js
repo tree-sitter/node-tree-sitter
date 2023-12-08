@@ -659,7 +659,7 @@ const NODE_FIELD_COUNT = 6;
 const ERROR_TYPE_ID = 0xFFFF
 
 function getID(buffer, offset) {
-  const low = BigInt(buffer[offset]);
+  const low  = BigInt(buffer[offset]);
   const high = BigInt(buffer[offset + 1]);
   return (high << 32n) + low;
 }
@@ -718,7 +718,7 @@ function unmarshalNodes(nodes, tree) {
 }
 
 function marshalNode(node) {
-  if (!(node.tree instanceof Tree)) {
+  if (!(node.tree instanceof Tree)){
     throw new TypeError("SyntaxNode must belong to a Tree")
   }
   const {nodeTransferArray} = binding;
