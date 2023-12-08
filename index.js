@@ -557,7 +557,7 @@ Query.prototype._init = function() {
   this.refutedProperties = Object.freeze(refutedProperties);
 }
 
-Query.prototype.matches = function (rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
+Query.prototype.matches = function(rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
   marshalNode(rootNode);
   const [returnedMatches, returnedNodes] = _matches.call(this, rootNode.tree,
     startPosition.row, startPosition.column,
@@ -581,7 +581,7 @@ Query.prototype.matches = function (rootNode, startPosition = ZERO_POINT, endPos
     }
 
     if (this.predicates[patternIndex].every(p => p(captures))) {
-      const result = { pattern: patternIndex, captures };
+      const result = {pattern: patternIndex, captures};
       const setProperties = this.setProperties[patternIndex];
       const assertedProperties = this.assertedProperties[patternIndex];
       const refutedProperties = this.refutedProperties[patternIndex];
@@ -595,7 +595,7 @@ Query.prototype.matches = function (rootNode, startPosition = ZERO_POINT, endPos
   return results;
 }
 
-Query.prototype.captures = function (rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
+Query.prototype.captures = function(rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
   marshalNode(rootNode);
   const [returnedMatches, returnedNodes] = _captures.call(this, rootNode.tree,
     startPosition.row, startPosition.column,
@@ -638,11 +638,11 @@ Query.prototype.captures = function (rootNode, startPosition = ZERO_POINT, endPo
  * Other functions
  */
 
-function getTextFromString(node) {
+function getTextFromString (node) {
   return this.input.substring(node.startIndex, node.endIndex);
 }
 
-function getTextFromFunction({ startIndex, endIndex }) {
+function getTextFromFunction ({startIndex, endIndex}) {
   const { input } = this
   let result = '';
   const goalLength = endIndex - startIndex;
@@ -664,7 +664,7 @@ function getID(buffer, offset) {
   return (high << 32n) + low;
 }
 
-function unmarshalNode(value, tree, offset = 0, cache = null) {
+function unmarshalNode (value, tree, offset = 0, cache = null) {
   /* case 1: node from the tree cache */
   if (typeof value === 'object') {
     const node = value;
@@ -700,7 +700,7 @@ function unmarshalNode(value, tree, offset = 0, cache = null) {
   return result;
 }
 
-function unmarshalNodes(nodes, tree) {
+function unmarshalNodes (nodes, tree) {
   const cache = new Map();
 
   let offset = 0;
@@ -717,7 +717,7 @@ function unmarshalNodes(nodes, tree) {
   return nodes;
 }
 
-function marshalNode(node) {
+function marshalNode (node) {
   if (!(node.tree instanceof Tree)) {
     throw new TypeError("SyntaxNode must belong to a Tree")
   }
@@ -727,15 +727,15 @@ function marshalNode(node) {
   }
 }
 
-function unmarshalPoint() {
+function unmarshalPoint () {
   return { row: pointTransferArray[0], column: pointTransferArray[1] };
 }
 
-function pointToString(point) {
+function pointToString (point) {
   return `{row: ${point.row}, column: ${point.column}}`;
 }
 
-function initializeLanguageNodeClasses(language) {
+function initializeLanguageNodeClasses (language) {
   const nodeTypeNamesById = binding.getNodeTypeNamesById(language);
   const nodeFieldNamesById = binding.getNodeFieldNamesById(language);
   const nodeTypeInfo = language.nodeTypeInfo || [];
@@ -788,7 +788,7 @@ function initializeLanguageNodeClasses(language) {
   language.nodeSubclasses = nodeSubclasses
 }
 
-function camelCase(name, upperCase) {
+function camelCase (name, upperCase) {
   name = name.replace(/_(\w)/g, (match, letter) => letter.toUpperCase());
   if (upperCase) name = name[0].toUpperCase() + name.slice(1);
   return name;
