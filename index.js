@@ -643,7 +643,7 @@ function getTextFromString (node) {
 }
 
 function getTextFromFunction ({startIndex, endIndex}) {
-  const { input } = this
+  const {input} = this
   let result = '';
   const goalLength = endIndex - startIndex;
   while (result.length < goalLength) {
@@ -653,7 +653,7 @@ function getTextFromFunction ({startIndex, endIndex}) {
   return result.substr(0, goalLength);
 }
 
-const { pointTransferArray } = binding;
+const {pointTransferArray} = binding;
 
 const NODE_FIELD_COUNT = 6;
 const ERROR_TYPE_ID = 0xFFFF
@@ -677,7 +677,7 @@ function unmarshalNode(value, tree, offset = 0, cache = null) {
     ? SyntaxNode
     : tree.language.nodeSubclasses[nodeTypeId];
 
-  const { nodeTransferArray } = binding;
+  const {nodeTransferArray} = binding;
   const id = getID(nodeTransferArray, offset)
   if (id === 0n) {
     return null
@@ -704,7 +704,7 @@ function unmarshalNodes(nodes, tree) {
   const cache = new Map();
 
   let offset = 0;
-  for (let i = 0, { length } = nodes; i < length; i++) {
+  for (let i = 0, {length} = nodes; i < length; i++) {
     const node = unmarshalNode(nodes[i], tree, offset, cache);
     if (node !== nodes[i]) {
       nodes[i] = node;
@@ -721,14 +721,14 @@ function marshalNode(node) {
   if (!(node.tree instanceof Tree)) {
     throw new TypeError("SyntaxNode must belong to a Tree")
   }
-  const { nodeTransferArray } = binding;
+  const {nodeTransferArray} = binding;
   for (let i = 0; i < NODE_FIELD_COUNT; i++) {
     nodeTransferArray[i] = node[i];
   }
 }
 
 function unmarshalPoint() {
-  return { row: pointTransferArray[0], column: pointTransferArray[1] };
+  return {row: pointTransferArray[0], column: pointTransferArray[1]};
 }
 
 function pointToString(point) {
