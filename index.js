@@ -407,8 +407,14 @@ Query.prototype._init = function() {
       const operator = steps[FIRST + 1];
 
       let isPositive = true;
+      let matchAll = true;
 
       switch (operator) {
+        case 'any-not-eq?':
+          isPositive = false;
+          matchAll = false;
+        case 'any-eq?':
+          matchAll = false;
         case 'not-eq?':
           isPositive = false;
         case 'eq?':
@@ -420,30 +426,40 @@ Query.prototype._init = function() {
           );
           if (steps[THIRD] === PREDICATE_STEP_TYPE.CAPTURE) {
             const captureName1 = steps[SECOND + 1];
-            const captureName2 = steps[THIRD  + 1];
-            predicates[i].push(function(captures) {
-              let node1, node2
+            const captureName2 = steps[THIRD + 1];
+            predicates[i].push(function (captures) {
+              let nodes_1 = [];
+              let nodes_2 = [];
               for (const c of captures) {
-                if (c.name === captureName1) node1 = c.node;
-                if (c.name === captureName2) node2 = c.node;
+                if (c.name === captureName1) nodes_1.push(c.node);
+                if (c.name === captureName2) nodes_2.push(c.node);
               }
-              if (node1 === undefined || node2 === undefined) return true;
-              return (node1.text === node2.text) === isPositive;
+              return matchAll
+                ? nodes_1.every(n1 => nodes_2.some(n2 => n1.text === n2.text)) === isPositive
+                : nodes_1.some(n1 => nodes_2.some(n2 => n1.text === n2.text)) === isPositive;
             });
           } else {
             const captureName = steps[SECOND + 1];
-            const stringValue = steps[THIRD  + 1];
-            predicates[i].push(function(captures) {
+            const stringValue = steps[THIRD + 1];
+            predicates[i].push(function (captures) {
+              let nodes = [];
               for (const c of captures) {
-                if (c.name === captureName) {
-                  return (c.node.text === stringValue) === isPositive;
-                };
+                if (c.name === captureName) nodes.push(c.node);
               }
-              return true;
+              return matchAll
+                ? nodes.every(n => n.text === stringValue) === isPositive
+                : nodes.some(n => n.text === stringValue) === isPositive;
             });
           }
           break;
 
+        case 'not-any-match?':
+          isPositive = false;
+          matchAll = false;
+        case 'any-match?':
+          matchAll = false;
+        case 'not-match?':
+          isPositive = false;
         case 'match?':
           if (stepsLength !== 3) throw new Error(
             `Wrong number of arguments to \`#match?\` predicate. Expected 2, got ${stepsLength - 1}.`
@@ -456,11 +472,15 @@ Query.prototype._init = function() {
           );
           const captureName = steps[SECOND + 1];
           const regex = new RegExp(steps[THIRD + 1]);
-          predicates[i].push(function(captures) {
+          predicates[i].push(function (captures) {
+            const nodes = [];
             for (const c of captures) {
-              if (c.name === captureName) return regex.test(c.node.text);
+              if (c.name === captureName) nodes.push(c.node.text);
             }
-            return true;
+            if (nodes.length === 0) return !isPositive;
+            return matchAll
+              ? nodes.every(text => regex.test(text)) === isPositive
+              : nodes.some(text => regex.test(text)) === isPositive;
           });
           break;
 
@@ -488,8 +508,45 @@ Query.prototype._init = function() {
           properties[i][steps[SECOND + 1]] = steps[THIRD] ? steps[THIRD + 1] : null;
           break;
 
+        case 'not-any-of?':
+          isPositive = false;
+        case 'any-of?':
+          if (stepsLength < 2) throw new Error(
+            `Wrong number of arguments to \`#${operator}\` predicate. Expected at least 1. Got ${stepsLength - 1}.`
+          );
+          if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
+            `First argument of \`#${operator}\` predicate must be a capture. Got "${steps[1].value}".`
+          );
+          captureName = steps[SECOND + 1];
+          stringValues = [];
+          for (let k = THIRD; k < stepsLength; k += 2) {
+            if (steps[k] !== PREDICATE_STEP_TYPE.STRING) throw new Error(
+              `Arguments to \`#${operator}\` predicate must be a strings.".`
+            );
+            stringValues.push(steps[k + 1]);
+          }
+
+          predicates[i].push(function (captures) {
+            const nodes = [];
+            for (const c of captures) {
+              if (c.name === captureName) nodes.push(c.node.text);
+            }
+            if (nodes.length === 0) return !isPositive;
+            return nodes.every(text => stringValues.includes(text)) === isPositive;
+          });
+          break;
+
         default:
-          throw new Error(`Unknown query predicate \`#${steps[FIRST + 1]}\``);
+          // not sure if this is correct
+          const operands = [];
+          for (let k = SECOND; k < stepsLength; k += 2) {
+            if (steps[k] === PREDICATE_STEP_TYPE.CAPTURE || steps[k] === PREDICATE_STEP_TYPE.STRING) {
+              operands.push(steps[k + 1]);
+            } else {
+              throw new Error(`Unexpected step type in predicate: ${steps[k]}`);
+            }
+          }
+          predicates[i].push({ operator, operands });
       }
     }
   }
@@ -500,7 +557,7 @@ Query.prototype._init = function() {
   this.refutedProperties = Object.freeze(refutedProperties);
 }
 
-Query.prototype.matches = function(rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
+Query.prototype.matches = function (rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
   marshalNode(rootNode);
   const [returnedMatches, returnedNodes] = _matches.call(this, rootNode.tree,
     startPosition.row, startPosition.column,
@@ -524,7 +581,7 @@ Query.prototype.matches = function(rootNode, startPosition = ZERO_POINT, endPosi
     }
 
     if (this.predicates[patternIndex].every(p => p(captures))) {
-      const result = {pattern: patternIndex, captures};
+      const result = { pattern: patternIndex, captures };
       const setProperties = this.setProperties[patternIndex];
       const assertedProperties = this.assertedProperties[patternIndex];
       const refutedProperties = this.refutedProperties[patternIndex];
@@ -538,7 +595,7 @@ Query.prototype.matches = function(rootNode, startPosition = ZERO_POINT, endPosi
   return results;
 }
 
-Query.prototype.captures = function(rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
+Query.prototype.captures = function (rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
   marshalNode(rootNode);
   const [returnedMatches, returnedNodes] = _captures.call(this, rootNode.tree,
     startPosition.row, startPosition.column,
@@ -581,12 +638,12 @@ Query.prototype.captures = function(rootNode, startPosition = ZERO_POINT, endPos
  * Other functions
  */
 
-function getTextFromString (node) {
+function getTextFromString(node) {
   return this.input.substring(node.startIndex, node.endIndex);
 }
 
-function getTextFromFunction ({startIndex, endIndex}) {
-  const {input} = this
+function getTextFromFunction({ startIndex, endIndex }) {
+  const { input } = this
   let result = '';
   const goalLength = endIndex - startIndex;
   while (result.length < goalLength) {
@@ -596,13 +653,13 @@ function getTextFromFunction ({startIndex, endIndex}) {
   return result.substr(0, goalLength);
 }
 
-const {pointTransferArray} = binding;
+const { pointTransferArray } = binding;
 
 const NODE_FIELD_COUNT = 6;
 const ERROR_TYPE_ID = 0xFFFF
 
 function getID(buffer, offset) {
-  const low  = BigInt(buffer[offset]);
+  const low = BigInt(buffer[offset]);
   const high = BigInt(buffer[offset + 1]);
   return (high << 32n) + low;
 }
@@ -620,7 +677,7 @@ function unmarshalNode(value, tree, offset = 0, cache = null) {
     ? SyntaxNode
     : tree.language.nodeSubclasses[nodeTypeId];
 
-  const {nodeTransferArray} = binding;
+  const { nodeTransferArray } = binding;
   const id = getID(nodeTransferArray, offset)
   if (id === 0n) {
     return null
@@ -647,7 +704,7 @@ function unmarshalNodes(nodes, tree) {
   const cache = new Map();
 
   let offset = 0;
-  for (let i = 0, {length} = nodes; i < length; i++) {
+  for (let i = 0, { length } = nodes; i < length; i++) {
     const node = unmarshalNode(nodes[i], tree, offset, cache);
     if (node !== nodes[i]) {
       nodes[i] = node;
@@ -661,17 +718,17 @@ function unmarshalNodes(nodes, tree) {
 }
 
 function marshalNode(node) {
-  if (!(node.tree instanceof Tree)){
+  if (!(node.tree instanceof Tree)) {
     throw new TypeError("SyntaxNode must belong to a Tree")
   }
-  const {nodeTransferArray} = binding;
+  const { nodeTransferArray } = binding;
   for (let i = 0; i < NODE_FIELD_COUNT; i++) {
     nodeTransferArray[i] = node[i];
   }
 }
 
 function unmarshalPoint() {
-  return {row: pointTransferArray[0], column: pointTransferArray[1]};
+  return { row: pointTransferArray[0], column: pointTransferArray[1] };
 }
 
 function pointToString(point) {
