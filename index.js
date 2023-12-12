@@ -375,6 +375,31 @@ const PREDICATE_STEP_TYPE = {
 
 const ZERO_POINT = { row: 0, column: 0 };
 
+function _predIsPositive(pred) {
+  switch (pred) {
+    case 'any-not-eq?':
+    case 'not-eq?':
+    case 'not-any-match?':
+    case 'not-match?':
+    case 'not-any-of?':
+      return false
+    default:
+      return true;
+  }
+}
+
+function _predMatchall(pred) {
+  switch (pred) {
+    case 'any-not-eq?':
+    case 'any-eq?':
+    case 'any-match?':
+    case 'not-any-match?':
+      return false;
+    default:
+      return true;
+  }      
+}
+
 Query.prototype._init = function() {
   /*
    * Initialize predicate functions
@@ -406,17 +431,13 @@ Query.prototype._init = function() {
 
       const operator = steps[FIRST + 1];
 
-      let isPositive = true;
-      let matchAll = true;
+      let isPositive = _predIsPositive(operator);
+      let matchAll = _predMatchall(operator);
 
       switch (operator) {
         case 'any-not-eq?':
-          isPositive = false;
-          matchAll = false;
         case 'any-eq?':
-          matchAll = false;
         case 'not-eq?':
-          isPositive = false;
         case 'eq?':
           if (stepsLength !== 3) throw new Error(
             `Wrong number of arguments to \`#eq?\` predicate. Expected 2, got ${stepsLength - 1}`
@@ -454,12 +475,8 @@ Query.prototype._init = function() {
           break;
 
         case 'not-any-match?':
-          isPositive = false;
-          matchAll = false;
         case 'any-match?':
-          matchAll = false;
         case 'not-match?':
-          isPositive = false;
         case 'match?':
           if (stepsLength !== 3) throw new Error(
             `Wrong number of arguments to \`#match?\` predicate. Expected 2, got ${stepsLength - 1}.`
@@ -509,7 +526,6 @@ Query.prototype._init = function() {
           break;
 
         case 'not-any-of?':
-          isPositive = false;
         case 'any-of?':
           if (stepsLength < 2) throw new Error(
             `Wrong number of arguments to \`#${operator}\` predicate. Expected at least 1. Got ${stepsLength - 1}.`
@@ -517,9 +533,9 @@ Query.prototype._init = function() {
           if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
             `First argument of \`#${operator}\` predicate must be a capture. Got "${steps[1].value}".`
           );
-          captureName = steps[SECOND + 1];
+          const capName = steps[SECOND + 1];
           stringValues = [];
-          for (let k = THIRD; k < stepsLength; k += 2) {
+          for (let k = THIRD; k < 2 * stepsLength; k += 2) {
             if (steps[k] !== PREDICATE_STEP_TYPE.STRING) throw new Error(
               `Arguments to \`#${operator}\` predicate must be a strings.".`
             );
@@ -529,7 +545,7 @@ Query.prototype._init = function() {
           predicates[i].push(function (captures) {
             const nodes = [];
             for (const c of captures) {
-              if (c.name === captureName) nodes.push(c.node.text);
+              if (c.name === capName) nodes.push(c.node.text);
             }
             if (nodes.length === 0) return !isPositive;
             return nodes.every(text => stringValues.includes(text)) === isPositive;
