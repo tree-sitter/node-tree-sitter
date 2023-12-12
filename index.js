@@ -555,7 +555,7 @@ Query.prototype._init = function() {
         default:
           // not sure if this is correct
           const operands = [];
-          for (let k = SECOND; k < stepsLength; k += 2) {
+          for (let k = SECOND; k < 2 * stepsLength; k += 2) {
             if (steps[k] === PREDICATE_STEP_TYPE.CAPTURE || steps[k] === PREDICATE_STEP_TYPE.STRING) {
               operands.push(steps[k + 1]);
             } else {
