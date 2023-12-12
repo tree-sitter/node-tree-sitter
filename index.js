@@ -553,16 +553,7 @@ Query.prototype._init = function() {
           break;
 
         default:
-          // not sure if this is correct
-          const operands = [];
-          for (let k = SECOND; k < 2 * stepsLength; k += 2) {
-            if (steps[k] === PREDICATE_STEP_TYPE.CAPTURE || steps[k] === PREDICATE_STEP_TYPE.STRING) {
-              operands.push(steps[k + 1]);
-            } else {
-              throw new Error(`Unexpected step type in predicate: ${steps[k]}`);
-            }
-          }
-          predicates[i].push({ operator, operands });
+          throw new Error(`Unknown query predicate \`#${steps[FIRST + 1]}\``);
       }
     }
   }
