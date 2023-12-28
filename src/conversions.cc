@@ -22,17 +22,8 @@ void InitConversions(Local<Object> exports, Local<External> data_ext) {
   data->end_index_key.Reset(Nan::Persistent<String>(Nan::New("endIndex").ToLocalChecked()));
   data->end_position_key.Reset(Nan::Persistent<String>(Nan::New("endPosition").ToLocalChecked()));
 
-  #if defined(_MSC_VER) && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
-    auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), 2 * sizeof(uint32_t));
-    point_transfer_buffer = (uint32_t *)(js_point_transfer_buffer->Data());
-  #elif V8_MAJOR_VERSION < 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERSION < 4) || (defined(_MSC_VER) && NODE_RUNTIME_ELECTRON)
-    point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
-    auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), point_transfer_buffer, 2 * sizeof(uint32_t));
-  #else
-    data->point_transfer_buffer = static_cast<uint32_t *>(malloc(2 * sizeof(uint32_t)));
-    auto backing_store = ArrayBuffer::NewBackingStore(data->point_transfer_buffer, 2 * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
-    auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
-  #endif
+  auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), 2 * sizeof(uint32_t));
+  data->point_transfer_buffer = (uint32_t *)(js_point_transfer_buffer->Data());
 
   Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
 }

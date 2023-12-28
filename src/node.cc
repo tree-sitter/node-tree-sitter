@@ -21,19 +21,8 @@ static inline void setup_transfer_buffer(AddonData* data, uint32_t node_count) {
   if (new_length > data->transfer_buffer_length) {
     data->transfer_buffer_length = new_length;
 
-    #if defined(_MSC_VER) && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
-      auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer_length * sizeof(uint32_t));
-      transfer_buffer = (uint32_t *)(js_transfer_buffer->Data());
-    #elif V8_MAJOR_VERSION < 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERSION < 4) || (defined(_MSC_VER) && NODE_RUNTIME_ELECTRON)
-      if (transfer_buffer) { free(transfer_buffer); }
-      transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
-      auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
-    #else
-      if (data->transfer_buffer) { free(data->transfer_buffer); }
-      data->transfer_buffer = static_cast<uint32_t *>(malloc(data->transfer_buffer_length * sizeof(uint32_t)));
-      auto backing_store = ArrayBuffer::NewBackingStore(data->transfer_buffer, data->transfer_buffer_length * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
-      auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
-    #endif
+    auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), data->transfer_buffer_length * sizeof(uint32_t));
+    data->transfer_buffer = (uint32_t *)(js_transfer_buffer->Data());
 
     Nan::Set(
       Nan::New(data->module_exports),

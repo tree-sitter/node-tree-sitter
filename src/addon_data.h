@@ -15,8 +15,6 @@ public:
   }
 
   ~AddonData() {
-    std::free(point_transfer_buffer);
-    std::free(transfer_buffer);
     ts_query_cursor_delete(ts_query_cursor);
   }
 
