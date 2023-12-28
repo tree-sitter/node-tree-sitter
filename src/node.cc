@@ -22,7 +22,7 @@ static inline void setup_transfer_buffer(AddonData* data, uint32_t node_count) {
     data->transfer_buffer_length = new_length;
 
     auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), data->transfer_buffer_length * sizeof(uint32_t));
-    data->transfer_buffer = (uint32_t *)(js_transfer_buffer->Data());
+    data->transfer_buffer = (uint32_t *)(js_transfer_buffer->GetBackingStore()->Data());
 
     Nan::Set(
       Nan::New(data->module_exports),
