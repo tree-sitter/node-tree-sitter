@@ -22,10 +22,10 @@ void InitConversions(Local<Object> exports, Local<External> data_ext) {
   data->end_index_key.Reset(Nan::Persistent<String>(Nan::New("endIndex").ToLocalChecked()));
   data->end_position_key.Reset(Nan::Persistent<String>(Nan::New("endPosition").ToLocalChecked()));
 
-  auto js_point_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), 2 * sizeof(uint32_t));
-  data->point_transfer_buffer = (uint32_t *)(js_point_transfer_buffer->GetBackingStore()->Data());
+  auto js_point_transfer_buffer = Nan::NewBuffer(2 * sizeof(uint32_t)).ToLocalChecked();
+  data->point_transfer_buffer = reinterpret_cast<uint32_t*>(node::Buffer::Data(js_point_transfer_buffer));
 
-  Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer, 0, 2));
+  Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer.As<Uint8Array>()->Buffer(), 0, 2));
 }
 
 void TransferPoint(AddonData* data, const TSPoint &point) {

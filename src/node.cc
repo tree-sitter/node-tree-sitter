@@ -21,13 +21,13 @@ static inline void setup_transfer_buffer(AddonData* data, uint32_t node_count) {
   if (new_length > data->transfer_buffer_length) {
     data->transfer_buffer_length = new_length;
 
-    auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), data->transfer_buffer_length * sizeof(uint32_t));
-    data->transfer_buffer = (uint32_t *)(js_transfer_buffer->GetBackingStore()->Data());
+    auto js_transfer_buffer = Nan::NewBuffer(data->transfer_buffer_length * sizeof(uint32_t)).ToLocalChecked();
+    data->transfer_buffer = reinterpret_cast<uint32_t*>(node::Buffer::Data(js_transfer_buffer));
 
     Nan::Set(
       Nan::New(data->module_exports),
       Nan::New("nodeTransferArray").ToLocalChecked(),
-      Uint32Array::New(js_transfer_buffer, 0, data->transfer_buffer_length)
+      Uint32Array::New(js_transfer_buffer.As<Uint8Array>()->Buffer(), 0, data->transfer_buffer_length)
     );
   }
 }
