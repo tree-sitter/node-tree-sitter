@@ -12,7 +12,7 @@ using namespace v8;
 namespace node_tree_sitter {
 namespace node_methods {
 
-void Init(v8::Local<v8::Object>);
+void Init(v8::Local<v8::Object>, v8::Local<v8::External>);
 void MarshalNode(const Nan::FunctionCallbackInfo<v8::Value> &info, const Tree *, TSNode);
 Local<Value> GetMarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, TSNode node);
 Local<Value> GetMarshalNodes(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, const TSNode *nodes, uint32_t node_count);

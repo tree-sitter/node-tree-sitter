@@ -6,14 +6,15 @@
 #include <node_object_wrap.h>
 #include <unordered_map>
 #include <tree_sitter/api.h>
+#include "./addon_data.h"
 
 namespace node_tree_sitter {
 
 class Query : public Nan::ObjectWrap {
  public:
-  static void Init(v8::Local<v8::Object> exports);
-  static v8::Local<v8::Value> NewInstance(TSQuery *);
-  static Query *UnwrapQuery(const v8::Local<v8::Value> &);
+  static void Init(v8::Local<v8::Object> exports, v8::Local<v8::External> data_ext);
+  static v8::Local<v8::Value> NewInstance(AddonData* data, TSQuery *);
+  static Query *UnwrapQuery(AddonData* data, const v8::Local<v8::Value> &);
 
   TSQuery *query_;
 
@@ -25,10 +26,6 @@ class Query : public Nan::ObjectWrap {
   static void Matches(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Captures(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void GetPredicates(const Nan::FunctionCallbackInfo<v8::Value> &);
-
-  static TSQueryCursor *ts_query_cursor;
-  static Nan::Persistent<v8::Function> constructor;
-  static Nan::Persistent<v8::FunctionTemplate> constructor_template;
 };
 
 }  // namespace node_tree_sitter

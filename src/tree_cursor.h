@@ -5,13 +5,14 @@
 #include <nan.h>
 #include <node_object_wrap.h>
 #include <tree_sitter/api.h>
+#include "./addon_data.h"
 
 namespace node_tree_sitter {
 
 class TreeCursor : public Nan::ObjectWrap {
  public:
-  static void Init(v8::Local<v8::Object> exports);
-  static v8::Local<v8::Value> NewInstance(TSTreeCursor);
+  static void Init(v8::Local<v8::Object> exports, v8::Local<v8::External> data_ext);
+  static v8::Local<v8::Value> NewInstance(AddonData* data, TSTreeCursor);
 
  private:
   explicit TreeCursor(TSTreeCursor);
@@ -35,8 +36,6 @@ class TreeCursor : public Nan::ObjectWrap {
   static void EndIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
 
   TSTreeCursor cursor_;
-  static Nan::Persistent<v8::Function> constructor;
-  static Nan::Persistent<v8::FunctionTemplate> constructor_template;
 };
 
 }  // namespace node_tree_sitter
