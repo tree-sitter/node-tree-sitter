@@ -135,7 +135,7 @@ void TreeCursor::Reset(const Nan::FunctionCallbackInfo<Value> &info) {
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   Local<String> key = Nan::New<String>("tree").ToLocalChecked();
   const Tree *tree = Tree::UnwrapTree(data, Nan::Get(info.This(), key).ToLocalChecked());
-  TSNode node = node_methods::UnmarshalNode(tree);
+  TSNode node = node_methods::UnmarshalNode(data, tree);
   ts_tree_cursor_reset(&cursor->cursor_, node);
 }
 

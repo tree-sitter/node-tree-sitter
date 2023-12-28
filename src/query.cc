@@ -215,7 +215,7 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 
   TSQuery *ts_query = query->query_;
-  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSNode rootNode = node_methods::UnmarshalNode(data, tree);
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
   ts_query_cursor_set_point_range(data->ts_query_cursor, start_point, end_point);
@@ -272,7 +272,7 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 
   TSQuery *ts_query = query->query_;
-  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSNode rootNode = node_methods::UnmarshalNode(data, tree);
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
   ts_query_cursor_set_point_range(data->ts_query_cursor, start_point, end_point);
