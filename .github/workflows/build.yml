@@ -23,7 +23,7 @@ jobs:
         os:
           - windows-2019
           - macos-latest
-          - ubuntu-latest
+          - ubuntu-20.04
         node:
           - 10
           - 12
