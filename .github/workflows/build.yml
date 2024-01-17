@@ -52,7 +52,7 @@ jobs:
   publish:
     if: ${{ github.event_name == 'release' }}
     name: Publish to npm
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: test
     steps:
       - uses: actions/checkout@v3
@@ -74,7 +74,7 @@ jobs:
         os:
           - windows-2019
           - macos-latest
-          - ubuntu-latest
+          - ubuntu-20.04
       fail-fast: false
     name: Prebuild for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
