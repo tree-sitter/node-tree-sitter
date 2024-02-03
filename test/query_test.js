@@ -91,11 +91,11 @@ describe("Query", () => {
       const query = new Query(JavaScript, `
         (pair
           key: _ @method.def
-          (function
+          (function_expression
             name: (identifier) @method.alias))
         (variable_declarator
           name: _ @function.def
-          value: (function
+          value: (function_expression
             name: (identifier) @function.alias))
         ":" @delimiter
         "=" @operator
