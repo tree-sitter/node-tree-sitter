@@ -198,7 +198,7 @@ void Tree::GetEditedRange(const Nan::FunctionCallbackInfo<Value> &info) {
 
 void Tree::PrintDotGraph(const Nan::FunctionCallbackInfo<Value> &info) {
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  ts_tree_print_dot_graph(tree->tree_, stderr);
+  ts_tree_print_dot_graph(tree->tree_, fileno(stderr));
   info.GetReturnValue().Set(info.This());
 }
 
