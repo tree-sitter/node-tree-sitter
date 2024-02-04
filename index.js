@@ -375,31 +375,6 @@ const PREDICATE_STEP_TYPE = {
 
 const ZERO_POINT = { row: 0, column: 0 };
 
-function _predIsPositive(pred) {
-  switch (pred) {
-    case 'any-not-eq?':
-    case 'not-eq?':
-    case 'not-any-match?':
-    case 'not-match?':
-    case 'not-any-of?':
-      return false
-    default:
-      return true;
-  }
-}
-
-function _predMatchall(pred) {
-  switch (pred) {
-    case 'any-not-eq?':
-    case 'any-eq?':
-    case 'any-match?':
-    case 'not-any-match?':
-      return false;
-    default:
-      return true;
-  }      
-}
-
 Query.prototype._init = function() {
   /*
    * Initialize predicate functions
@@ -431,13 +406,14 @@ Query.prototype._init = function() {
 
       const operator = steps[FIRST + 1];
 
-      let isPositive = _predIsPositive(operator);
-      let matchAll = _predMatchall(operator);
-
+      let isPositive = true;
+      let matchAll = true;
+      let captureName;
       switch (operator) {
         case 'any-not-eq?':
-        case 'any-eq?':
         case 'not-eq?':
+          isPositive = false;
+        case 'any-eq?':
         case 'eq?':
           if (stepsLength !== 3) throw new Error(
             `Wrong number of arguments to \`#eq?\` predicate. Expected 2, got ${stepsLength - 1}`
@@ -445,6 +421,7 @@ Query.prototype._init = function() {
           if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
             `First argument of \`#eq?\` predicate must be a capture. Got "${steps[SECOND + 1]}"`
           );
+          matchAll = !operator.startsWith('any-');
           if (steps[THIRD] === PREDICATE_STEP_TYPE.CAPTURE) {
             const captureName1 = steps[SECOND + 1];
             const captureName2 = steps[THIRD + 1];
@@ -460,23 +437,27 @@ Query.prototype._init = function() {
                 : nodes_1.some(n1 => nodes_2.some(n2 => n1.text === n2.text)) === isPositive;
             });
           } else {
-            const captureName = steps[SECOND + 1];
+            captureName = steps[SECOND + 1];
             const stringValue = steps[THIRD + 1];
+            let matches = (n) => n.text === stringValue;
+            let doesNotMatch = (n) => n.text !== stringValue;
             predicates[i].push(function (captures) {
               let nodes = [];
               for (const c of captures) {
                 if (c.name === captureName) nodes.push(c.node);
               }
+              let test = isPositive ? matches : doesNotMatch;
               return matchAll
-                ? nodes.every(n => n.text === stringValue) === isPositive
-                : nodes.some(n => n.text === stringValue) === isPositive;
+                ? nodes.every(test)
+                : nodes.some(test);
             });
           }
           break;
 
-        case 'not-any-match?':
-        case 'any-match?':
+        case 'any-not-match?':
         case 'not-match?':
+          isPositive = false;
+        case 'any-match?':
         case 'match?':
           if (stepsLength !== 3) throw new Error(
             `Wrong number of arguments to \`#match?\` predicate. Expected 2, got ${stepsLength - 1}.`
@@ -487,18 +468,24 @@ Query.prototype._init = function() {
           if (steps[THIRD] !== PREDICATE_STEP_TYPE.STRING) throw new Error(
             `Second argument of \`#match?\` predicate must be a string. Got @${steps[THIRD + 1]}.`
           );
-          const captureName = steps[SECOND + 1];
+          captureName = steps[SECOND + 1];
           const regex = new RegExp(steps[THIRD + 1]);
+          matchAll = !operator.startsWith('any-');
           predicates[i].push(function (captures) {
             const nodes = [];
             for (const c of captures) {
               if (c.name === captureName) nodes.push(c.node.text);
             }
+            let test = (text, positive) => {
+              return positive ?
+                regex.test(text) :
+                !regex.test(text);
+            };
             if (nodes.length === 0) return !isPositive;
             return matchAll
-              ? nodes.every(text => regex.test(text)) === isPositive
-              : nodes.some(text => regex.test(text)) === isPositive;
-          });
+              ? nodes.every(text => test(text, isPositive))
+              : nodes.some(text => test(text, isPositive))
+            });
           break;
 
         case 'set!':
@@ -526,6 +513,7 @@ Query.prototype._init = function() {
           break;
 
         case 'not-any-of?':
+          isPositive = false;
         case 'any-of?':
           if (stepsLength < 2) throw new Error(
             `Wrong number of arguments to \`#${operator}\` predicate. Expected at least 1. Got ${stepsLength - 1}.`
@@ -533,7 +521,6 @@ Query.prototype._init = function() {
           if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
             `First argument of \`#${operator}\` predicate must be a capture. Got "${steps[1].value}".`
           );
-          const capName = steps[SECOND + 1];
           stringValues = [];
           for (let k = THIRD; k < 2 * stepsLength; k += 2) {
             if (steps[k] !== PREDICATE_STEP_TYPE.STRING) throw new Error(
@@ -541,11 +528,11 @@ Query.prototype._init = function() {
             );
             stringValues.push(steps[k + 1]);
           }
-
+          captureName = steps[SECOND + 1];
           predicates[i].push(function (captures) {
             const nodes = [];
             for (const c of captures) {
-              if (c.name === capName) nodes.push(c.node.text);
+              if (c.name === captureName) nodes.push(c.node.text);
             }
             if (nodes.length === 0) return !isPositive;
             return nodes.every(text => stringValues.includes(text)) === isPositive;
