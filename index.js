@@ -432,9 +432,14 @@ Query.prototype._init = function() {
                 if (c.name === captureName1) nodes_1.push(c.node);
                 if (c.name === captureName2) nodes_2.push(c.node);
               }
+              let compare = (n1, n2, positive) => {
+                return positive ?
+                  n1.text === n2.text :
+                  n1.text !== n2.text;
+              };
               return matchAll
-                ? nodes_1.every(n1 => nodes_2.some(n2 => n1.text === n2.text)) === isPositive
-                : nodes_1.some(n1 => nodes_2.some(n2 => n1.text === n2.text)) === isPositive;
+                ? nodes_1.every(n1 => nodes_2.some(n2 => compare(n1, n2, isPositive)))
+                : nodes_1.some(n1 => nodes_2.some(n2 => compare(n1, n2, isPositive)));
             });
           } else {
             captureName = steps[SECOND + 1];
