@@ -197,13 +197,13 @@ describe("Query", () => {
     it("handles quantified captures properly", () => {
       let captures;
 
-      tree = parser.parse(`
+      const tree = parser.parse(`
         /// foo
         /// bar
         /// baz
       `);
 
-      query = new Query(JavaScript,`
+      let query = new Query(JavaScript,`
         (
           (comment)+ @foo
           (#any-eq? @foo "/// foo")
