@@ -407,10 +407,13 @@ Query.prototype._init = function() {
       const operator = steps[FIRST + 1];
 
       let isPositive = true;
-
+      let matchAll = true;
+      let captureName;
       switch (operator) {
+        case 'any-not-eq?':
         case 'not-eq?':
           isPositive = false;
+        case 'any-eq?':
         case 'eq?':
           if (stepsLength !== 3) throw new Error(
             `Wrong number of arguments to \`#eq?\` predicate. Expected 2, got ${stepsLength - 1}`
@@ -418,32 +421,48 @@ Query.prototype._init = function() {
           if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
             `First argument of \`#eq?\` predicate must be a capture. Got "${steps[SECOND + 1]}"`
           );
+          matchAll = !operator.startsWith('any-');
           if (steps[THIRD] === PREDICATE_STEP_TYPE.CAPTURE) {
             const captureName1 = steps[SECOND + 1];
-            const captureName2 = steps[THIRD  + 1];
-            predicates[i].push(function(captures) {
-              let node1, node2
+            const captureName2 = steps[THIRD + 1];
+            predicates[i].push(function (captures) {
+              let nodes_1 = [];
+              let nodes_2 = [];
               for (const c of captures) {
-                if (c.name === captureName1) node1 = c.node;
-                if (c.name === captureName2) node2 = c.node;
+                if (c.name === captureName1) nodes_1.push(c.node);
+                if (c.name === captureName2) nodes_2.push(c.node);
               }
-              if (node1 === undefined || node2 === undefined) return true;
-              return (node1.text === node2.text) === isPositive;
+              let compare = (n1, n2, positive) => {
+                return positive ?
+                  n1.text === n2.text :
+                  n1.text !== n2.text;
+              };
+              return matchAll
+                ? nodes_1.every(n1 => nodes_2.some(n2 => compare(n1, n2, isPositive)))
+                : nodes_1.some(n1 => nodes_2.some(n2 => compare(n1, n2, isPositive)));
             });
           } else {
-            const captureName = steps[SECOND + 1];
-            const stringValue = steps[THIRD  + 1];
-            predicates[i].push(function(captures) {
+            captureName = steps[SECOND + 1];
+            const stringValue = steps[THIRD + 1];
+            let matches = (n) => n.text === stringValue;
+            let doesNotMatch = (n) => n.text !== stringValue;
+            predicates[i].push(function (captures) {
+              let nodes = [];
               for (const c of captures) {
-                if (c.name === captureName) {
-                  return (c.node.text === stringValue) === isPositive;
-                };
+                if (c.name === captureName) nodes.push(c.node);
               }
-              return true;
+              let test = isPositive ? matches : doesNotMatch;
+              return matchAll
+                ? nodes.every(test)
+                : nodes.some(test);
             });
           }
           break;
 
+        case 'any-not-match?':
+        case 'not-match?':
+          isPositive = false;
+        case 'any-match?':
         case 'match?':
           if (stepsLength !== 3) throw new Error(
             `Wrong number of arguments to \`#match?\` predicate. Expected 2, got ${stepsLength - 1}.`
@@ -454,14 +473,24 @@ Query.prototype._init = function() {
           if (steps[THIRD] !== PREDICATE_STEP_TYPE.STRING) throw new Error(
             `Second argument of \`#match?\` predicate must be a string. Got @${steps[THIRD + 1]}.`
           );
-          const captureName = steps[SECOND + 1];
+          captureName = steps[SECOND + 1];
           const regex = new RegExp(steps[THIRD + 1]);
-          predicates[i].push(function(captures) {
+          matchAll = !operator.startsWith('any-');
+          predicates[i].push(function (captures) {
+            const nodes = [];
             for (const c of captures) {
-              if (c.name === captureName) return regex.test(c.node.text);
+              if (c.name === captureName) nodes.push(c.node.text);
             }
-            return true;
-          });
+            let test = (text, positive) => {
+              return positive ?
+                regex.test(text) :
+                !regex.test(text);
+            };
+            if (nodes.length === 0) return !isPositive;
+            return matchAll
+              ? nodes.every(text => test(text, isPositive))
+              : nodes.some(text => test(text, isPositive))
+            });
           break;
 
         case 'set!':
@@ -486,6 +515,33 @@ Query.prototype._init = function() {
           const properties = operator === 'is?' ? assertedProperties : refutedProperties;
           if (!properties[i]) properties[i] = {};
           properties[i][steps[SECOND + 1]] = steps[THIRD] ? steps[THIRD + 1] : null;
+          break;
+
+        case 'not-any-of?':
+          isPositive = false;
+        case 'any-of?':
+          if (stepsLength < 2) throw new Error(
+            `Wrong number of arguments to \`#${operator}\` predicate. Expected at least 1. Got ${stepsLength - 1}.`
+          );
+          if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
+            `First argument of \`#${operator}\` predicate must be a capture. Got "${steps[1].value}".`
+          );
+          stringValues = [];
+          for (let k = THIRD; k < 2 * stepsLength; k += 2) {
+            if (steps[k] !== PREDICATE_STEP_TYPE.STRING) throw new Error(
+              `Arguments to \`#${operator}\` predicate must be a strings.".`
+            );
+            stringValues.push(steps[k + 1]);
+          }
+          captureName = steps[SECOND + 1];
+          predicates[i].push(function (captures) {
+            const nodes = [];
+            for (const c of captures) {
+              if (c.name === captureName) nodes.push(c.node.text);
+            }
+            if (nodes.length === 0) return !isPositive;
+            return nodes.every(text => stringValues.includes(text)) === isPositive;
+          });
           break;
 
         default:

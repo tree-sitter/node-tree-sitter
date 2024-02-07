@@ -193,6 +193,89 @@ describe("Query", () => {
         },
       ]);
     });
+
+    it("handles quantified captures properly", () => {
+      let captures;
+
+      const tree = parser.parse(`
+        /// foo
+        /// bar
+        /// baz
+      `);
+
+      let query = new Query(JavaScript,`
+        (
+          (comment)+ @foo
+          (#any-eq? @foo "/// foo")
+        )
+      `);
+
+      let expectCount = (tree, queryText, expectedCount) => {
+        query = new Query(JavaScript,queryText);
+        captures = query.captures(tree.rootNode);
+        assert.equal(captures.length, expectedCount);
+      };
+
+      expectCount(
+        tree,
+        ` ( (comment)+ @foo (#any-eq? @foo "/// foo") ) `,
+        3
+      );
+
+      expectCount(
+        tree,
+        ` ( (comment)+ @foo (#eq? @foo "/// foo") ) `,
+        0
+      );
+
+      expectCount(
+        tree,
+        ` ( (comment)+ @foo (#any-not-eq? @foo "/// foo") ) `,
+        3
+      );
+
+      expectCount(
+        tree,
+        ` ( (comment)+ @foo (#not-eq? @foo "/// foo") ) `,
+        0
+      );
+
+      expectCount(
+        tree,
+        ` ( (comment)+ @foo (#match? @foo "^/// foo") ) `,
+        0
+      );
+
+      expectCount(
+        tree,
+        ` ( (comment)+ @foo (#any-match? @foo "^/// foo") ) `,
+        3
+      );
+
+      expectCount(
+        tree,
+        ` ( (comment)+ @foo (#not-match? @foo "^/// foo") ) `,
+        0
+      );
+
+      expectCount(
+        tree,
+        ` ( (comment)+ @foo (#not-match? @foo "fsdfsdafdfs") ) `,
+        3
+      );
+
+      expectCount(
+        tree,
+        ` ( (comment)+ @foo (#any-not-match? @foo "^///") ) `,
+        0
+      );
+
+      expectCount(
+        tree,
+        ` ( (comment)+ @foo (#any-not-match? @foo "^/// foo") ) `,
+        3
+      );
+    })
   });
 });
 
