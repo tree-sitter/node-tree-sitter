@@ -24,14 +24,11 @@ const char *query_error_names[] = {
   "TSQueryErrorStructure",
 };
 
-TSQueryCursor *Query::ts_query_cursor;
-Nan::Persistent<Function> Query::constructor;
-Nan::Persistent<FunctionTemplate> Query::constructor_template;
+void Query::Init(Local<Object> exports, Local<External> data_ext) {
+  AddonData* data = reinterpret_cast<AddonData*>(data_ext->Value());
+  data->ts_query_cursor = ts_query_cursor_new();
 
-void Query::Init(Local<Object> exports) {
-  ts_query_cursor = ts_query_cursor_new();
-
-  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New, data_ext);
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   Local<String> class_name = Nan::New("Query").ToLocalChecked();
   tpl->SetClassName(class_name);
@@ -43,13 +40,13 @@ void Query::Init(Local<Object> exports) {
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
-    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
+    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback, data_ext);
   }
 
   Local<Function> ctor = Nan::GetFunction(tpl).ToLocalChecked();
 
-  constructor_template.Reset(tpl);
-  constructor.Reset(ctor);
+  data->query_constructor_template.Reset(tpl);
+  data->query_constructor.Reset(ctor);
   Nan::Set(exports, class_name, ctor);
 }
 
@@ -59,10 +56,10 @@ Query::~Query() {
   ts_query_delete(query_);
 }
 
-Local<Value> Query::NewInstance(TSQuery *query) {
+Local<Value> Query::NewInstance(AddonData* data, TSQuery *query) {
   if (query) {
     Local<Object> self;
-    MaybeLocal<Object> maybe_self = Nan::NewInstance(Nan::New(constructor));
+    MaybeLocal<Object> maybe_self = Nan::NewInstance(Nan::New(data->query_constructor));
     if (maybe_self.ToLocal(&self)) {
       (new Query(query))->Wrap(self);
       return self;
@@ -71,17 +68,18 @@ Local<Value> Query::NewInstance(TSQuery *query) {
   return Nan::Null();
 }
 
-Query *Query::UnwrapQuery(const Local<Value> &value) {
+Query *Query::UnwrapQuery(AddonData* data, const Local<Value> &value) {
   if (!value->IsObject()) return nullptr;
   Local<Object> js_query = Local<Object>::Cast(value);
-  if (!Nan::New(constructor_template)->HasInstance(js_query)) return nullptr;
+  if (!Nan::New(data->query_constructor_template)->HasInstance(js_query)) return nullptr;
   return ObjectWrap::Unwrap<Query>(js_query);
 }
 
 void Query::New(const Nan::FunctionCallbackInfo<Value> &info) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   if (!info.IsConstructCall()) {
     Local<Object> self;
-    MaybeLocal<Object> maybe_self = Nan::New(constructor)->NewInstance(Nan::GetCurrentContext());
+    MaybeLocal<Object> maybe_self = Nan::New(data->query_constructor)->NewInstance(Nan::GetCurrentContext());
     if (maybe_self.ToLocal(&self)) {
       info.GetReturnValue().Set(self);
     } else {
@@ -144,7 +142,8 @@ void Query::New(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void Query::GetPredicates(const Nan::FunctionCallbackInfo<Value> &info) {
-  Query *query = Query::UnwrapQuery(info.This());
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  Query *query = Query::UnwrapQuery(data, info.This());
   auto ts_query = query->query_;
 
   auto pattern_len = ts_query_pattern_count(ts_query);
@@ -197,8 +196,9 @@ void Query::GetPredicates(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
-  Query *query = Query::UnwrapQuery(info.This());
-  const Tree *tree = Tree::UnwrapTree(info[0]);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  Query *query = Query::UnwrapQuery(data, info.This());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
   uint32_t start_row    = Nan::To<uint32_t>(info[1]).ToChecked();
   uint32_t start_column = Nan::To<uint32_t>(info[2]).ToChecked() << 1;
   uint32_t end_row      = Nan::To<uint32_t>(info[3]).ToChecked();
@@ -215,18 +215,18 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 
   TSQuery *ts_query = query->query_;
-  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSNode rootNode = node_methods::UnmarshalNode(data, tree);
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
-  ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
-  ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
+  ts_query_cursor_set_point_range(data->ts_query_cursor, start_point, end_point);
+  ts_query_cursor_exec(data->ts_query_cursor, ts_query, rootNode);
 
   Local<Array> js_matches = Nan::New<Array>();
   unsigned index = 0;
   vector<TSNode> nodes;
   TSQueryMatch match;
 
-  while (ts_query_cursor_next_match(ts_query_cursor, &match)) {
+  while (ts_query_cursor_next_match(data->ts_query_cursor, &match)) {
     Nan::Set(js_matches, index++, Nan::New(match.pattern_index));
 
     for (uint16_t i = 0; i < match.capture_count; i++) {
@@ -253,8 +253,9 @@ void Query::Matches(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
-  Query *query = Query::UnwrapQuery(info.This());
-  const Tree *tree = Tree::UnwrapTree(info[0]);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  Query *query = Query::UnwrapQuery(data, info.This());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
   uint32_t start_row    = Nan::To<uint32_t>(info[1]).ToChecked();
   uint32_t start_column = Nan::To<uint32_t>(info[2]).ToChecked() << 1;
   uint32_t end_row      = Nan::To<uint32_t>(info[3]).ToChecked();
@@ -271,11 +272,11 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 
   TSQuery *ts_query = query->query_;
-  TSNode rootNode = node_methods::UnmarshalNode(tree);
+  TSNode rootNode = node_methods::UnmarshalNode(data, tree);
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
-  ts_query_cursor_set_point_range(ts_query_cursor, start_point, end_point);
-  ts_query_cursor_exec(ts_query_cursor, ts_query, rootNode);
+  ts_query_cursor_set_point_range(data->ts_query_cursor, start_point, end_point);
+  ts_query_cursor_exec(data->ts_query_cursor, ts_query, rootNode);
 
   Local<Array> js_matches = Nan::New<Array>();
   unsigned index = 0;
@@ -284,7 +285,7 @@ void Query::Captures(const Nan::FunctionCallbackInfo<Value> &info) {
   uint32_t capture_index;
 
   while (ts_query_cursor_next_capture(
-    ts_query_cursor,
+    data->ts_query_cursor,
     &match,
     &capture_index
   )) {

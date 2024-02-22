@@ -11,10 +11,9 @@ namespace node_tree_sitter {
 
 using namespace v8;
 
-Nan::Persistent<Function> TreeCursor::constructor;
-
-void TreeCursor::Init(v8::Local<v8::Object> exports) {
-  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+void TreeCursor::Init(v8::Local<v8::Object> exports, v8::Local<v8::External> data_ext) {
+  AddonData* data = reinterpret_cast<AddonData*>(data_ext->Value());
+  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New, data_ext);
   Local<String> class_name = Nan::New("TreeCursor").ToLocalChecked();
   tpl->SetClassName(class_name);
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -47,17 +46,17 @@ void TreeCursor::Init(v8::Local<v8::Object> exports) {
   }
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
-    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
+    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback, data_ext);
   }
 
   Local<Function> constructor_local = Nan::GetFunction(tpl).ToLocalChecked();
   Nan::Set(exports, class_name, constructor_local);
-  constructor.Reset(Nan::Persistent<Function>(constructor_local));
+  data->tree_cursor_constructor.Reset(Nan::Persistent<Function>(constructor_local));
 }
 
-Local<Value> TreeCursor::NewInstance(TSTreeCursor cursor) {
+Local<Value> TreeCursor::NewInstance(AddonData* data, TSTreeCursor cursor) {
   Local<Object> self;
-  MaybeLocal<Object> maybe_self = Nan::New(constructor)->NewInstance(Nan::GetCurrentContext());
+  MaybeLocal<Object> maybe_self = Nan::New(data->tree_cursor_constructor)->NewInstance(Nan::GetCurrentContext());
   if (maybe_self.ToLocal(&self)) {
     (new TreeCursor(cursor))->Wrap(self);
     return self;
@@ -109,30 +108,34 @@ void TreeCursor::GotoNextSibling(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void TreeCursor::StartPosition(const Nan::FunctionCallbackInfo<Value> &info) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-  TransferPoint(ts_node_start_point(node));
+  TransferPoint(data, ts_node_start_point(node));
 }
 
 void TreeCursor::EndPosition(const Nan::FunctionCallbackInfo<Value> &info) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-  TransferPoint(ts_node_end_point(node));
+  TransferPoint(data, ts_node_end_point(node));
 }
 
 void TreeCursor::CurrentNode(const Nan::FunctionCallbackInfo<Value> &info) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   Local<String> key = Nan::New<String>("tree").ToLocalChecked();
-  const Tree *tree = Tree::UnwrapTree(Nan::Get(info.This(), key).ToLocalChecked());
+  const Tree *tree = Tree::UnwrapTree(data, Nan::Get(info.This(), key).ToLocalChecked());
   TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
   node_methods::MarshalNode(info, tree, node);
 }
 
 void TreeCursor::Reset(const Nan::FunctionCallbackInfo<Value> &info) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   Local<String> key = Nan::New<String>("tree").ToLocalChecked();
-  const Tree *tree = Tree::UnwrapTree(Nan::Get(info.This(), key).ToLocalChecked());
-  TSNode node = node_methods::UnmarshalNode(tree);
+  const Tree *tree = Tree::UnwrapTree(data, Nan::Get(info.This(), key).ToLocalChecked());
+  TSNode node = node_methods::UnmarshalNode(data, tree);
   ts_tree_cursor_reset(&cursor->cursor_, node);
 }
 
@@ -165,15 +168,17 @@ void TreeCursor::CurrentFieldName(v8::Local<v8::String> prop, const Nan::Propert
 }
 
 void TreeCursor::StartIndex(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-  info.GetReturnValue().Set(ByteCountToJS(ts_node_start_byte(node)));
+  info.GetReturnValue().Set(ByteCountToJS(data, ts_node_start_byte(node)));
 }
 
 void TreeCursor::EndIndex(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
   TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-  info.GetReturnValue().Set(ByteCountToJS(ts_node_end_byte(node)));
+  info.GetReturnValue().Set(ByteCountToJS(data, ts_node_end_byte(node)));
 }
 
 }

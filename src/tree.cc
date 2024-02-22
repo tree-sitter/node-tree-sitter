@@ -1,4 +1,5 @@
 #include "./tree.h"
+#include "./addon_data.h"
 #include <string>
 #include <v8.h>
 #include <nan.h>
@@ -12,11 +13,9 @@ namespace node_tree_sitter {
 using namespace v8;
 using node_methods::UnmarshalNodeId;
 
-Nan::Persistent<Function> Tree::constructor;
-Nan::Persistent<FunctionTemplate> Tree::constructor_template;
-
-void Tree::Init(Local<Object> exports) {
-  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
+void Tree::Init(Local<Object> exports, Local<External> data_ext) {
+  AddonData* data = reinterpret_cast<AddonData*>(data_ext->Value());
+  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New, data_ext);
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   Local<String> class_name = Nan::New("Tree").ToLocalChecked();
   tpl->SetClassName(class_name);
@@ -32,13 +31,13 @@ void Tree::Init(Local<Object> exports) {
   };
 
   for (size_t i = 0; i < length_of_array(methods); i++) {
-    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback);
+    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback, data_ext);
   }
 
   Local<Function> ctor = Nan::GetFunction(tpl).ToLocalChecked();
 
-  constructor_template.Reset(tpl);
-  constructor.Reset(ctor);
+  data->tree_constructor_template.Reset(tpl);
+  data->tree_constructor.Reset(ctor);
   Nan::Set(exports, class_name, ctor);
 }
 
@@ -51,10 +50,10 @@ Tree::~Tree() {
   }
 }
 
-Local<Value> Tree::NewInstance(TSTree *tree) {
+Local<Value> Tree::NewInstance(AddonData* data, TSTree *tree) {
   if (tree) {
     Local<Object> self;
-    MaybeLocal<Object> maybe_self = Nan::NewInstance(Nan::New(constructor));
+    MaybeLocal<Object> maybe_self = Nan::NewInstance(Nan::New(data->tree_constructor));
     if (maybe_self.ToLocal(&self)) {
       (new Tree(tree))->Wrap(self);
       return self;
@@ -63,10 +62,10 @@ Local<Value> Tree::NewInstance(TSTree *tree) {
   return Nan::Null();
 }
 
-const Tree *Tree::UnwrapTree(const Local<Value> &value) {
+const Tree *Tree::UnwrapTree(AddonData* data, const Local<Value> &value) {
   if (!value->IsObject()) return nullptr;
   Local<Object> js_tree = Local<Object>::Cast(value);
-  if (!Nan::New(constructor_template)->HasInstance(js_tree)) return nullptr;
+  if (!Nan::New(data->tree_constructor_template)->HasInstance(js_tree)) return nullptr;
   return ObjectWrap::Unwrap<Tree>(js_tree);
 }
 
@@ -128,8 +127,9 @@ void Tree::RootNode(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   const Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-  const Tree *other_tree = UnwrapTree(info[0]);
+  const Tree *other_tree = UnwrapTree(data, info[0]);
   if (!other_tree) {
     Nan::ThrowTypeError("Argument must be a tree");
     return;
@@ -140,7 +140,7 @@ void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
 
   Local<Array> result = Nan::New<Array>();
   for (size_t i = 0; i < range_count; i++) {
-    Nan::Set(result, i, RangeToJS(ranges[i]));
+    Nan::Set(result, i, RangeToJS(data, ranges[i]));
   }
 
   free(ranges);
@@ -149,6 +149,7 @@ void Tree::GetChangedRanges(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 void Tree::GetEditedRange(const Nan::FunctionCallbackInfo<Value> &info) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
   TSNode root = ts_tree_root_node(tree->tree_);
   if (!ts_node_has_changes(root)) return;
@@ -193,7 +194,7 @@ void Tree::GetEditedRange(const Nan::FunctionCallbackInfo<Value> &info) {
   }
 
   ts_tree_cursor_delete(&cursor);
-  info.GetReturnValue().Set(RangeToJS(result));
+  info.GetReturnValue().Set(RangeToJS(data, result));
 }
 
 void Tree::PrintDotGraph(const Nan::FunctionCallbackInfo<Value> &info) {

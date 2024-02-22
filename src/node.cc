@@ -16,34 +16,18 @@ using namespace v8;
 
 static const uint32_t FIELD_COUNT_PER_NODE = 6;
 
-static uint32_t *transfer_buffer = nullptr;
-static uint32_t transfer_buffer_length = 0;
-static Nan::Persistent<Object> module_exports;
-static TSTreeCursor scratch_cursor = {nullptr, nullptr, {0, 0}};
-
-static inline void setup_transfer_buffer(uint32_t node_count) {
+static inline void setup_transfer_buffer(AddonData* data, uint32_t node_count) {
   uint32_t new_length = node_count * FIELD_COUNT_PER_NODE;
-  if (new_length > transfer_buffer_length) {
-    transfer_buffer_length = new_length;
+  if (new_length > data->transfer_buffer_length) {
+    data->transfer_buffer_length = new_length;
 
-    #if defined(_MSC_VER) && NODE_RUNTIME_ELECTRON && NODE_MODULE_VERSION >= 89
-      auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer_length * sizeof(uint32_t));
-      transfer_buffer = (uint32_t *)(js_transfer_buffer->Data());
-    #elif V8_MAJOR_VERSION < 8 || (V8_MAJOR_VERSION == 8 && V8_MINOR_VERSION < 4) || (defined(_MSC_VER) && NODE_RUNTIME_ELECTRON)
-      if (transfer_buffer) { free(transfer_buffer); }
-      transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
-      auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), transfer_buffer, transfer_buffer_length * sizeof(uint32_t));
-    #else
-      if (transfer_buffer) { free(transfer_buffer); }
-      transfer_buffer = static_cast<uint32_t *>(malloc(transfer_buffer_length * sizeof(uint32_t)));
-      auto backing_store = ArrayBuffer::NewBackingStore(transfer_buffer, transfer_buffer_length * sizeof(uint32_t), BackingStore::EmptyDeleter, nullptr);
-      auto js_transfer_buffer = ArrayBuffer::New(Isolate::GetCurrent(), std::move(backing_store));
-    #endif
+    auto js_transfer_buffer = Nan::NewBuffer(data->transfer_buffer_length * sizeof(uint32_t)).ToLocalChecked();
+    data->transfer_buffer = reinterpret_cast<uint32_t*>(node::Buffer::Data(js_transfer_buffer));
 
     Nan::Set(
-      Nan::New(module_exports),
+      Nan::New(data->module_exports),
       Nan::New("nodeTransferArray").ToLocalChecked(),
-      Uint32Array::New(js_transfer_buffer, 0, transfer_buffer_length)
+      Uint32Array::New(js_transfer_buffer.As<Uint8Array>()->Buffer(), 0, data->transfer_buffer_length)
     );
   }
 }
@@ -65,9 +49,10 @@ void MarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree,
 
 Local<Value> GetMarshalNodes(const Nan::FunctionCallbackInfo<Value> &info,
                          const Tree *tree, const TSNode *nodes, uint32_t node_count) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   auto result = Nan::New<Array>();
-  setup_transfer_buffer(node_count);
-  uint32_t *p = transfer_buffer;
+  setup_transfer_buffer(data, node_count);
+  uint32_t *p = data->transfer_buffer;
   for (unsigned i = 0; i < node_count; i++) {
     TSNode node = nodes[i];
     const auto &cache_entry = tree->cached_nodes_.find(node.id);
@@ -91,10 +76,11 @@ Local<Value> GetMarshalNodes(const Nan::FunctionCallbackInfo<Value> &info,
 }
 
 Local<Value> GetMarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const Tree *tree, TSNode node) {
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
   const auto &cache_entry = tree->cached_nodes_.find(node.id);
   if (cache_entry == tree->cached_nodes_.end()) {
-    setup_transfer_buffer(1);
-    uint32_t *p = transfer_buffer;
+    setup_transfer_buffer(data, 1);
+    uint32_t *p = data->transfer_buffer;
     MarshalNodeId(node.id, p);
     p += 2;
     *(p++) = node.context[0];
@@ -110,11 +96,11 @@ Local<Value> GetMarshalNode(const Nan::FunctionCallbackInfo<Value> &info, const 
   return Nan::Null();
 }
 
-void MarshalNullNode() {
-  memset(transfer_buffer, 0, FIELD_COUNT_PER_NODE * sizeof(transfer_buffer[0]));
+void MarshalNullNode(AddonData* data) {
+  memset(data->transfer_buffer, 0, FIELD_COUNT_PER_NODE * sizeof(data->transfer_buffer[0]));
 }
 
-TSNode UnmarshalNode(const Tree *tree) {
+TSNode UnmarshalNode(AddonData* data, const Tree *tree) {
   TSNode result = {{0, 0, 0, 0}, nullptr, nullptr};
   result.tree = tree->tree_;
   if (!result.tree) {
@@ -122,17 +108,18 @@ TSNode UnmarshalNode(const Tree *tree) {
     return result;
   }
 
-  result.id = UnmarshalNodeId(&transfer_buffer[0]);
-  result.context[0] = transfer_buffer[2];
-  result.context[1] = transfer_buffer[3];
-  result.context[2] = transfer_buffer[4];
-  result.context[3] = transfer_buffer[5];
+  result.id = UnmarshalNodeId(&data->transfer_buffer[0]);
+  result.context[0] = data->transfer_buffer[2];
+  result.context[1] = data->transfer_buffer[3];
+  result.context[2] = data->transfer_buffer[4];
+  result.context[3] = data->transfer_buffer[5];
   return result;
 }
 
 static void ToString(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     const char *string = ts_node_string(node);
     info.GetReturnValue().Set(Nan::New(string).ToLocalChecked());
@@ -141,8 +128,9 @@ static void ToString(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void IsMissing(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     bool result = ts_node_is_missing(node);
     info.GetReturnValue().Set(Nan::New<Boolean>(result));
@@ -150,8 +138,9 @@ static void IsMissing(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void HasChanges(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     bool result = ts_node_has_changes(node);
     info.GetReturnValue().Set(Nan::New<Boolean>(result));
@@ -159,8 +148,9 @@ static void HasChanges(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void HasError(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     bool result = ts_node_has_error(node);
     info.GetReturnValue().Set(Nan::New<Boolean>(result));
@@ -168,39 +158,42 @@ static void HasError(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void FirstNamedChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
-    Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[1]);
+    Nan::Maybe<uint32_t> byte = ByteCountFromJS(data, info[1]);
     if (byte.IsJust()) {
       MarshalNode(info, tree, ts_node_first_named_child_for_byte(node, byte.FromJust()));
       return;
     }
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void FirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id && info.Length() > 1) {
-    Nan::Maybe<uint32_t> byte = ByteCountFromJS(info[1]);
+    Nan::Maybe<uint32_t> byte = ByteCountFromJS(data, info[1]);
     if (byte.IsJust()) {
       MarshalNode(info, tree, ts_node_first_child_for_byte(node, byte.FromJust()));
       return;
     }
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void NamedDescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
-    Nan::Maybe<uint32_t> maybe_min = ByteCountFromJS(info[1]);
-    Nan::Maybe<uint32_t> maybe_max = ByteCountFromJS(info[2]);
+    Nan::Maybe<uint32_t> maybe_min = ByteCountFromJS(data, info[1]);
+    Nan::Maybe<uint32_t> maybe_max = ByteCountFromJS(data, info[2]);
     if (maybe_min.IsJust() && maybe_max.IsJust()) {
       uint32_t min = maybe_min.FromJust();
       uint32_t max = maybe_max.FromJust();
@@ -208,16 +201,17 @@ static void NamedDescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info
       return;
     }
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void DescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
-    Nan::Maybe<uint32_t> maybe_min = ByteCountFromJS(info[1]);
-    Nan::Maybe<uint32_t> maybe_max = ByteCountFromJS(info[2]);
+    Nan::Maybe<uint32_t> maybe_min = ByteCountFromJS(data, info[1]);
+    Nan::Maybe<uint32_t> maybe_max = ByteCountFromJS(data, info[2]);
     if (maybe_min.IsJust() && maybe_max.IsJust()) {
       uint32_t min = maybe_min.FromJust();
       uint32_t max = maybe_max.FromJust();
@@ -225,16 +219,17 @@ static void DescendantForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
       return;
     }
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void NamedDescendantForPosition(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
-    Nan::Maybe<TSPoint> maybe_min = PointFromJS(info[1]);
-    Nan::Maybe<TSPoint> maybe_max = PointFromJS(info[2]);
+    Nan::Maybe<TSPoint> maybe_min = PointFromJS(data, info[1]);
+    Nan::Maybe<TSPoint> maybe_max = PointFromJS(data, info[2]);
     if (maybe_min.IsJust() && maybe_max.IsJust()) {
       TSPoint min = maybe_min.FromJust();
       TSPoint max = maybe_max.FromJust();
@@ -242,16 +237,17 @@ static void NamedDescendantForPosition(const Nan::FunctionCallbackInfo<Value> &i
       return;
     }
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void DescendantForPosition(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
-    Nan::Maybe<TSPoint> maybe_min = PointFromJS(info[1]);
-    Nan::Maybe<TSPoint> maybe_max = PointFromJS(info[2]);
+    Nan::Maybe<TSPoint> maybe_min = PointFromJS(data, info[1]);
+    Nan::Maybe<TSPoint> maybe_max = PointFromJS(data, info[2]);
     if (maybe_min.IsJust() && maybe_max.IsJust()) {
       TSPoint min = maybe_min.FromJust();
       TSPoint max = maybe_max.FromJust();
@@ -259,12 +255,13 @@ static void DescendantForPosition(const Nan::FunctionCallbackInfo<Value> &info) 
       return;
     }
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void Type(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
     const char *result = ts_node_type(node);
@@ -273,8 +270,9 @@ static void Type(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void TypeId(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
     TSSymbol result = ts_node_symbol(node);
@@ -283,8 +281,9 @@ static void TypeId(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void IsNamed(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
     bool result = ts_node_is_named(node);
@@ -293,8 +292,9 @@ static void IsNamed(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void StartIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
     int32_t result = ts_node_start_byte(node) / 2;
@@ -303,8 +303,9 @@ static void StartIndex(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void EndIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
     int32_t result = ts_node_end_byte(node) / 2;
@@ -313,26 +314,29 @@ static void EndIndex(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void StartPosition(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
-    TransferPoint(ts_node_start_point(node));
+    TransferPoint(data, ts_node_start_point(node));
   }
 }
 
 static void EndPosition(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
-    TransferPoint(ts_node_end_point(node));
+    TransferPoint(data, ts_node_end_point(node));
   }
 }
 
 static void Child(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
     if (!info[1]->IsUint32()) {
@@ -343,12 +347,13 @@ static void Child(const Nan::FunctionCallbackInfo<Value> &info) {
     MarshalNode(info, tree, ts_node_child(node, index));
     return;
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void NamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
     if (!info[1]->IsUint32()) {
@@ -359,12 +364,13 @@ static void NamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
     MarshalNode(info, tree, ts_node_named_child(node, index));
     return;
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void ChildCount(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
     info.GetReturnValue().Set(Nan::New(ts_node_child_count(node)));
@@ -372,8 +378,9 @@ static void ChildCount(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void NamedChildCount(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
     info.GetReturnValue().Set(Nan::New(ts_node_named_child_count(node)));
@@ -381,28 +388,31 @@ static void NamedChildCount(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void FirstChild(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_child(node, 0));
     return;
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void FirstNamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_named_child(node, 0));
     return;
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void LastChild(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     uint32_t child_count = ts_node_child_count(node);
     if (child_count > 0) {
@@ -410,12 +420,13 @@ static void LastChild(const Nan::FunctionCallbackInfo<Value> &info) {
       return;
     }
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void LastNamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     uint32_t child_count = ts_node_named_child_count(node);
     if (child_count > 0) {
@@ -423,57 +434,62 @@ static void LastNamedChild(const Nan::FunctionCallbackInfo<Value> &info) {
       return;
     }
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void Parent(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_parent(node));
     return;
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void NextSibling(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_next_sibling(node));
     return;
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void NextNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_next_named_sibling(node));
     return;
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void PreviousSibling(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_prev_sibling(node));
     return;
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void PreviousNamedSibling(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (node.id) {
     MarshalNode(info, tree, ts_node_prev_named_sibling(node));
     return;
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 struct SymbolSet {
@@ -535,44 +551,47 @@ bool symbol_set_from_js(SymbolSet *symbols, const Local<Value> &value, const TSL
 }
 
 static void Children(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (!node.id) return;
 
   vector<TSNode> result;
-  ts_tree_cursor_reset(&scratch_cursor, node);
-  if (ts_tree_cursor_goto_first_child(&scratch_cursor)) {
+  ts_tree_cursor_reset(&data->scratch_cursor, node);
+  if (ts_tree_cursor_goto_first_child(&data->scratch_cursor)) {
     do {
-      TSNode child = ts_tree_cursor_current_node(&scratch_cursor);
+      TSNode child = ts_tree_cursor_current_node(&data->scratch_cursor);
       result.push_back(child);
-    } while (ts_tree_cursor_goto_next_sibling(&scratch_cursor));
+    } while (ts_tree_cursor_goto_next_sibling(&data->scratch_cursor));
   }
 
   MarshalNodes(info, tree, result.data(), result.size());
 }
 
 static void NamedChildren(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (!node.id) return;
 
   vector<TSNode> result;
-  ts_tree_cursor_reset(&scratch_cursor, node);
-  if (ts_tree_cursor_goto_first_child(&scratch_cursor)) {
+  ts_tree_cursor_reset(&data->scratch_cursor, node);
+  if (ts_tree_cursor_goto_first_child(&data->scratch_cursor)) {
     do {
-      TSNode child = ts_tree_cursor_current_node(&scratch_cursor);
+      TSNode child = ts_tree_cursor_current_node(&data->scratch_cursor);
       if (ts_node_is_named(child)) {
         result.push_back(child);
       }
-    } while (ts_tree_cursor_goto_next_sibling(&scratch_cursor));
+    } while (ts_tree_cursor_goto_next_sibling(&data->scratch_cursor));
   }
 
   MarshalNodes(info, tree, result.data(), result.size());
 }
 
 static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (!node.id) return;
 
   SymbolSet symbols;
@@ -582,29 +601,29 @@ static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
   TSPoint end_point = {UINT32_MAX, UINT32_MAX};
 
   if (info.Length() > 2 && info[2]->IsObject()) {
-    auto maybe_start_point = PointFromJS(info[2]);
+    auto maybe_start_point = PointFromJS(data, info[2]);
     if (maybe_start_point.IsNothing()) return;
     start_point = maybe_start_point.FromJust();
   }
 
   if (info.Length() > 3 && info[3]->IsObject()) {
-    auto maybe_end_point = PointFromJS(info[3]);
+    auto maybe_end_point = PointFromJS(data, info[3]);
     if (maybe_end_point.IsNothing()) return;
     end_point = maybe_end_point.FromJust();
   }
 
   vector<TSNode> found;
-  ts_tree_cursor_reset(&scratch_cursor, node);
+  ts_tree_cursor_reset(&data->scratch_cursor, node);
   auto already_visited_children = false;
   while (true) {
-    TSNode descendant = ts_tree_cursor_current_node(&scratch_cursor);
+    TSNode descendant = ts_tree_cursor_current_node(&data->scratch_cursor);
 
     if (!already_visited_children) {
       if (ts_node_end_point(descendant) <= start_point) {
-        if (ts_tree_cursor_goto_next_sibling(&scratch_cursor)) {
+        if (ts_tree_cursor_goto_next_sibling(&data->scratch_cursor)) {
           already_visited_children = false;
         } else {
-          if (!ts_tree_cursor_goto_parent(&scratch_cursor)) break;
+          if (!ts_tree_cursor_goto_parent(&data->scratch_cursor)) break;
           already_visited_children = true;
         }
         continue;
@@ -616,19 +635,19 @@ static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
         found.push_back(descendant);
       }
 
-      if (ts_tree_cursor_goto_first_child(&scratch_cursor)) {
+      if (ts_tree_cursor_goto_first_child(&data->scratch_cursor)) {
         already_visited_children = false;
-      } else if (ts_tree_cursor_goto_next_sibling(&scratch_cursor)) {
+      } else if (ts_tree_cursor_goto_next_sibling(&data->scratch_cursor)) {
         already_visited_children = false;
       } else {
-        if (!ts_tree_cursor_goto_parent(&scratch_cursor)) break;
+        if (!ts_tree_cursor_goto_parent(&data->scratch_cursor)) break;
         already_visited_children = true;
       }
     } else {
-      if (ts_tree_cursor_goto_next_sibling(&scratch_cursor)) {
+      if (ts_tree_cursor_goto_next_sibling(&data->scratch_cursor)) {
         already_visited_children = false;
       } else {
-        if (!ts_tree_cursor_goto_parent(&scratch_cursor)) break;
+        if (!ts_tree_cursor_goto_parent(&data->scratch_cursor)) break;
       }
     }
   }
@@ -637,8 +656,9 @@ static void DescendantsOfType(const Nan::FunctionCallbackInfo<Value> &info) {
 }
 
 static void ChildNodesForFieldId(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (!node.id) return;
 
   auto maybe_field_id = Nan::To<uint32_t>(info[1]);
@@ -649,22 +669,23 @@ static void ChildNodesForFieldId(const Nan::FunctionCallbackInfo<Value> &info) {
   uint32_t field_id = maybe_field_id.FromJust();
 
   vector<TSNode> result;
-  ts_tree_cursor_reset(&scratch_cursor, node);
-  if (ts_tree_cursor_goto_first_child(&scratch_cursor)) {
+  ts_tree_cursor_reset(&data->scratch_cursor, node);
+  if (ts_tree_cursor_goto_first_child(&data->scratch_cursor)) {
     do {
-      TSNode child = ts_tree_cursor_current_node(&scratch_cursor);
-      if (ts_tree_cursor_current_field_id(&scratch_cursor) == field_id) {
+      TSNode child = ts_tree_cursor_current_node(&data->scratch_cursor);
+      if (ts_tree_cursor_current_field_id(&data->scratch_cursor) == field_id) {
         result.push_back(child);
       }
-    } while (ts_tree_cursor_goto_next_sibling(&scratch_cursor));
+    } while (ts_tree_cursor_goto_next_sibling(&data->scratch_cursor));
   }
 
   MarshalNodes(info, tree, result.data(), result.size());
 }
 
 static void ChildNodeForFieldId(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
 
   if (node.id) {
     auto maybe_field_id = Nan::To<uint32_t>(info[1]);
@@ -676,12 +697,13 @@ static void ChildNodeForFieldId(const Nan::FunctionCallbackInfo<Value> &info) {
     MarshalNode(info, tree, ts_node_child_by_field_id(node, field_id));
     return;
   }
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void Closest(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   if (!node.id) return;
 
   SymbolSet symbols;
@@ -697,17 +719,20 @@ static void Closest(const Nan::FunctionCallbackInfo<Value> &info) {
     node = parent;
   }
 
-  MarshalNullNode();
+  MarshalNullNode(data);
 }
 
 static void Walk(const Nan::FunctionCallbackInfo<Value> &info) {
-  const Tree *tree = Tree::UnwrapTree(info[0]);
-  TSNode node = UnmarshalNode(tree);
+  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
+  const Tree *tree = Tree::UnwrapTree(data, info[0]);
+  TSNode node = UnmarshalNode(data, tree);
   TSTreeCursor cursor = ts_tree_cursor_new(node);
-  info.GetReturnValue().Set(TreeCursor::NewInstance(cursor));
+  info.GetReturnValue().Set(TreeCursor::NewInstance(data, cursor));
 }
 
-void Init(Local<Object> exports) {
+void Init(Local<Object> exports, Local<External> data_ext) {
+  AddonData* data = reinterpret_cast<AddonData*>(data_ext->Value());
+
   Local<Object> result = Nan::New<Object>();
 
   FunctionPair methods[] = {
@@ -754,12 +779,12 @@ void Init(Local<Object> exports) {
     Nan::Set(
       result,
       Nan::New(methods[i].name).ToLocalChecked(),
-      Nan::GetFunction(Nan::New<FunctionTemplate>(methods[i].callback)).ToLocalChecked()
+      Nan::GetFunction(Nan::New<FunctionTemplate>(methods[i].callback, data_ext)).ToLocalChecked()
     );
   }
 
-  module_exports.Reset(exports);
-  setup_transfer_buffer(1);
+  data->module_exports.Reset(exports);
+  setup_transfer_buffer(data, 1);
 
   Nan::Set(exports, Nan::New("NodeMethods").ToLocalChecked(), result);
 }

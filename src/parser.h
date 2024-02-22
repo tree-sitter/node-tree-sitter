@@ -10,7 +10,7 @@ namespace node_tree_sitter {
 
 class Parser : public Nan::ObjectWrap {
  public:
-  static void Init(v8::Local<v8::Object> exports);
+  static void Init(v8::Local<v8::Object> exports, v8::Local<v8::External> data_ext);
 
   TSParser *parser_;
 
@@ -24,8 +24,6 @@ class Parser : public Nan::ObjectWrap {
   static void SetLogger(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void Parse(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void PrintDotGraphs(const Nan::FunctionCallbackInfo<v8::Value> &);
-
-  static Nan::Persistent<v8::Function> constructor;
 };
 
 }  // namespace node_tree_sitter

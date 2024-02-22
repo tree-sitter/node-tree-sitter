@@ -6,14 +6,15 @@
 #include <node_object_wrap.h>
 #include <unordered_map>
 #include <tree_sitter/api.h>
+#include "./addon_data.h"
 
 namespace node_tree_sitter {
 
 class Tree : public Nan::ObjectWrap {
  public:
-  static void Init(v8::Local<v8::Object> exports);
-  static v8::Local<v8::Value> NewInstance(TSTree *);
-  static const Tree *UnwrapTree(const v8::Local<v8::Value> &);
+  static void Init(v8::Local<v8::Object> exports, v8::Local<v8::External> data_ext);
+  static v8::Local<v8::Value> NewInstance(AddonData* data, TSTree *);
+  static const Tree *UnwrapTree(AddonData* data, const v8::Local<v8::Value> &);
 
   struct NodeCacheEntry {
     Tree *tree;
@@ -37,8 +38,6 @@ class Tree : public Nan::ObjectWrap {
   static void CacheNode(const Nan::FunctionCallbackInfo<v8::Value> &);
   static void CacheNodes(const Nan::FunctionCallbackInfo<v8::Value> &);
 
-  static Nan::Persistent<v8::Function> constructor;
-  static Nan::Persistent<v8::FunctionTemplate> constructor_template;
 };
 
 }  // namespace node_tree_sitter
