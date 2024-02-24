@@ -2,7 +2,7 @@
   "targets": [
     {
       "target_name": "tree_sitter_runtime_binding",
-      "dependencies": ["tree_sitter"],
+      "dependencies": ["tree_sitter", "<!(node -p \"require('node-addon-api').targets\"):node_addon_api_except"],
       "sources": [
         "src/binding.cc",
         "src/conversions.cc",
@@ -13,11 +13,12 @@
         "src/query.cc",
         "src/tree.cc",
         "src/tree_cursor.cc",
-        "src/util.cc",
       ],
       "include_dirs": [
         "vendor/tree-sitter/lib/include",
-        "<!(node -e \"require('nan')\")",
+      ],
+      "defines": [
+        "NAPI_VERSION=<(napi_build_version)",
       ],
       'cflags': [
         '-std=c++17'
@@ -28,9 +29,9 @@
       'conditions': [
         ['OS=="mac"', {
           'xcode_settings': {
-            'MACOSX_DEPLOYMENT_TARGET': '10.9',
+            'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES', # -fvisibility=hidden
             'CLANG_CXX_LANGUAGE_STANDARD': 'c++17',
-            'CLANG_CXX_LIBRARY': 'libc++',
+            'MACOSX_DEPLOYMENT_TARGET': '10.9',
           },
         }],
         ['OS=="win"', {
@@ -48,10 +49,7 @@
             '-Wno-cast-function-type'
           ]
         }],
-        ['runtime=="electron"', {
-          'defines': ['NODE_RUNTIME_ELECTRON=1']
-        }],
-      ],
+      ]
     },
     {
       "target_name": "tree_sitter",
@@ -73,8 +71,5 @@
     'openssl_fips': '',
     'v8_enable_pointer_compression%': 0,
     'v8_enable_31bit_smis_on_64bit_arch%': 0,
-  },
-  'conditions': [
-      ['runtime=="electron"', { 'defines': ['NODE_RUNTIME_ELECTRON=1'] }],
-  ]
+  }
 }

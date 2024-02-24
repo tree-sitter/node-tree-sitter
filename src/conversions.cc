@@ -1,142 +1,140 @@
+#include "./conversions.h"
+#include <napi.h>
+#include <tree_sitter/api.h>
+#include <cmath>
 #include "./node.h"
 #include "./addon_data.h"
-#include <nan.h>
-#include <tree_sitter/api.h>
-#include <v8.h>
-#include "./conversions.h"
-#include <cmath>
+
+using namespace Napi;
 
 namespace node_tree_sitter {
 
-using namespace v8;
-
 static const unsigned BYTES_PER_CHARACTER = 2;
 
-void InitConversions(Local<Object> exports, Local<External> data_ext) {
-  AddonData* data = static_cast<AddonData*>(data_ext->Value());
+void InitConversions(Napi::Env env, Napi::Object exports) {
+  auto data = env.GetInstanceData<AddonData>();
 
-  data->row_key.Reset(Nan::Persistent<String>(Nan::New("row").ToLocalChecked()));
-  data->column_key.Reset(Nan::Persistent<String>(Nan::New("column").ToLocalChecked()));
-  data->start_index_key.Reset(Nan::Persistent<String>(Nan::New("startIndex").ToLocalChecked()));
-  data->start_position_key.Reset(Nan::Persistent<String>(Nan::New("startPosition").ToLocalChecked()));
-  data->end_index_key.Reset(Nan::Persistent<String>(Nan::New("endIndex").ToLocalChecked()));
-  data->end_position_key.Reset(Nan::Persistent<String>(Nan::New("endPosition").ToLocalChecked()));
+  auto js_point_transfer_buffer = Uint32Array::New(env, 2);
+  data->point_transfer_buffer = js_point_transfer_buffer.Data();
 
-  auto js_point_transfer_buffer = Nan::NewBuffer(2 * sizeof(uint32_t)).ToLocalChecked();
-  data->point_transfer_buffer = reinterpret_cast<uint32_t*>(node::Buffer::Data(js_point_transfer_buffer));
-
-  Nan::Set(exports, Nan::New("pointTransferArray").ToLocalChecked(), Uint32Array::New(js_point_transfer_buffer.As<Uint8Array>()->Buffer(), 0, 2));
+  exports["pointTransferArray"] = js_point_transfer_buffer;
 }
 
-void TransferPoint(AddonData* data, const TSPoint &point) {
+void TransferPoint(Napi::Env env, const TSPoint &point) {
+  auto data = env.GetInstanceData<AddonData>();
   data->point_transfer_buffer[0] = point.row;
   data->point_transfer_buffer[1] = point.column / 2;
 }
 
-Local<Object> RangeToJS(AddonData* data, const TSRange &range) {
-  Local<Object> result = Nan::New<Object>();
-  Nan::Set(result, Nan::New(data->start_position_key), PointToJS(data, range.start_point));
-  Nan::Set(result, Nan::New(data->start_index_key), ByteCountToJS(data, range.start_byte));
-  Nan::Set(result, Nan::New(data->end_position_key), PointToJS(data, range.end_point));
-  Nan::Set(result, Nan::New(data->end_index_key), ByteCountToJS(data, range.end_byte));
+Napi::Object RangeToJS(Napi::Env env, const TSRange &range) {
+  Object result = Object::New(env);
+  result.Set("startPosition", PointToJS(env, range.start_point));
+  result.Set("startIndex", ByteCountToJS(env, range.start_byte));
+  result.Set("endPosition", PointToJS(env, range.end_point));
+  result.Set("endIndex", ByteCountToJS(env, range.end_byte));
   return result;
 }
 
-Nan::Maybe<TSRange> RangeFromJS(AddonData* data, const Local<Value> &arg) {
-  if (!arg->IsObject()) {
-    Nan::ThrowTypeError("Range must be a {startPosition, endPosition, startIndex, endIndex} object");
-    return Nan::Nothing<TSRange>();
+Napi::Maybe<TSRange> RangeFromJS(const Napi::Value& arg) {
+  Env env = arg.Env();
+  if (!arg.IsObject()) {
+    TypeError::New(env, "Range must be a {startPosition, endPosition, startIndex, endIndex} object").ThrowAsJavaScriptException();
+    return Napi::Nothing<TSRange>();
   }
 
   TSRange result;
 
-  Local<Object> js_range = Local<Object>::Cast(arg);
+  Object js_range = arg.As<Object>();
 
   #define INIT(field, key, Convert) { \
-    auto value = Nan::Get(js_range, Nan::New(key)); \
+    auto value = js_range.Get(key); \
     if (value.IsEmpty()) { \
-      Nan::ThrowTypeError("Range must be a {startPosition, endPosition, startIndex, endIndex} object"); \
-      return Nan::Nothing<TSRange>(); \
+      TypeError::New(env, "Range must be a {startPosition, endPosition, startIndex, endIndex} object").ThrowAsJavaScriptException(); \
+      return Napi::Nothing<TSRange>(); \
     } \
-    auto field = Convert(data, value.ToLocalChecked()); \
+    auto field = Convert(value); \
     if (field.IsJust()) { \
-      result.field = field.FromJust(); \
+      result.field = field.Unwrap(); \
     } else { \
-      return Nan::Nothing<TSRange>(); \
+      return Napi::Nothing<TSRange>(); \
     } \
   }
 
-  INIT(start_point, data->start_position_key, PointFromJS);
-  INIT(end_point, data->end_position_key, PointFromJS);
-  INIT(start_byte, data->start_index_key, ByteCountFromJS);
-  INIT(end_byte, data->end_index_key, ByteCountFromJS);
+  INIT(start_point, "startPosition", PointFromJS);
+  INIT(end_point, "endPosition", PointFromJS);
+  INIT(start_byte, "startIndex", ByteCountFromJS);
+  INIT(end_byte, "endIndex", ByteCountFromJS);
 
   #undef INIT
 
-  return Nan::Just(result);
+  return Napi::Just(result);
 }
 
-Local<Object> PointToJS(AddonData* data, const TSPoint &point) {
-  Local<Object> result = Nan::New<Object>();
-  Nan::Set(result, Nan::New(data->row_key), Nan::New<Number>(point.row));
-  Nan::Set(result, Nan::New(data->column_key), ByteCountToJS(data, point.column));
+Napi::Object PointToJS(Napi::Env env, const TSPoint &point) {
+  Object result = Object::New(env);
+  result["row"] = Number::New(env, point.row);
+  result["column"] = ByteCountToJS(env, point.column);
   return result;
 }
 
-Nan::Maybe<TSPoint> PointFromJS(AddonData* data, const Local<Value> &arg) {
-  Local<Object> js_point;
-  if (!arg->IsObject() || !Nan::To<Object>(arg).ToLocal(&js_point)) {
-    Nan::ThrowTypeError("Point must be a {row, column} object");
-    return Nan::Nothing<TSPoint>();
+Napi::Maybe<TSPoint> PointFromJS(const Napi::Value& arg) {
+  Env env = arg.Env();
+
+  if (!arg.IsObject()) {
+    TypeError::New(env, "Point must be a {row, column} object").ThrowAsJavaScriptException();
+    return Napi::Nothing<TSPoint>();
+  }
+  Object js_point = arg.As<Object>();
+
+  Number js_row = js_point.Get("row").As<Number>();
+  if (!js_row.IsNumber()) {
+    TypeError::New(env, "Point must be a {row, column} object").ThrowAsJavaScriptException();
+    return Napi::Nothing<TSPoint>();
   }
 
-  Local<Value> js_row;
-  if (!Nan::Get(js_point, Nan::New(data->row_key)).ToLocal(&js_row)) {
-    Nan::ThrowTypeError("Point must be a {row, column} object");
-    return Nan::Nothing<TSPoint>();
-  }
-
-  Local<Value> js_column;
-  if (!Nan::Get(js_point, Nan::New(data->column_key)).ToLocal(&js_column)) {
-    Nan::ThrowTypeError("Point must be a {row, column} object");
-    return Nan::Nothing<TSPoint>();
+  Number js_column = js_point.Get("column").As<Number>();
+  if (!js_column.IsNumber()) {
+    TypeError::New(env, "Point must be a {row, column} object").ThrowAsJavaScriptException();
+    return Napi::Nothing<TSPoint>();
   }
 
   uint32_t row;
-  if (!std::isfinite(Nan::To<double>(js_row).FromMaybe(0))) {
+  if (!std::isfinite(js_row.DoubleValue())) {
     row = UINT32_MAX;
-  } else if (js_row->IsNumber()) {
-    row = Nan::To<uint32_t>(js_row).FromJust();
+  } else if (js_row.IsNumber()) {
+    row = js_row.Uint32Value();
   } else {
-    Nan::ThrowTypeError("Point.row must be a number");
-    return Nan::Nothing<TSPoint>();
+    TypeError::New(env, "Point.row must be a number").ThrowAsJavaScriptException();
+    return Napi::Nothing<TSPoint>();
   }
 
   uint32_t column;
-  if (!std::isfinite(Nan::To<double>(js_column).FromMaybe(0))) {
+  if (!std::isfinite(js_column.DoubleValue())) {
     column = UINT32_MAX;
-  } else if (js_column->IsNumber()) {
-    column = Nan::To<uint32_t>(js_column).FromMaybe(0) * BYTES_PER_CHARACTER;
+  } else if (js_column.IsNumber()) {
+    column = js_column.Uint32Value() * BYTES_PER_CHARACTER;
   } else {
-    Nan::ThrowTypeError("Point.column must be a number");
-    return Nan::Nothing<TSPoint>();
+    TypeError::New(env, "Point.column must be a number").ThrowAsJavaScriptException();
+    return Napi::Nothing<TSPoint>();
   }
 
-  return Nan::Just<TSPoint>({row, column});
+  return Napi::Just<TSPoint>({row, column});
 }
 
-Local<Number> ByteCountToJS(AddonData* data, uint32_t byte_count) {
-  return Nan::New<Number>(byte_count / BYTES_PER_CHARACTER);
+Napi::Number ByteCountToJS(Napi::Env env, uint32_t byte_count) {
+  return Number::New(env, byte_count / BYTES_PER_CHARACTER);
 }
 
-Nan::Maybe<uint32_t> ByteCountFromJS(AddonData* data, const v8::Local<v8::Value> &arg) {
-  auto result = Nan::To<uint32_t>(arg);
-  if (!arg->IsNumber()) {
-    Nan::ThrowTypeError("Character index must be a number");
-    return Nan::Nothing<uint32_t>();
+Napi::Maybe<uint32_t> ByteCountFromJS(const Napi::Value &arg) {
+  Napi::Env env = arg.Env();
+
+  if (!arg.IsNumber()) {
+    TypeError::New(env, "Character index must be a number").ThrowAsJavaScriptException();
+    return Napi::Nothing<uint32_t>();
   }
+  auto result = arg.As<Number>();
 
-  return Nan::Just<uint32_t>(result.FromJust() * BYTES_PER_CHARACTER);
+  return Napi::Just<uint32_t>(result.Uint32Value() * BYTES_PER_CHARACTER);
 }
 
 }  // namespace node_tree_sitter

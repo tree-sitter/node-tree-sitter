@@ -12,8 +12,7 @@ on:
       - released
 
 env:
-  NODE_PREBUILD_CMD: npx prebuild -t 14.0.0 -t 16.0.0 -t 18.0.0 -t 20.0.0 --strip -u ${{ secrets.GH_TOKEN }}
-  ELECTRON_PREBUILD_CMD: npx prebuild -r electron -t 12.0.0 -t 13.0.0 -t 14.0.0 -t 15.0.0 -t 16.0.0 -t 17.0.0 -t 18.0.0 -t 19.0.0 -t 20.0.0 -t 21.0.0 -t 22.0.0 -t 23.0.0 -t 24.0.0 -t 25.0.0 --strip -u ${{ secrets.GH_TOKEN }}
+  PREBUILD_CMD: npx prebuild -r napi --all --strip -u ${{ secrets.GH_TOKEN }}
 
 jobs:
 
@@ -86,9 +85,6 @@ jobs:
         with:
           node-version: 20
       - run: npm install
+      - run: ${{ env.PREBUILD_CMD }}
       - if: runner.os == 'macOS'
-        run: ${{ env.NODE_PREBUILD_CMD }} --arch arm64
-      - if: runner.os == 'macOS'
-        run: ${{ env.ELECTRON_PREBUILD_CMD }} --arch arm64
-      - run: ${{ env.NODE_PREBUILD_CMD }}
-      - run: ${{ env.ELECTRON_PREBUILD_CMD }}
+        run: ${{ env.PREBUILD_CMD }} --arch arm64

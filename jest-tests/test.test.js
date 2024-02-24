@@ -48,130 +48,133 @@ describe("Jest test 1", () => {
 
   it("should work with cursors", () => {
     const tree = jsParser.parse("a * b + c / d");
+    if (tree.rootNode) {
+      const cursor = tree.walk();
+      assertCursorState(cursor, {
+        nodeType: "program",
+        nodeIsNamed: true,
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 13 },
+        startIndex: 0,
+        endIndex: 13,
+      });
 
-    const cursor = tree.walk();
-    assertCursorState(cursor, {
-      nodeType: "program",
-      nodeIsNamed: true,
-      startPosition: { row: 0, column: 0 },
-      endPosition: { row: 0, column: 13 },
-      startIndex: 0,
-      endIndex: 13,
-    });
+      assert(cursor.gotoFirstChild());
+      assertCursorState(cursor, {
+        nodeType: "expression_statement",
+        nodeIsNamed: true,
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 13 },
+        startIndex: 0,
+        endIndex: 13,
+      });
 
-    assert(cursor.gotoFirstChild());
-    assertCursorState(cursor, {
-      nodeType: "expression_statement",
-      nodeIsNamed: true,
-      startPosition: { row: 0, column: 0 },
-      endPosition: { row: 0, column: 13 },
-      startIndex: 0,
-      endIndex: 13,
-    });
+      assert(cursor.gotoFirstChild());
+      assertCursorState(cursor, {
+        nodeType: "binary_expression",
+        nodeIsNamed: true,
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 13 },
+        startIndex: 0,
+        endIndex: 13,
+      });
 
-    assert(cursor.gotoFirstChild());
-    assertCursorState(cursor, {
-      nodeType: "binary_expression",
-      nodeIsNamed: true,
-      startPosition: { row: 0, column: 0 },
-      endPosition: { row: 0, column: 13 },
-      startIndex: 0,
-      endIndex: 13,
-    });
+      assert(cursor.gotoFirstChild());
+      assertCursorState(cursor, {
+        nodeType: "binary_expression",
+        nodeIsNamed: true,
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 5 },
+        startIndex: 0,
+        endIndex: 5,
+      });
 
-    assert(cursor.gotoFirstChild());
-    assertCursorState(cursor, {
-      nodeType: "binary_expression",
-      nodeIsNamed: true,
-      startPosition: { row: 0, column: 0 },
-      endPosition: { row: 0, column: 5 },
-      startIndex: 0,
-      endIndex: 5,
-    });
+      assert(cursor.gotoFirstChild());
+      assertCursorState(cursor, {
+        nodeType: "identifier",
+        nodeIsNamed: true,
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 1 },
+        startIndex: 0,
+        endIndex: 1,
+      });
 
-    assert(cursor.gotoFirstChild());
-    assertCursorState(cursor, {
-      nodeType: "identifier",
-      nodeIsNamed: true,
-      startPosition: { row: 0, column: 0 },
-      endPosition: { row: 0, column: 1 },
-      startIndex: 0,
-      endIndex: 1,
-    });
+      assert(!cursor.gotoFirstChild());
+      assert(cursor.gotoNextSibling());
+      assertCursorState(cursor, {
+        nodeType: "*",
+        nodeIsNamed: false,
+        startPosition: { row: 0, column: 2 },
+        endPosition: { row: 0, column: 3 },
+        startIndex: 2,
+        endIndex: 3,
+      });
 
-    assert(!cursor.gotoFirstChild());
-    assert(cursor.gotoNextSibling());
-    assertCursorState(cursor, {
-      nodeType: "*",
-      nodeIsNamed: false,
-      startPosition: { row: 0, column: 2 },
-      endPosition: { row: 0, column: 3 },
-      startIndex: 2,
-      endIndex: 3,
-    });
+      assert(cursor.gotoNextSibling());
+      assertCursorState(cursor, {
+        nodeType: "identifier",
+        nodeIsNamed: true,
+        startPosition: { row: 0, column: 4 },
+        endPosition: { row: 0, column: 5 },
+        startIndex: 4,
+        endIndex: 5,
+      });
 
-    assert(cursor.gotoNextSibling());
-    assertCursorState(cursor, {
-      nodeType: "identifier",
-      nodeIsNamed: true,
-      startPosition: { row: 0, column: 4 },
-      endPosition: { row: 0, column: 5 },
-      startIndex: 4,
-      endIndex: 5,
-    });
+      assert(!cursor.gotoNextSibling());
+      assert(cursor.gotoParent());
+      assertCursorState(cursor, {
+        nodeType: "binary_expression",
+        nodeIsNamed: true,
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 5 },
+        startIndex: 0,
+        endIndex: 5,
+      });
 
-    assert(!cursor.gotoNextSibling());
-    assert(cursor.gotoParent());
-    assertCursorState(cursor, {
-      nodeType: "binary_expression",
-      nodeIsNamed: true,
-      startPosition: { row: 0, column: 0 },
-      endPosition: { row: 0, column: 5 },
-      startIndex: 0,
-      endIndex: 5,
-    });
+      assert(cursor.gotoNextSibling());
+      assertCursorState(cursor, {
+        nodeType: "+",
+        nodeIsNamed: false,
+        startPosition: { row: 0, column: 6 },
+        endPosition: { row: 0, column: 7 },
+        startIndex: 6,
+        endIndex: 7,
+      });
 
-    assert(cursor.gotoNextSibling());
-    assertCursorState(cursor, {
-      nodeType: "+",
-      nodeIsNamed: false,
-      startPosition: { row: 0, column: 6 },
-      endPosition: { row: 0, column: 7 },
-      startIndex: 6,
-      endIndex: 7,
-    });
+      assert(cursor.gotoNextSibling());
+      assertCursorState(cursor, {
+        nodeType: "binary_expression",
+        nodeIsNamed: true,
+        startPosition: { row: 0, column: 8 },
+        endPosition: { row: 0, column: 13 },
+        startIndex: 8,
+        endIndex: 13,
+      });
 
-    assert(cursor.gotoNextSibling());
-    assertCursorState(cursor, {
-      nodeType: "binary_expression",
-      nodeIsNamed: true,
-      startPosition: { row: 0, column: 8 },
-      endPosition: { row: 0, column: 13 },
-      startIndex: 8,
-      endIndex: 13,
-    });
+      const childIndex = cursor.gotoFirstChildForIndex(12);
+      assertCursorState(cursor, {
+        nodeType: "identifier",
+        nodeIsNamed: true,
+        startPosition: { row: 0, column: 12 },
+        endPosition: { row: 0, column: 13 },
+        startIndex: 12,
+        endIndex: 13,
+      });
+      expect(childIndex).toBe(2);
 
-    const childIndex = cursor.gotoFirstChildForIndex(12);
-    assertCursorState(cursor, {
-      nodeType: "identifier",
-      nodeIsNamed: true,
-      startPosition: { row: 0, column: 12 },
-      endPosition: { row: 0, column: 13 },
-      startIndex: 12,
-      endIndex: 13,
-    });
-    expect(childIndex).toBe(2);
-
-    assert(!cursor.gotoNextSibling());
-    assert(cursor.gotoParent());
-    assert(cursor.gotoParent());
-    assert(cursor.gotoParent());
-    assert(cursor.gotoParent());
-    assert(!cursor.gotoParent());
+      assert(!cursor.gotoNextSibling());
+      assert(cursor.gotoParent());
+      assert(cursor.gotoParent());
+      assert(cursor.gotoParent());
+      assert(cursor.gotoParent());
+      assert(!cursor.gotoParent());
+    }
   });
 
   it("returns all of the matches for the given query", () => {
-    const tree = jsParser.parse("function one() { two(); function three() {} }");
+    const tree = jsParser.parse(
+      "function one() { two(); function three() {} }"
+    );
     const query = new Query(
       Javascript,
       `

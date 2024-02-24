@@ -2,8 +2,7 @@
 #include <string>
 #include <vector>
 #include <climits>
-#include <v8.h>
-#include <nan.h>
+#include <napi.h>
 #include "./conversions.h"
 #include "./language.h"
 #include "./logger.h"
@@ -11,22 +10,22 @@
 #include "./util.h"
 #include <cmath>
 
-namespace node_tree_sitter {
-
-using namespace v8;
+using namespace Napi;
 using std::vector;
 using std::pair;
 
+namespace node_tree_sitter {
+
 class CallbackInput {
- public:
-  CallbackInput(AddonData* data, v8::Local<v8::Function> callback, v8::Local<v8::Value> js_buffer_size)
-    : data(data),
-      callback(callback),
-      byte_offset(0),
-      partial_string_offset(0) {
-    uint32_t buffer_size = Nan::To<uint32_t>(js_buffer_size).FromMaybe(0);
-    if (buffer_size == 0) buffer_size = 32 * 1024;
-    buffer.resize(buffer_size);
+  public:
+  CallbackInput(Function callback, Napi::Value js_buffer_size)
+    : byte_offset(0) {
+    this->callback.Reset(callback, 1);
+    if (js_buffer_size.IsNumber()) {
+      buffer.resize(js_buffer_size.As<Number>().Uint32Value());
+    } else {
+      buffer.resize(32 * 1024);
+    }
   }
 
   TSInput Input() {
@@ -37,114 +36,104 @@ class CallbackInput {
     return result;
   }
 
- private:
+  private:
+  static String slice(String s, uint32_t offset) {
+    Env env = s.Env();
+    auto data = env.GetInstanceData<AddonData>();
+    return data->string_slice.Call(s, {Number::New(s.Env(), offset)}).As<String>();
+  }
+
   static const char * Read(void *payload, uint32_t byte, TSPoint position, uint32_t *bytes_read) {
     CallbackInput *reader = (CallbackInput *)payload;
+    Napi::Env env = reader->callback.Env();
 
     if (byte != reader->byte_offset) {
       reader->byte_offset = byte;
-      reader->partial_string_offset = 0;
       reader->partial_string.Reset();
     }
 
     *bytes_read = 0;
-    Local<String> result;
-    uint32_t start = 0;
-    if (reader->partial_string_offset) {
-      result = Nan::New(reader->partial_string);
-      start = reader->partial_string_offset;
+    String result;
+    if (!reader->partial_string.IsEmpty()) {
+      result = reader->partial_string.Value().As<String>();
     } else {
-      Local<Function> callback = Nan::New(reader->callback);
-      uint32_t utf16_unit = byte / 2;
-      Local<Value> argv[2] = { Nan::New<Number>(utf16_unit), PointToJS(reader->data, position) };
-      TryCatch try_catch(Isolate::GetCurrent());
-      auto maybe_result_value = Nan::Call(callback, GetGlobal(callback), 2, argv);
-      if (try_catch.HasCaught()) return nullptr;
-
-      Local<Value> result_value;
-      if (!maybe_result_value.ToLocal(&result_value)) return nullptr;
-      if (!result_value->IsString()) return nullptr;
-      if (!Nan::To<String>(result_value).ToLocal(&result)) return nullptr;
+      Function callback = reader->callback.Value();
+      Napi::Value result_value = callback({
+        ByteCountToJS(env, byte),
+        PointToJS(env, position),
+      });
+      if (env.IsExceptionPending()) return nullptr;
+      if (!result_value.IsString()) return nullptr;
+      result = result_value.As<String>();
     }
 
-    int utf16_units_read = result->Write(
-
-      // Nan doesn't wrap this functionality
-      #if NODE_MAJOR_VERSION >= 12
-        Isolate::GetCurrent(),
-      #endif
-
-      reader->buffer.data(),
-      start,
-      reader->buffer.size(),
-      String::NO_NULL_TERMINATION
+    size_t length = 0;
+    size_t utf16_units_read = 0;
+    napi_status status;
+    status = napi_get_value_string_utf16(
+      env, result, nullptr, 0, &length
     );
-    int end = start + utf16_units_read;
-    *bytes_read = 2 * utf16_units_read;
+    if (status != napi_ok) return nullptr;
+    status = napi_get_value_string_utf16(
+      env, result, (char16_t *)&reader->buffer[0], reader->buffer.size(), &utf16_units_read
+    );
+    if (status != napi_ok) return nullptr;
 
+    *bytes_read = 2 * utf16_units_read;
     reader->byte_offset += *bytes_read;
 
-    if (end < result->Length()) {
-      reader->partial_string_offset = end;
-      reader->partial_string.Reset(result);
+    if (utf16_units_read < length) {
+      reader->partial_string.Reset(slice(result, utf16_units_read));
     } else {
-      reader->partial_string_offset = 0;
       reader->partial_string.Reset();
     }
 
     return (const char *)reader->buffer.data();
   }
 
-  AddonData* data;
-  Nan::Persistent<v8::Function> callback;
+  FunctionReference callback;
   std::vector<uint16_t> buffer;
   size_t byte_offset;
-  Nan::Persistent<v8::String> partial_string;
-  size_t partial_string_offset;
+  Reference<String> partial_string;
 };
 
-void Parser::Init(Local<Object> exports, Local<External> data_ext) {
-  AddonData* data = reinterpret_cast<AddonData*>(data_ext->Value());
-  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New, data_ext);
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
-  Local<String> class_name = Nan::New("Parser").ToLocalChecked();
-  tpl->SetClassName(class_name);
+void Parser::Init(Napi::Env env, Napi::Object exports) {
+  auto data = env.GetInstanceData<AddonData>();
 
-  FunctionPair methods[] = {
-    {"getLogger", GetLogger},
-    {"setLogger", SetLogger},
-    {"setLanguage", SetLanguage},
-    {"printDotGraphs", PrintDotGraphs},
-    {"parse", Parse},
-  };
+  Function ctor = DefineClass(env, "Parser", {
+    InstanceMethod("getLogger", &Parser::GetLogger, napi_default_method),
+    InstanceMethod("setLogger", &Parser::SetLogger, napi_default_method),
+    InstanceMethod("setLanguage", &Parser::SetLanguage, napi_default_method),
+    InstanceMethod("printDotGraphs", &Parser::PrintDotGraphs, napi_default_method),
+    InstanceMethod("parse", &Parser::Parse, napi_default_method),
+  });
 
-  for (size_t i = 0; i < length_of_array(methods); i++) {
-    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback, data_ext);
-  }
+  data->parser_constructor = Napi::Persistent(ctor);
+  exports["Parser"] = ctor;
+  exports["LANGUAGE_VERSION"] = Number::New(env, TREE_SITTER_LANGUAGE_VERSION);
 
-  data->parser_constructor.Reset(Nan::Persistent<Function>(Nan::GetFunction(tpl).ToLocalChecked()));
-  Nan::Set(exports, class_name, Nan::New(data->parser_constructor));
-  Nan::Set(exports, Nan::New("LANGUAGE_VERSION").ToLocalChecked(), Nan::New<Number>(TREE_SITTER_LANGUAGE_VERSION));
+  String s = String::New(env, "");
+  Napi::Value string_slice_value = s.As<Object>()["slice"];
+  data->string_slice = Napi::Persistent(string_slice_value.As<Function>());
 }
 
-Parser::Parser() : parser_(ts_parser_new()) {}
+Parser::Parser(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Parser>(info), parser_(ts_parser_new()) {}
 
 Parser::~Parser() { ts_parser_delete(parser_); }
 
-static bool handle_included_ranges(AddonData* data, TSParser *parser, Local<Value> arg) {
+static bool handle_included_ranges(Napi::Env env, TSParser *parser, Napi::Value arg) {
   uint32_t last_included_range_end = 0;
-  if (arg->IsArray()) {
-    auto js_included_ranges = Local<Array>::Cast(arg);
+  if (arg.IsArray()) {
+    auto js_included_ranges = arg.As<Array>();
     vector<TSRange> included_ranges;
-    for (unsigned i = 0; i < js_included_ranges->Length(); i++) {
-      Local<Value> range_value;
-      if (!Nan::Get(js_included_ranges, i).ToLocal(&range_value)) return false;
-      auto maybe_range = RangeFromJS(data, range_value);
+    for (unsigned i = 0; i < js_included_ranges.Length(); i++) {
+      Value range_value = js_included_ranges[i];
+      if (!range_value.IsObject()) return false;
+      auto maybe_range = RangeFromJS(range_value);
       if (!maybe_range.IsJust()) return false;
-      auto range = maybe_range.FromJust();
+      auto range = maybe_range.Unwrap();
       if (range.start_byte < last_included_range_end) {
-        Nan::ThrowRangeError("Overlapping ranges");
-        return false;
+        throw RangeError::New(env, "Overlapping ranges");
       }
       last_included_range_end = range.end_byte;
       included_ranges.push_back(range);
@@ -157,107 +146,80 @@ static bool handle_included_ranges(AddonData* data, TSParser *parser, Local<Valu
   return true;
 }
 
-void Parser::New(const Nan::FunctionCallbackInfo<Value> &info) {
-  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
-  if (info.IsConstructCall()) {
-    Parser *parser = new Parser();
-    parser->Wrap(info.This());
-    info.GetReturnValue().Set(info.This());
-  } else {
-    Local<Object> self;
-    MaybeLocal<Object> maybe_self = Nan::New(data->parser_constructor)->NewInstance(Nan::GetCurrentContext());
-    if (maybe_self.ToLocal(&self)) {
-      info.GetReturnValue().Set(self);
-    } else {
-      info.GetReturnValue().Set(Nan::Null());
-    }
-  }
-}
-
-void Parser::SetLanguage(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
-
+Napi::Value Parser::SetLanguage(const Napi::CallbackInfo &info) {
   const TSLanguage *language = language_methods::UnwrapLanguage(info[0]);
   if (language) {
-    ts_parser_set_language(parser->parser_, language);
-    info.GetReturnValue().Set(info.This());
+    ts_parser_set_language(parser_, language);
+    return info.This();
   }
+  return info.Env().Undefined();
 }
 
-void Parser::Parse(const Nan::FunctionCallbackInfo<Value> &info) {
-  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+Napi::Value Parser::Parse(const CallbackInfo &info) {
+  Napi::Env env = info.Env();
 
-  if (!info[0]->IsFunction()) {
-    Nan::ThrowTypeError("Input must be a function");
-    return;
+  if (!info[0].IsFunction()) {
+    throw TypeError::New(env, "Input must be a function");
   }
 
-  Local<Function> callback = Local<Function>::Cast(info[0]);
+  Function callback = info[0].As<Function>();
 
-  Local<Object> js_old_tree;
+  Object js_old_tree;
   const TSTree *old_tree = nullptr;
-  if (info.Length() > 1 && !info[1]->IsNull() && !info[1]->IsUndefined() && Nan::To<Object>(info[1]).ToLocal(&js_old_tree)) {
-    const Tree *tree = Tree::UnwrapTree(data, js_old_tree);
+  if (info.Length() > 1 && !info[1].IsNull() && !info[1].IsUndefined() && info[1].IsObject()) {
+    js_old_tree = info[1].As<Object>();
+    const Tree *tree = Tree::UnwrapTree(js_old_tree);
     if (!tree) {
-      Nan::ThrowTypeError("Second argument must be a tree");
-      return;
+      throw TypeError::New(env, "Second argument must be a tree");
     }
     old_tree = tree->tree_;
   }
 
-  Local<Value> buffer_size = Nan::Null();
+  Napi::Value buffer_size = env.Null();
   if (info.Length() > 2) buffer_size = info[2];
 
-  if (!handle_included_ranges(data, parser->parser_, info[3])) return;
+  if (!handle_included_ranges(env, parser_, info[3])) return env.Undefined();
 
-  CallbackInput callback_input(data, callback, buffer_size);
-  TSTree *tree = ts_parser_parse(parser->parser_, old_tree, callback_input.Input());
-  Local<Value> result = Tree::NewInstance(data, tree);
-  info.GetReturnValue().Set(result);
+  CallbackInput callback_input(callback, buffer_size);
+  TSTree *tree = ts_parser_parse(parser_, old_tree, callback_input.Input());
+  Napi::Value result = Tree::NewInstance(env, tree);
+  return result;
 }
 
-void Parser::GetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
-
-  TSLogger current_logger = ts_parser_logger(parser->parser_);
+Napi::Value Parser::GetLogger(const Napi::CallbackInfo &info) {
+  TSLogger current_logger = ts_parser_logger(parser_);
   if (current_logger.payload && current_logger.log == Logger::Log) {
     Logger *logger = (Logger *)current_logger.payload;
-    info.GetReturnValue().Set(Nan::New(logger->func));
+    return logger->func.Value();
   } else {
-    info.GetReturnValue().Set(Nan::Null());
+    return info.Env().Null();
   }
 }
 
-void Parser::SetLogger(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
+Napi::Value Parser::SetLogger(const Napi::CallbackInfo &info) {
+  TSLogger current_logger = ts_parser_logger(parser_);
 
-  TSLogger current_logger = ts_parser_logger(parser->parser_);
-
-  if (info[0]->IsFunction()) {
+  if (info[0].IsFunction()) {
     if (current_logger.payload) delete (Logger *)current_logger.payload;
-    ts_parser_set_logger(parser->parser_, Logger::Make(Local<Function>::Cast(info[0])));
-  } else if (!Nan::To<bool>(info[0]).FromMaybe(true)) {
+    ts_parser_set_logger(parser_, Logger::Make(info[0].As<Function>()));
+  } else if (info[0].IsEmpty() || info[0].IsUndefined() || info[0].IsNull() || (info[0].IsBoolean() && !info[0].As<Boolean>())) {
     if (current_logger.payload) delete (Logger *)current_logger.payload;
-    ts_parser_set_logger(parser->parser_, { 0, 0 });
+    ts_parser_set_logger(parser_, { 0, 0 });
   } else {
-    Nan::ThrowTypeError("Logger callback must either be a function or a falsy value");
-    return;
+    throw TypeError::New(info.Env(), "Logger callback must either be a function or a falsy value");
   }
 
-  info.GetReturnValue().Set(info.This());
+  return info.This();
 }
 
-void Parser::PrintDotGraphs(const Nan::FunctionCallbackInfo<Value> &info) {
-  Parser *parser = ObjectWrap::Unwrap<Parser>(info.This());
-
-  if (Nan::To<bool>(info[0]).FromMaybe(false)) {
-    ts_parser_print_dot_graphs(parser->parser_, 2);
+Napi::Value Parser::PrintDotGraphs(const Napi::CallbackInfo &info) {
+  if (info[0].IsBoolean() && info[0].As<Boolean>()) {
+    ts_parser_print_dot_graphs(parser_, 2);
   } else {
-    ts_parser_print_dot_graphs(parser->parser_, -1);
+    ts_parser_print_dot_graphs(parser_, -1);
   }
 
-  info.GetReturnValue().Set(info.This());
+  return info.This();
 }
 
 }  // namespace node_tree_sitter
