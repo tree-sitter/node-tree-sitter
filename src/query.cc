@@ -11,6 +11,17 @@ using namespace Napi;
 
 namespace node_tree_sitter {
 
+/*
+  tstag() {
+    b2sum -l64 <(printf tree-sitter) <(printf "$1") | \
+    awk '{printf "0x" toupper($1) (NR == 1 ? ", " : "\n")}'
+  }
+  tstag query # => 0x8AF2E5212AD58ABF, 0x7B1FAB666CBD6803
+*/
+const napi_type_tag QUERY_TYPE_TAG = {
+  0x8AF2E5212AD58ABF, 0x7B1FAB666CBD6803
+};
+
 const char *query_error_names[] = {
   "TSQueryErrorNone",
   "TSQueryErrorSyntax",
@@ -36,6 +47,8 @@ void Query::Init(Napi::Env env, Napi::Object exports) {
 
 Query::Query(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Query>(info) , query_(nullptr) {
   Napi::Env env = info.Env();
+
+  Value().TypeTag(&QUERY_TYPE_TAG);
 
   const TSLanguage *language = language_methods::UnwrapLanguage(info[0]);
   const char *source;
@@ -80,12 +93,11 @@ Query::~Query() {
 }
 
 Query *Query::UnwrapQuery(const Napi::Value &value) {
-  auto *data = value.Env().GetInstanceData<AddonData>();
   if (!value.IsObject()) {
     return nullptr;
   }
   auto js_query = value.As<Object>();
-  if (!js_query.InstanceOf(data->query_constructor.Value())) {
+  if (!js_query.CheckTypeTag(&QUERY_TYPE_TAG)) {
     return nullptr;
   }
   return Query::Unwrap(js_query);

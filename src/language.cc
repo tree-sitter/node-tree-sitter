@@ -8,6 +8,17 @@ using namespace Napi;
 
 namespace node_tree_sitter::language_methods {
 
+/*
+  tstag() {
+    b2sum -l64 <(printf tree-sitter) <(printf "$1") | \
+    awk '{printf "0x" toupper($1) (NR == 1 ? ", " : "\n")}'
+  }
+  tstag language # => 0x8AF2E5212AD58ABF, 0xD5006CAD83ABBA16
+*/
+const napi_type_tag LANGUAGE_TYPE_TAG = {
+  0x8AF2E5212AD58ABF, 0xD5006CAD83ABBA16
+};
+
 const TSLanguage *UnwrapLanguage(Napi::Value value) {
   Napi::Env env = value.Env();
 
@@ -15,8 +26,8 @@ const TSLanguage *UnwrapLanguage(Napi::Value value) {
     value = value.As<Object>()["language"];
   }
 
-  if (value.IsExternal()) {
-    auto arg = value.As<External<const TSLanguage>>();
+  auto arg = value.As<External<const TSLanguage>>();
+  if (arg.IsExternal() && arg.CheckTypeTag(&LANGUAGE_TYPE_TAG)) {
     const TSLanguage *language = arg.Data();
     if (language != nullptr) {
       uint16_t version = ts_language_version(language);
@@ -93,4 +104,3 @@ void Init(Napi::Env env, Napi::Object exports) {
 }
 
 } // namespace node_tree_sitter::language_methods
-

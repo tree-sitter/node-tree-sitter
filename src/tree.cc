@@ -9,6 +9,17 @@ using namespace Napi;
 
 namespace node_tree_sitter {
 
+/*
+  tstag() {
+    b2sum -l64 <(printf tree-sitter) <(printf "$1") | \
+    awk '{printf "0x" toupper($1) (NR == 1 ? ", " : "\n")}'
+  }
+  tstag tree # => 0x8AF2E5212AD58ABF, 0x7FA28BFC1966AC2D
+*/
+const napi_type_tag TREE_TYPE_TAG = {
+  0x8AF2E5212AD58ABF, 0x7FA28BFC1966AC2D
+};
+
 using node_methods::UnmarshalNodeId;
 
 void Tree::Init(Napi::Env env, Napi::Object exports) {
@@ -28,7 +39,9 @@ void Tree::Init(Napi::Env env, Napi::Object exports) {
   exports["Tree"] = ctor;
 }
 
-Tree::Tree(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Tree>(info), tree_(nullptr) {}
+Tree::Tree(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Tree>(info), tree_(nullptr) {
+  Value().TypeTag(&TREE_TYPE_TAG);
+}
 
 Tree::~Tree() {
   ts_tree_delete(tree_);
@@ -49,12 +62,11 @@ Napi::Value Tree::NewInstance(Napi::Env env, TSTree *tree) {
 }
 
 const Tree *Tree::UnwrapTree(const Napi::Value &value) {
-  auto *data = value.Env().GetInstanceData<AddonData>();
   if (!value.IsObject()) {
     return nullptr;
   }
   auto js_tree = value.As<Object>();
-  if (!js_tree.InstanceOf(data->tree_constructor.Value())) {
+  if (!js_tree.CheckTypeTag(&TREE_TYPE_TAG)) {
     return nullptr;
   }
   return Tree::Unwrap(js_tree);
@@ -258,3 +270,7 @@ Napi::Value Tree::CacheNodes(const Napi::CallbackInfo &info) {
 }
 
 }  // namespace node_tree_sitter
+
+
+
+

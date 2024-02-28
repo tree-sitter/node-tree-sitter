@@ -25,7 +25,7 @@
     "mocha": "^8.4.0",
     "node-gyp": "^10.0.1",
     "prebuild": "^13.0.0",
-    "tree-sitter-javascript": "github:segevfiner/tree-sitter-javascript#napi-2"
+    "tree-sitter-javascript": "github:segevfiner/tree-sitter-javascript#napi-type-tag"
   },
   "scripts": {
     "install": "prebuild-install -r napi || node-gyp rebuild",
