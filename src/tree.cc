@@ -1,11 +1,9 @@
 #include "./tree.h"
 #include "./addon_data.h"
-#include <string>
-#include <napi.h>
-#include "./node.h"
-#include "./logger.h"
-#include "./util.h"
 #include "./conversions.h"
+#include "./node.h"
+
+#include <napi.h>
 
 using namespace Napi;
 
@@ -14,7 +12,7 @@ namespace node_tree_sitter {
 using node_methods::UnmarshalNodeId;
 
 void Tree::Init(Napi::Env env, Napi::Object exports) {
-  auto data = env.GetInstanceData<AddonData>();
+  auto *data = env.GetInstanceData<AddonData>();
 
   Function ctor = DefineClass(env, "Tree", {
     InstanceMethod("edit", &Tree::Edit, napi_default_method),
@@ -40,8 +38,8 @@ Tree::~Tree() {
 }
 
 Napi::Value Tree::NewInstance(Napi::Env env, TSTree *tree) {
-  auto data = env.GetInstanceData<AddonData>();
-  if (tree) {
+  auto *data = env.GetInstanceData<AddonData>();
+  if (tree != nullptr) {
     Object self = data->tree_constructor.New({});
     Tree::Unwrap(self)->tree_ = tree;
     return self;
@@ -51,28 +49,31 @@ Napi::Value Tree::NewInstance(Napi::Env env, TSTree *tree) {
 }
 
 const Tree *Tree::UnwrapTree(const Napi::Value &value) {
-  auto data = value.Env().GetInstanceData<AddonData>();
-  if (!value.IsObject()) return nullptr;
-  Object js_tree = value.As<Object>();
-  if (!js_tree.InstanceOf(data->tree_constructor.Value())) return nullptr;
+  auto *data = value.Env().GetInstanceData<AddonData>();
+  if (!value.IsObject()) {
+    return nullptr;
+  }
+  auto js_tree = value.As<Object>();
+  if (!js_tree.InstanceOf(data->tree_constructor.Value())) {
+    return nullptr;
+  }
   return Tree::Unwrap(js_tree);
 }
 
 #define read_number_from_js(out, value, name)                                \
-  if (!value.IsNumber()) {                                                   \
+  if (!(value).IsNumber()) {                                                   \
     throw TypeError::New(env, name " must be an integer");                   \
     return env.Undefined();                                                  \
   }                                                                          \
-  *(out) = value.As<Number>().Uint32Value();
+  *(out) = (value).As<Number>().Uint32Value();
 
 #define read_byte_count_from_js(out, value, name)   \
   read_number_from_js(out, value, name);            \
-  (*out) *= 2
+  (*(out)) *= 2
 
 Napi::Value Tree::Edit(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   TSInputEdit edit;
-  // Nan::Maybe<uint32_t> maybe_number = Nan::Nothing<uint32_t>();
   read_number_from_js(&edit.start_point.row, info[0], "startPosition.row");
   read_byte_count_from_js(&edit.start_point.column, info[1], "startPosition.column");
   read_number_from_js(&edit.old_end_point.row, info[2], "oldEndPosition.row");
@@ -99,7 +100,7 @@ Napi::Value Tree::Edit(const Napi::CallbackInfo &info) {
     ts_node_edit(&node, &edit);
 
     for (unsigned i = 0; i < 4; i++) {
-      js_node[i + 2u] = Number::New(env, node.context[i]);
+      js_node[i + 2U] = Number::New(env, node.context[i]);
     }
   }
 
@@ -113,7 +114,7 @@ Napi::Value Tree::RootNode(const Napi::CallbackInfo &info) {
 Napi::Value Tree::GetChangedRanges(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   const Tree *other_tree = UnwrapTree(info[0]);
-  if (!other_tree) {
+  if (other_tree == nullptr) {
     throw TypeError::New(env, "Argument must be a tree");
   }
 
@@ -133,7 +134,9 @@ Napi::Value Tree::GetChangedRanges(const Napi::CallbackInfo &info) {
 Napi::Value Tree::GetEditedRange(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   TSNode root = ts_tree_root_node(tree_);
-  if (!ts_node_has_changes(root)) return env.Undefined();
+  if (!ts_node_has_changes(root)) {
+    return env.Undefined();
+  }
   TSRange result = {
     ts_node_start_point(root),
     ts_node_end_point(root),
@@ -144,14 +147,17 @@ Napi::Value Tree::GetEditedRange(const Napi::CallbackInfo &info) {
   TSTreeCursor cursor = ts_tree_cursor_new(root);
 
   while (true) {
-    if (!ts_tree_cursor_goto_first_child(&cursor)) break;
+    if (!ts_tree_cursor_goto_first_child(&cursor)) {
+      break;
+    }
     while (true) {
       TSNode node = ts_tree_cursor_current_node(&cursor);
       if (ts_node_has_changes(node)) {
         result.start_byte = ts_node_start_byte(node);
         result.start_point = ts_node_start_point(node);
         break;
-      } else if (!ts_tree_cursor_goto_next_sibling(&cursor)) {
+      }
+      if (!ts_tree_cursor_goto_next_sibling(&cursor)) {
         break;
       }
     }
@@ -160,7 +166,9 @@ Napi::Value Tree::GetEditedRange(const Napi::CallbackInfo &info) {
   while (ts_tree_cursor_goto_parent(&cursor)) {}
 
   while (true) {
-    if (!ts_tree_cursor_goto_first_child(&cursor)) break;
+    if (!ts_tree_cursor_goto_first_child(&cursor)) {
+      break;
+    }
     while (true) {
       TSNode node = ts_tree_cursor_current_node(&cursor);
       if (ts_node_has_changes(node)) {
@@ -183,19 +191,21 @@ Napi::Value Tree::PrintDotGraph(const Napi::CallbackInfo &info) {
   return info.This();
 }
 
-static void FinalizeNode(Napi::Env env, Tree::NodeCacheEntry *cache_entry) {
+namespace {
+
+void FinalizeNode(Napi::Env _env, Tree::NodeCacheEntry *cache_entry) {
   assert(!cache_entry->node.IsEmpty());
   cache_entry->node.Reset();
-  if (cache_entry->tree) {
+  if (cache_entry->tree != nullptr) {
     assert(cache_entry->tree->cached_nodes_.count(cache_entry->key));
     cache_entry->tree->cached_nodes_.erase(cache_entry->key);
   }
   delete cache_entry;
 }
 
-static void CacheNodeForTree(Tree *tree, Napi::Env env, Object js_node) {
-  Value js_node_field1 = js_node[0u];
-  Value js_node_field2 = js_node[1u];
+void CacheNodeForTree(Tree *tree, Napi::Env _env, Object js_node) {
+  Value js_node_field1 = js_node[0U];
+  Value js_node_field2 = js_node[1U];
   if (!js_node_field1.IsNumber() || !js_node_field2.IsNumber()) {
     return;
   }
@@ -205,7 +215,7 @@ static void CacheNodeForTree(Tree *tree, Napi::Env env, Object js_node) {
   };
   const void *key = UnmarshalNodeId(key_parts);
 
-  auto cache_entry = new Tree::NodeCacheEntry{tree, key, {}};
+  auto *cache_entry = new Tree::NodeCacheEntry{tree, key, {}};
   cache_entry->node.Reset(js_node, 0);
   js_node.AddFinalizer(&FinalizeNode, cache_entry);
 
@@ -213,6 +223,8 @@ static void CacheNodeForTree(Tree *tree, Napi::Env env, Object js_node) {
 
   tree->cached_nodes_[key] = cache_entry;
 }
+
+} // namespace
 
 Napi::Value Tree::CacheNode(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
@@ -231,7 +243,7 @@ Napi::Value Tree::CacheNodes(const Napi::CallbackInfo &info) {
   if (!info[0].IsArray()) {
     throw TypeError::New(env, "not an array");
   }
-  Array js_nodes = info[0].As<Array>();
+  auto js_nodes = info[0].As<Array>();
   uint32_t length = js_nodes.Length();
 
   for (uint32_t i = 0; i < length; ++i) {

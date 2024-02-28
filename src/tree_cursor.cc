@@ -1,17 +1,17 @@
-#include "./tree_cursor.h"
-#include <napi.h>
-#include <tree_sitter/api.h>
-#include "./util.h"
 #include "./conversions.h"
 #include "./node.h"
 #include "./tree.h"
+#include "./tree_cursor.h"
+
+#include <napi.h>
+#include <tree_sitter/api.h>
 
 using namespace Napi;
 
 namespace node_tree_sitter {
 
 void TreeCursor::Init(Napi::Env env, Napi::Object exports) {
-  auto data = env.GetInstanceData<AddonData>();
+  auto *data = env.GetInstanceData<AddonData>();
 
   Function ctor = DefineClass(env, "TreeCursor", {
     InstanceAccessor("startIndex", &TreeCursor::StartIndex, nullptr, napi_default_method),
@@ -36,7 +36,7 @@ void TreeCursor::Init(Napi::Env env, Napi::Object exports) {
 }
 
 Napi::Value TreeCursor::NewInstance(Napi::Env env, TSTreeCursor cursor) {
-  auto data = env.GetInstanceData<AddonData>();
+  auto *data = env.GetInstanceData<AddonData>();
 
   Object self = data->tree_cursor_constructor.New({});
   TreeCursor::Unwrap(self)->cursor_ = cursor;
@@ -67,9 +67,9 @@ Napi::Value TreeCursor::GotoFirstChildForIndex(const Napi::CallbackInfo &info) {
   int64_t child_index = ts_tree_cursor_goto_first_child_for_byte(&cursor_, goal_byte);
   if (child_index < 0) {
     return env.Null();
-  } else {
-    return Number::New(env, child_index);
   }
+  return Number::New(env, static_cast<double>(child_index));
+ 
 }
 
 Napi::Value TreeCursor::GotoNextSibling(const Napi::CallbackInfo &info) {
@@ -122,7 +122,7 @@ Napi::Value TreeCursor::NodeIsMissing(const Napi::CallbackInfo &info) {
 
 Napi::Value TreeCursor::CurrentFieldName(const Napi::CallbackInfo &info) {
   const char *field_name = ts_tree_cursor_current_field_name(&cursor_);
-  if (field_name) {
+  if (field_name != nullptr) {
     return String::New(info.Env(), field_name);
   }
   return info.Env().Undefined();
@@ -138,4 +138,4 @@ Napi::Value TreeCursor::EndIndex(const Napi::CallbackInfo &info) {
   return ByteCountToJS(info.Env(), ts_node_end_byte(node));
 }
 
-}
+}  // namespace node_tree_sitter

@@ -1,9 +1,9 @@
 #include "./conversions.h"
+#include "./addon_data.h"
+
+#include <cmath>
 #include <napi.h>
 #include <tree_sitter/api.h>
-#include <cmath>
-#include "./node.h"
-#include "./addon_data.h"
 
 using namespace Napi;
 
@@ -12,7 +12,7 @@ namespace node_tree_sitter {
 static const unsigned BYTES_PER_CHARACTER = 2;
 
 void InitConversions(Napi::Env env, Napi::Object exports) {
-  auto data = env.GetInstanceData<AddonData>();
+  auto *data = env.GetInstanceData<AddonData>();
 
   auto js_point_transfer_buffer = Uint32Array::New(env, 2);
   data->point_transfer_buffer = js_point_transfer_buffer.Data();
@@ -21,7 +21,7 @@ void InitConversions(Napi::Env env, Napi::Object exports) {
 }
 
 void TransferPoint(Napi::Env env, const TSPoint &point) {
-  auto data = env.GetInstanceData<AddonData>();
+  auto *data = env.GetInstanceData<AddonData>();
   data->point_transfer_buffer[0] = point.row;
   data->point_transfer_buffer[1] = point.column / 2;
 }
@@ -44,7 +44,7 @@ Napi::Maybe<TSRange> RangeFromJS(const Napi::Value& arg) {
 
   TSRange result;
 
-  Object js_range = arg.As<Object>();
+  auto js_range = arg.As<Object>();
 
   #define INIT(field, key, Convert) { \
     auto value = js_range.Get(key); \
@@ -84,15 +84,15 @@ Napi::Maybe<TSPoint> PointFromJS(const Napi::Value& arg) {
     TypeError::New(env, "Point must be a {row, column} object").ThrowAsJavaScriptException();
     return Napi::Nothing<TSPoint>();
   }
-  Object js_point = arg.As<Object>();
+  auto js_point = arg.As<Object>();
 
-  Number js_row = js_point.Get("row").As<Number>();
+  auto js_row = js_point.Get("row").As<Number>();
   if (!js_row.IsNumber()) {
     TypeError::New(env, "Point must be a {row, column} object").ThrowAsJavaScriptException();
     return Napi::Nothing<TSPoint>();
   }
 
-  Number js_column = js_point.Get("column").As<Number>();
+  auto js_column = js_point.Get("column").As<Number>();
   if (!js_column.IsNumber()) {
     TypeError::New(env, "Point must be a {row, column} object").ThrowAsJavaScriptException();
     return Napi::Nothing<TSPoint>();

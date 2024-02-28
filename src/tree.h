@@ -1,11 +1,12 @@
 #ifndef NODE_TREE_SITTER_TREE_H_
 #define NODE_TREE_SITTER_TREE_H_
 
+#include "./addon_data.h"
+
 #include <napi.h>
 #include <node_object_wrap.h>
-#include <unordered_map>
 #include <tree_sitter/api.h>
-#include "./addon_data.h"
+#include <unordered_map>
 
 namespace node_tree_sitter {
 
@@ -16,7 +17,7 @@ class Tree : public Napi::ObjectWrap<Tree> {
   static const Tree *UnwrapTree(const Napi::Value &);
 
   explicit Tree(const Napi::CallbackInfo &);
-  ~Tree();
+  ~Tree() override;
 
   struct NodeCacheEntry {
     Tree *tree;

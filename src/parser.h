@@ -11,7 +11,7 @@ class Parser : public Napi::ObjectWrap<Parser> {
  public:
   static void Init(Napi::Env env, Napi::Object exports);
   explicit Parser(const Napi::CallbackInfo &info);
-  ~Parser();
+  ~Parser() override;
 
 private:
   TSParser *parser_;

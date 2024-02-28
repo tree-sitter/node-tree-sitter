@@ -1,19 +1,20 @@
-#include <napi.h>
 #include "./addon_data.h"
+#include "./conversions.h"
 #include "./language.h"
 #include "./node.h"
 #include "./parser.h"
 #include "./query.h"
 #include "./tree.h"
 #include "./tree_cursor.h"
-#include "./conversions.h"
+
+#include <napi.h>
 
 using namespace Napi;
 
 namespace node_tree_sitter {
 
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
-  AddonData* data = new AddonData(env);
+  auto* data = new AddonData(env);
   env.SetInstanceData(data);
 
   InitConversions(env, exports);

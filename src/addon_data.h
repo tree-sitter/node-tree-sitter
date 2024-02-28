@@ -1,5 +1,4 @@
 #include <napi.h>
-#include <cstdlib>
 #include <tree_sitter/api.h>
 
 #ifndef NODE_TREE_SITTER_ADDON_DATA_H_
@@ -9,7 +8,7 @@ namespace node_tree_sitter {
 
 class AddonData {
 public:
-  explicit AddonData(Napi::Env env) {}
+  explicit AddonData(Napi::Env _env) {}
 
   ~AddonData() {
     ts_query_cursor_delete(ts_query_cursor);
@@ -39,6 +38,6 @@ public:
   Napi::FunctionReference tree_constructor;
 };
 
-}
+} // namespace node_tree_sitter
 
 #endif  // NODE_TREE_SITTER_ADDON_DATA_H_

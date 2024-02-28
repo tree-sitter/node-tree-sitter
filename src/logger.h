@@ -13,6 +13,6 @@ class Logger {
   static void Log(void *, TSLogType, const char *);
 };
 
-}  // namespace node_tree_sitter
+} // namespace node_tree_sitter
 
 #endif  // NODE_TREE_SITTER_LOGGER_H_

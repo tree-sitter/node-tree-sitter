@@ -1,19 +1,15 @@
 #include "./query.h"
+#include "./language.h"
+#include "./node.h"
+
+#include <napi.h>
 #include <string>
 #include <vector>
-#include <napi.h>
-#include "./node.h"
-#include "./language.h"
-#include "./logger.h"
-#include "./util.h"
-#include "./conversions.h"
 
 using std::vector;
 using namespace Napi;
 
 namespace node_tree_sitter {
-
-using node_methods::UnmarshalNodeId;
 
 const char *query_error_names[] = {
   "TSQueryErrorNone",
@@ -25,7 +21,7 @@ const char *query_error_names[] = {
 };
 
 void Query::Init(Napi::Env env, Napi::Object exports) {
-  auto data = env.GetInstanceData<AddonData>();
+  auto *data = env.GetInstanceData<AddonData>();
   data->ts_query_cursor = ts_query_cursor_new();
 
   Function ctor = DefineClass(env, "Query", {
@@ -58,7 +54,7 @@ Query::Query(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Query>(info) , q
     source_len = utf8_string.length();
     query_ = ts_query_new(language, source, source_len, &error_offset, &error_type);
   } else if (info[1].IsBuffer()) {
-    Buffer buf = info[1].As<Buffer<char>>();
+    auto buf = info[1].As<Buffer<char>>();
     source = buf.Data();
     source_len = buf.Length();
     query_ = ts_query_new(language, source, source_len, &error_offset, &error_type);
@@ -84,17 +80,21 @@ Query::~Query() {
 }
 
 Query *Query::UnwrapQuery(const Napi::Value &value) {
-  auto data = value.Env().GetInstanceData<AddonData>();
-  if (!value.IsObject()) return nullptr;
-  Napi::Object js_query = value.As<Object>();
-  if (!js_query.InstanceOf(data->query_constructor.Value())) return nullptr;
+  auto *data = value.Env().GetInstanceData<AddonData>();
+  if (!value.IsObject()) {
+    return nullptr;
+  }
+  auto js_query = value.As<Object>();
+  if (!js_query.InstanceOf(data->query_constructor.Value())) {
+    return nullptr;
+  }
   return Query::Unwrap(js_query);
 }
 
 Napi::Value Query::GetPredicates(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   Query *query = Query::UnwrapQuery(info.This());
-  auto ts_query = query->query_;
+  auto *ts_query = query->query_;
 
   auto pattern_len = ts_query_pattern_count(ts_query);
 
@@ -145,7 +145,7 @@ Napi::Value Query::GetPredicates(const Napi::CallbackInfo &info) {
 
 Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
-  auto data = env.GetInstanceData<AddonData>();
+  auto *data = env.GetInstanceData<AddonData>();
   Query *query = Query::UnwrapQuery(info.This());
   const Tree *tree = Tree::UnwrapTree(info[0]);
   uint32_t start_row = 0;
@@ -206,14 +206,14 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
   auto js_nodes = node_methods::GetMarshalNodes(info, tree, nodes.data(), nodes.size());
 
   auto result = Array::New(env);
-  result[0u] = js_matches;
+  result[0U] = js_matches;
   result[1] = js_nodes;
   return result;
 }
 
 Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
-  auto data = env.GetInstanceData<AddonData>();
+  auto *data = env.GetInstanceData<AddonData>();
   Query *query = Query::UnwrapQuery(info.This());
   const Tree *tree = Tree::UnwrapTree(info[0]);
   uint32_t start_row = 0;
@@ -281,7 +281,7 @@ Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
   auto js_nodes = node_methods::GetMarshalNodes(info, tree, nodes.data(), nodes.size());
 
   auto result = Array::New(env);
-  result[0u] = js_matches;
+  result[0U] = js_matches;
   result[1] = js_nodes;
   return result;
 }

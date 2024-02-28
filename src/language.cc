@@ -1,14 +1,12 @@
 #include "./language.h"
+
 #include <napi.h>
-#include <tree_sitter/api.h>
-#include <vector>
 #include <string>
+#include <tree_sitter/api.h>
 
 using namespace Napi;
-using std::vector;
 
-namespace node_tree_sitter {
-namespace language_methods {
+namespace node_tree_sitter::language_methods {
 
 const TSLanguage *UnwrapLanguage(Napi::Value value) {
   Napi::Env env = value.Env();
@@ -18,9 +16,9 @@ const TSLanguage *UnwrapLanguage(Napi::Value value) {
   }
 
   if (value.IsExternal()) {
-    External arg = value.As<External<const TSLanguage>>();
+    auto arg = value.As<External<const TSLanguage>>();
     const TSLanguage *language = arg.Data();
-    if (language) {
+    if (language != nullptr) {
       uint16_t version = ts_language_version(language);
       if (
         version < TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION ||
@@ -40,11 +38,15 @@ const TSLanguage *UnwrapLanguage(Napi::Value value) {
   throw TypeError::New(env, "Invalid language object");
 }
 
-static Napi::Value GetNodeTypeNamesById(const Napi::CallbackInfo &info) {
+namespace {
+
+Napi::Value GetNodeTypeNamesById(const Napi::CallbackInfo &info) {
   Env env = info.Env();
 
   const TSLanguage *language = UnwrapLanguage(info[0]);
-  if (!language) return env.Undefined();
+  if (language == nullptr) {
+	return env.Undefined();
+}
 
   auto result = Array::New(env);
   uint32_t length = ts_language_symbol_count(language);
@@ -61,17 +63,19 @@ static Napi::Value GetNodeTypeNamesById(const Napi::CallbackInfo &info) {
   return result;
 }
 
-static Napi::Value GetNodeFieldNamesById(const Napi::CallbackInfo &info) {
+Napi::Value GetNodeFieldNamesById(const Napi::CallbackInfo &info) {
   Env env = info.Env();
 
   const TSLanguage *language = UnwrapLanguage(info[0]);
-  if (!language) return env.Undefined();
+  if (language == nullptr) {
+	return env.Undefined();
+}
 
   auto result = Array::New(env);
   uint32_t length = ts_language_field_count(language);
   for (uint32_t i = 0; i < length + 1; i++) {
     const char *name = ts_language_field_name_for_id(language, i);
-    if (name) {
+    if (name != nullptr) {
       result[i] = String::New(env, name);
     } else {
       result[i] = env.Null();
@@ -81,10 +85,12 @@ static Napi::Value GetNodeFieldNamesById(const Napi::CallbackInfo &info) {
   return result;
 }
 
+} // namespace
+
 void Init(Napi::Env env, Napi::Object exports) {
   exports["getNodeTypeNamesById"] = Function::New(env, GetNodeTypeNamesById);
   exports["getNodeFieldNamesById"] = Function::New(env, GetNodeFieldNamesById);
 }
 
-}  // namespace language_methods
-}  // namespace node_tree_sitter
+} // namespace node_tree_sitter::language_methods
+

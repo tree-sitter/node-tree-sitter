@@ -1,11 +1,11 @@
 #ifndef NODE_TREE_SITTER_QUERY_H_
 #define NODE_TREE_SITTER_QUERY_H_
 
+#include "./addon_data.h"
+
 #include <napi.h>
 #include <node_object_wrap.h>
-#include <unordered_map>
 #include <tree_sitter/api.h>
-#include "./addon_data.h"
 
 namespace node_tree_sitter {
 
@@ -15,11 +15,10 @@ class Query : public Napi::ObjectWrap<Query> {
   static Query *UnwrapQuery(const Napi::Value &);
 
   explicit Query(const Napi::CallbackInfo &info);
-  ~Query();
-
-  TSQuery *query_;
+  ~Query() override;
 
  private:
+  TSQuery *query_;
 
   Napi::Value New(const Napi::CallbackInfo &);
   Napi::Value Matches(const Napi::CallbackInfo &);
