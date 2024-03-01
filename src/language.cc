@@ -1,8 +1,8 @@
 #include "./language.h"
+#include "tree_sitter/api.h"
 
 #include <napi.h>
 #include <string>
-#include <tree_sitter/api.h>
 
 using namespace Napi;
 
@@ -56,8 +56,8 @@ Napi::Value GetNodeTypeNamesById(const Napi::CallbackInfo &info) {
 
   const TSLanguage *language = UnwrapLanguage(info[0]);
   if (language == nullptr) {
-	return env.Undefined();
-}
+    return env.Undefined();
+  }
 
   auto result = Array::New(env);
   uint32_t length = ts_language_symbol_count(language);
@@ -79,8 +79,8 @@ Napi::Value GetNodeFieldNamesById(const Napi::CallbackInfo &info) {
 
   const TSLanguage *language = UnwrapLanguage(info[0]);
   if (language == nullptr) {
-	return env.Undefined();
-}
+    return env.Undefined();
+  }
 
   auto result = Array::New(env);
   uint32_t length = ts_language_field_count(language);

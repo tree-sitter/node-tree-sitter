@@ -1,8 +1,8 @@
 #include "./logger.h"
+#include "tree_sitter/api.h"
 
 #include <napi.h>
 #include <string>
-#include <tree_sitter/api.h>
 
 using namespace Napi;
 using std::string;
@@ -67,4 +67,4 @@ TSLogger Logger::Make(const Napi::Function &func) {
   return result;
 }
 
-}  // namespace node_tree_sitter
+} // namespace node_tree_sitter

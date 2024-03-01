@@ -2,13 +2,13 @@
 #define NODE_TREE_SITTER_NODE_H_
 
 #include "./tree.h"
+#include "tree_sitter/api.h"
 
 #include <napi.h>
-#include <tree_sitter/api.h>
 
 namespace node_tree_sitter::node_methods {
 
-void Init(Napi::Env, Napi::Object);
+void Init(Napi::Env env, Napi::Object exports);
 Napi::Value MarshalNode(const Napi::CallbackInfo &info, const Tree *, TSNode);
 Napi::Value GetMarshalNode(const Napi::CallbackInfo &info, const Tree *tree, TSNode node);
 Napi::Value GetMarshalNodes(const Napi::CallbackInfo &info, const Tree *tree, const TSNode *nodes, uint32_t node_count);
@@ -27,5 +27,4 @@ static inline void MarshalNodeId(const void *id, uint32_t *buffer) {
 
 } // namespace node_tree_sitter::node_methods
 
-
-#endif  // NODE_TREE_SITTER_NODE_H_
+#endif // NODE_TREE_SITTER_NODE_H_

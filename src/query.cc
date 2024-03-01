@@ -36,9 +36,18 @@ void Query::Init(Napi::Env env, Napi::Object exports) {
   data->ts_query_cursor = ts_query_cursor_new();
 
   Function ctor = DefineClass(env, "Query", {
+    InstanceAccessor("matchLimit", &Query::MatchLimit, nullptr, napi_default_method),
+
     InstanceMethod("_matches", &Query::Matches, napi_default_method),
     InstanceMethod("_captures", &Query::Captures, napi_default_method),
     InstanceMethod("_getPredicates", &Query::GetPredicates, napi_default_method),
+    InstanceMethod("disableCapture", &Query::DisableCapture, napi_default_method),
+    InstanceMethod("disablePattern", &Query::DisablePattern, napi_default_method),
+    InstanceMethod("isPatternGuaranteedAtStep", &Query::IsPatternGuaranteedAtStep, napi_default_method),
+    InstanceMethod("isPatternRooted", &Query::IsPatternRooted, napi_default_method),
+    InstanceMethod("isPatternNonLocal", &Query::IsPatternNonLocal, napi_default_method),
+    InstanceMethod("startIndexForPattern", &Query::StartIndexForPattern, napi_default_method),
+    InstanceMethod("didExceedMatchLimit", &Query::DidExceedMatchLimit, napi_default_method),
   });
 
   data->query_constructor = Napi::Persistent(ctor);
@@ -160,21 +169,33 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
   auto *data = env.GetInstanceData<AddonData>();
   Query *query = Query::UnwrapQuery(info.This());
   const Tree *tree = Tree::UnwrapTree(info[0]);
-  uint32_t start_row = 0;
+
+  uint32_t start_row = 0, start_column = 0, end_row = 0, end_column = 0, start_index = 0, end_index = 0,
+             match_limit = UINT32_MAX, max_start_depth = UINT32_MAX;
+
   if (info.Length() > 1 && info[1].IsNumber()) {
     start_row = info[1].As<Number>().Uint32Value();
   }
-  uint32_t start_column = 0;
   if (info.Length() > 2 && info[2].IsNumber()) {
     start_column = info[2].As<Number>().Uint32Value() << 1;
   }
-  uint32_t end_row = 0;
   if (info.Length() > 3 && info[3].IsNumber()) {
     end_row = info[3].As<Number>().Uint32Value();
   }
-  uint32_t end_column = 0;
   if (info.Length() > 4 && info[4].IsNumber()) {
     end_column = info[4].As<Number>().Uint32Value() << 1;
+  }
+  if (info.Length() > 5 && info[5].IsNumber()) {
+    start_index = info[5].As<Number>().Uint32Value();
+  }
+  if (info.Length() > 6 && info[6].IsNumber()) {
+    end_index = info[6].As<Number>().Uint32Value() << 1;
+  }
+  if (info.Length() > 7 && info[7].IsNumber()) {
+    match_limit = info[7].As<Number>().Uint32Value();
+  }
+  if (info.Length() > 8 && info[8].IsNumber()) {
+    max_start_depth = info[8].As<Number>().Uint32Value();
   }
 
   if (query == nullptr) {
@@ -190,6 +211,9 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
   ts_query_cursor_set_point_range(data->ts_query_cursor, start_point, end_point);
+  ts_query_cursor_set_byte_range(data->ts_query_cursor, start_index, end_index);
+  ts_query_cursor_set_match_limit(data->ts_query_cursor, match_limit);
+  ts_query_cursor_set_max_start_depth(data->ts_query_cursor, max_start_depth);
   ts_query_cursor_exec(data->ts_query_cursor, ts_query, rootNode);
 
   Array js_matches = Array::New(env);
@@ -298,4 +322,47 @@ Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
   return result;
 }
 
-}  // namespace node_tree_sitter
+Napi::Value Query::DisableCapture(const Napi::CallbackInfo &info) {
+  std::string string = info[0].As<String>().Utf8Value();
+  const char *capture_name = string.c_str();
+  ts_query_disable_capture(query_, capture_name, string.length());
+  return info.Env().Undefined();
+}
+
+Napi::Value Query::DisablePattern(const Napi::CallbackInfo &info) {
+  uint32_t pattern_index = info[0].As<Number>().Uint32Value();
+  ts_query_disable_pattern(query_, pattern_index);
+  return info.Env().Undefined();
+}
+
+Napi::Value Query::IsPatternGuaranteedAtStep(const Napi::CallbackInfo &info) {
+  uint32_t byte_offset = info[0].As<Number>().Uint32Value();
+  return Boolean::New(info.Env(), ts_query_is_pattern_guaranteed_at_step(query_, byte_offset));
+}
+
+Napi::Value Query::IsPatternRooted(const Napi::CallbackInfo &info) {
+  uint32_t pattern_index = info[0].As<Number>().Uint32Value();
+  return Boolean::New(info.Env(), ts_query_is_pattern_rooted(query_, pattern_index));
+}
+
+Napi::Value Query::IsPatternNonLocal(const Napi::CallbackInfo &info) {
+  uint32_t pattern_index = info[0].As<Number>().Uint32Value();
+  return Boolean::New(info.Env(), ts_query_is_pattern_non_local(query_, pattern_index));
+}
+
+Napi::Value Query::StartIndexForPattern(const Napi::CallbackInfo &info) {
+  uint32_t pattern_index = info[0].As<Number>().Uint32Value();
+  return Number::New(info.Env(), ts_query_start_byte_for_pattern(query_, pattern_index));
+}
+
+Napi::Value Query::DidExceedMatchLimit(const Napi::CallbackInfo &info) {
+  auto *data = info.Env().GetInstanceData<AddonData>();
+  return Boolean::New(info.Env(), ts_query_cursor_did_exceed_match_limit(data->ts_query_cursor));
+}
+
+Napi::Value Query::MatchLimit(const Napi::CallbackInfo &info) {
+  auto *data = info.Env().GetInstanceData<AddonData>();
+  return Number::New(info.Env(), ts_query_cursor_match_limit(data->ts_query_cursor));
+}
+
+} // namespace node_tree_sitter

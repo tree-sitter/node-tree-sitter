@@ -1,12 +1,13 @@
+#include "tree_sitter/api.h"
+
 #include <napi.h>
-#include <tree_sitter/api.h>
 
 #ifndef NODE_TREE_SITTER_ADDON_DATA_H_
 #define NODE_TREE_SITTER_ADDON_DATA_H_
 
 namespace node_tree_sitter {
 
-class AddonData {
+class AddonData final {
 public:
   explicit AddonData(Napi::Env _env) {}
 
@@ -36,8 +37,11 @@ public:
 
   // tree
   Napi::FunctionReference tree_constructor;
+
+  // lookaheaditerator
+  Napi::FunctionReference lookahead_iterator_constructor;
 };
 
 } // namespace node_tree_sitter
 
-#endif  // NODE_TREE_SITTER_ADDON_DATA_H_
+#endif // NODE_TREE_SITTER_ADDON_DATA_H_

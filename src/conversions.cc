@@ -1,9 +1,9 @@
 #include "./conversions.h"
 #include "./addon_data.h"
+#include "tree_sitter/api.h"
 
 #include <cmath>
 #include <napi.h>
-#include <tree_sitter/api.h>
 
 using namespace Napi;
 
@@ -137,4 +137,4 @@ Napi::Maybe<uint32_t> ByteCountFromJS(const Napi::Value &arg) {
   return Napi::Just<uint32_t>(result.Uint32Value() * BYTES_PER_CHARACTER);
 }
 
-}  // namespace node_tree_sitter
+} // namespace node_tree_sitter

@@ -2,9 +2,9 @@
 #define NODE_TREE_SITTER_CONVERSIONS_H_
 
 #include "./addon_data.h"
+#include "tree_sitter/api.h"
 
 #include <napi.h>
-#include <tree_sitter/api.h>
 
 namespace node_tree_sitter {
 
@@ -17,6 +17,6 @@ Napi::Maybe<TSPoint> PointFromJS(const Napi::Value &);
 Napi::Maybe<uint32_t> ByteCountFromJS(const Napi::Value &);
 Napi::Maybe<TSRange> RangeFromJS(const Napi::Value&);
 
-}  // namespace node_tree_sitter
+} // namespace node_tree_sitter
 
-#endif  // NODE_TREE_SITTER_CONVERSIONS_H_
+#endif // NODE_TREE_SITTER_CONVERSIONS_H_

@@ -28,8 +28,10 @@ void Tree::Init(Napi::Env env, Napi::Object exports) {
   Function ctor = DefineClass(env, "Tree", {
     InstanceMethod("edit", &Tree::Edit, napi_default_method),
     InstanceMethod("rootNode", &Tree::RootNode, napi_default_method),
+    InstanceMethod("rootNodeWithOffset", &Tree::RootNodeWithOffset, napi_default_method),
     InstanceMethod("printDotGraph", &Tree::PrintDotGraph, napi_default_method),
     InstanceMethod("getChangedRanges", &Tree::GetChangedRanges, napi_default_method),
+    InstanceMethod("getIncludedRanges", &Tree::GetIncludedRanges, napi_default_method),
     InstanceMethod("getEditedRange", &Tree::GetEditedRange, napi_default_method),
     InstanceMethod("_cacheNode", &Tree::CacheNode, napi_default_method),
     InstanceMethod("_cacheNodes", &Tree::CacheNodes, napi_default_method),
@@ -123,6 +125,18 @@ Napi::Value Tree::RootNode(const Napi::CallbackInfo &info) {
   return node_methods::MarshalNode(info, this, ts_tree_root_node(tree_));
 }
 
+Napi::Value Tree::RootNodeWithOffset(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  uint32_t offset_bytes = 0;
+  TSPoint offset_extent = {0, UINT32_MAX};
+
+  read_byte_count_from_js(&offset_bytes, info[0], "offsetBytes");
+  read_number_from_js(&offset_extent.row, info[1], "offsetExtent.row");
+  read_byte_count_from_js(&offset_extent.column, info[2], "offsetExtent.column");
+
+  return node_methods::MarshalNode(info, this, ts_tree_root_node_with_offset(tree_, offset_bytes, offset_extent));
+}
+
 Napi::Value Tree::GetChangedRanges(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   const Tree *other_tree = UnwrapTree(info[0]);
@@ -132,6 +146,21 @@ Napi::Value Tree::GetChangedRanges(const Napi::CallbackInfo &info) {
 
   uint32_t range_count;
   TSRange *ranges = ts_tree_get_changed_ranges(tree_, other_tree->tree_, &range_count);
+
+  Array result = Array::New(env);
+  for (size_t i = 0; i < range_count; i++) {
+    result[i] = RangeToJS(env, ranges[i]);
+  }
+
+  free(ranges);
+
+  return result;
+}
+
+Napi::Value Tree::GetIncludedRanges(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  uint32_t range_count;
+  TSRange *ranges = ts_tree_included_ranges(tree_, &range_count);
 
   Array result = Array::New(env);
   for (size_t i = 0; i < range_count; i++) {
@@ -269,8 +298,4 @@ Napi::Value Tree::CacheNodes(const Napi::CallbackInfo &info) {
   return env.Undefined();
 }
 
-}  // namespace node_tree_sitter
-
-
-
-
+} // namespace node_tree_sitter

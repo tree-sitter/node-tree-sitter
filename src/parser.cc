@@ -4,6 +4,7 @@
 #include "./logger.h"
 #include "./tree.h"
 
+#include <cstddef>
 #include <napi.h>
 #include <vector>
 
@@ -12,14 +13,14 @@ using std::vector;
 
 namespace node_tree_sitter {
 
-class CallbackInput {
+class CallbackInput final {
   public:
   CallbackInput(Function callback, Napi::Value js_buffer_size) {
     this->callback.Reset(callback, 1);
     if (js_buffer_size.IsNumber()) {
       buffer.resize(js_buffer_size.As<Number>().Uint32Value());
     } else {
-      buffer.resize(32 * 1024);
+      buffer.resize(static_cast<uint64_t>(32 * 1024));
     }
   }
 
@@ -104,11 +105,15 @@ void Parser::Init(Napi::Env env, Napi::Object exports) {
   auto *data = env.GetInstanceData<AddonData>();
 
   Function ctor = DefineClass(env, "Parser", {
+    InstanceMethod("setLanguage", &Parser::SetLanguage, napi_default_method),
+    InstanceMethod("parse", &Parser::Parse, napi_default_method),
+    InstanceMethod("getIncludedRanges", &Parser::IncludedRanges, napi_default_method),
+    InstanceMethod("getTimeoutMicros", &Parser::TimeoutMicros, napi_default_method),
+    InstanceMethod("setTimeoutMicros", &Parser::SetTimeoutMicros, napi_default_method),
     InstanceMethod("getLogger", &Parser::GetLogger, napi_default_method),
     InstanceMethod("setLogger", &Parser::SetLogger, napi_default_method),
-    InstanceMethod("setLanguage", &Parser::SetLanguage, napi_default_method),
     InstanceMethod("printDotGraphs", &Parser::PrintDotGraphs, napi_default_method),
-    InstanceMethod("parse", &Parser::Parse, napi_default_method),
+    InstanceMethod("reset", &Parser::Reset, napi_default_method),
   });
 
   data->parser_constructor = Napi::Persistent(ctor);
@@ -122,7 +127,11 @@ void Parser::Init(Napi::Env env, Napi::Object exports) {
 
 Parser::Parser(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Parser>(info), parser_(ts_parser_new()) {}
 
-Parser::~Parser() { ts_parser_delete(parser_); }
+Parser::~Parser() {
+  ts_parser_print_dot_graphs(parser_, -1);
+  ts_parser_set_logger(parser_, { nullptr, nullptr });
+  ts_parser_delete(parser_);
+}
 
 namespace {
 
@@ -201,6 +210,34 @@ Napi::Value Parser::Parse(const CallbackInfo &info) {
   return result;
 }
 
+Napi::Value Parser::IncludedRanges(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  uint32_t count;
+  const TSRange *ranges = ts_parser_included_ranges(parser_, &count);
+
+  Napi::Array result = Napi::Array::New(env, count);
+  for (uint32_t i = 0; i < count; i++) {
+    result[i] = RangeToJS(env, ranges[i]);
+  }
+
+  return result;
+}
+
+Napi::Value Parser::TimeoutMicros(const Napi::CallbackInfo &info) {
+  uint64_t timeout_micros = ts_parser_timeout_micros(parser_);
+  return Number::New(info.Env(), static_cast<double>(timeout_micros));
+}
+
+Napi::Value Parser::SetTimeoutMicros(const Napi::CallbackInfo &info) {
+  uint64_t timeout_micros;
+  if (!info[0].IsNumber()) {
+    throw TypeError::New(info.Env(), "First argument must be a number");
+  }
+  timeout_micros = info[0].As<Number>().Uint32Value();
+  ts_parser_set_timeout_micros(parser_, timeout_micros);
+  return info.This();
+}
+
 Napi::Value Parser::GetLogger(const Napi::CallbackInfo &info) {
   TSLogger current_logger = ts_parser_logger(parser_);
   if ((current_logger.payload != nullptr) && current_logger.log == Logger::Log) {
@@ -208,7 +245,6 @@ Napi::Value Parser::GetLogger(const Napi::CallbackInfo &info) {
     return logger->func.Value();
   }
   return info.Env().Null();
- 
 }
 
 Napi::Value Parser::SetLogger(const Napi::CallbackInfo &info) {
@@ -232,13 +268,31 @@ Napi::Value Parser::SetLogger(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Parser::PrintDotGraphs(const Napi::CallbackInfo &info) {
-  if (info[0].IsBoolean() && info[0].As<Boolean>()) {
-    ts_parser_print_dot_graphs(parser_, 2);
-  } else {
-    ts_parser_print_dot_graphs(parser_, -1);
+  bool should_print = true;
+  int32_t fd = fileno(stderr);
+
+  if (info.Length() > 0) {
+    if (!info[0].IsBoolean()) {
+      throw TypeError::New(info.Env(), "First argument must be a boolean");
+    }
+    should_print = info[0].As<Boolean>();
   }
+
+  if (info.Length() > 1) {
+    if (!info[1].IsNumber()) {
+      throw TypeError::New(info.Env(), "Second argument must be a number");
+    }
+    fd = info[1].As<Number>().Int32Value();
+  }
+
+  ts_parser_print_dot_graphs(parser_, should_print ? fd : -1);
 
   return info.This();
 }
 
-}  // namespace node_tree_sitter
+Napi::Value Parser::Reset(const Napi::CallbackInfo & info) {
+  ts_parser_reset(parser_);
+  return info.This();
+}
+
+} // namespace node_tree_sitter

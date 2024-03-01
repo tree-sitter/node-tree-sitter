@@ -8,6 +8,7 @@
         "src/conversions.cc",
         "src/language.cc",
         "src/logger.cc",
+        "src/lookaheaditerator.cc",
         "src/node.cc",
         "src/parser.cc",
         "src/query.cc",
