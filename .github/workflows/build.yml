@@ -21,27 +21,22 @@ jobs:
       matrix:
         os:
           - windows-2019
-          - macos-latest
+          - macos-14
           - ubuntu-20.04
         node:
-          - 14
-          - 16
           - 18
           - 20
       fail-fast: false
     name: Testing Node ${{ matrix.node }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: 0
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
 
       - run: npm install
       - run: npm test
@@ -52,11 +47,11 @@ jobs:
     runs-on: ubuntu-20.04
     needs: test
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: 0
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
@@ -70,18 +65,18 @@ jobs:
       matrix:
         os:
           - windows-2019
-          - macos-latest
+          - macos-14
           - ubuntu-20.04
       fail-fast: false
     name: Prebuild for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     needs: publish
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           fetch-depth: 0
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm install
