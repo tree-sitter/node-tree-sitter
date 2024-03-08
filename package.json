@@ -15,21 +15,34 @@
   "main": "index.js",
   "types": "tree-sitter.d.ts",
   "dependencies": {
-    "nan": "^2.18.0",
+    "node-addon-api": "^7.1.0",
     "prebuild-install": "^7.1.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.16",
     "chai": "^4.3.10",
-    "jest": "^24.0.0",
     "mocha": "^8.4.0",
     "node-gyp": "^10.0.1",
     "prebuild": "^13.0.0",
-    "tree-sitter-javascript": "^0.20.3"
+    "tmp": "^0.2.1",
+    "tree-sitter-c": "github:amaanq/tree-sitter-c#napi",
+    "tree-sitter-embedded-template": "github:tree-sitter/tree-sitter-embedded-template#napi",
+    "tree-sitter-html": "github:amaanq/tree-sitter-html#napi",
+    "tree-sitter-java": "github:amaanq/tree-sitter-java#napi",
+    "tree-sitter-javascript": "github:amaanq/tree-sitter-javascript#napi",
+    "tree-sitter-json": "github:tree-sitter/tree-sitter-json#napi",
+    "tree-sitter-python": "github:amaanq/tree-sitter-python#napi",
+    "tree-sitter-rust": "github:amaanq/tree-sitter-rust#napi",
+    "tree-sitter-ruby": "github:tree-sitter/tree-sitter-ruby#napi"
   },
   "scripts": {
-    "install": "prebuild-install || node-gyp rebuild",
+    "install": "prebuild-install -r napi || node-gyp rebuild",
     "build": "node-gyp build",
-    "test": "mocha && jest"
+    "test": "mocha"
+  },
+  "binary": {
+    "napi_versions": [
+      8
+    ]
   }
 }

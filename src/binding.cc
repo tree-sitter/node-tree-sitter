@@ -1,34 +1,35 @@
-#include <node.h>
-#include <v8.h>
 #include "./addon_data.h"
+#include "./conversions.h"
 #include "./language.h"
+#include "./lookaheaditerator.h"
 #include "./node.h"
 #include "./parser.h"
 #include "./query.h"
 #include "./tree.h"
 #include "./tree_cursor.h"
-#include "./conversions.h"
+
+#include <napi.h>
+
+using namespace Napi;
 
 namespace node_tree_sitter {
 
-using namespace v8;
+Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
+  auto* data = new AddonData(env);
+  env.SetInstanceData(data);
 
-void InitAll(Local<Object> exports, Local<Value> m_, Local<Context> context) {
-  Isolate* isolate = context->GetIsolate();
+  InitConversions(env, exports);
+  node_methods::Init(env, exports);
+  language_methods::Init(env, exports);
+  LookaheadIterator::Init(env, exports);
+  Parser::Init(env, exports);
+  Query::Init(env, exports);
+  Tree::Init(env, exports);
+  TreeCursor::Init(env, exports);
 
-  AddonData* data = new AddonData(isolate);
-
-  Local<External> data_ext = External::New(isolate, data);
-
-  InitConversions(exports, data_ext);
-  node_methods::Init(exports, data_ext);
-  language_methods::Init(exports);
-  Parser::Init(exports, data_ext);
-  Query::Init(exports, data_ext);
-  Tree::Init(exports, data_ext);
-  TreeCursor::Init(exports, data_ext);
+  return exports;
 }
 
-NODE_MODULE_CONTEXT_AWARE(tree_sitter_runtime_binding, InitAll)
+NODE_API_MODULE(tree_sitter_runtime_binding, InitAll)
 
-}  // namespace node_tree_sitter
+} // namespace node_tree_sitter

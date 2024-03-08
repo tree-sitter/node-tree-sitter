@@ -1,31 +1,35 @@
 #ifndef NODE_TREE_SITTER_PARSER_H_
 #define NODE_TREE_SITTER_PARSER_H_
 
-#include <v8.h>
-#include <nan.h>
+#include "tree_sitter/api.h"
+
+#include <napi.h>
 #include <node_object_wrap.h>
-#include <tree_sitter/api.h>
 
 namespace node_tree_sitter {
 
-class Parser : public Nan::ObjectWrap {
+class Parser final : public Napi::ObjectWrap<Parser> {
  public:
-  static void Init(v8::Local<v8::Object> exports, v8::Local<v8::External> data_ext);
+  static void Init(Napi::Env env, Napi::Object exports);
 
+  explicit Parser(const Napi::CallbackInfo &info);
+  ~Parser() final;
+
+private:
   TSParser *parser_;
 
- private:
-  explicit Parser();
-  ~Parser();
-
-  static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void SetLanguage(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void GetLogger(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void SetLogger(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void Parse(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void PrintDotGraphs(const Nan::FunctionCallbackInfo<v8::Value> &);
+  Napi::Value SetLanguage(const Napi::CallbackInfo &);
+  Napi::Value Parse(const Napi::CallbackInfo &);
+  Napi::Value IncludedRanges(const Napi::CallbackInfo &info);
+  Napi::Value SetIncludedRanges(const Napi::CallbackInfo &info);
+  Napi::Value TimeoutMicros(const Napi::CallbackInfo &info);
+  Napi::Value SetTimeoutMicros(const Napi::CallbackInfo &info);
+  Napi::Value GetLogger(const Napi::CallbackInfo &);
+  Napi::Value SetLogger(const Napi::CallbackInfo &);
+  Napi::Value PrintDotGraphs(const Napi::CallbackInfo &);
+  Napi::Value Reset(const Napi::CallbackInfo &info);
 };
 
-}  // namespace node_tree_sitter
+} // namespace node_tree_sitter
 
-#endif  // NODE_TREE_SITTER_PARSER_H_
+#endif // NODE_TREE_SITTER_PARSER_H_

@@ -1,5 +1,6 @@
 const Parser = require("..");
 const JavaScript = require('tree-sitter-javascript');
+const Rust = require('tree-sitter-rust');
 const { assert } = require("chai");
 
 describe("Tree", () => {
@@ -99,8 +100,8 @@ describe("Tree", () => {
       assert.deepEqual(tree.getEditedRange(), {
         startIndex: 6,
         endIndex: 23,
-        startPosition: {row: 0, column: 6},
-        endPosition: {row: 0, column: 23},
+        startPosition: { row: 0, column: 6 },
+        endPosition: { row: 0, column: 23 },
       });
     })
   });
@@ -152,6 +153,236 @@ describe("Tree", () => {
   });
 
   describe(".walk()", () => {
+    it("returns a cursor that can be used to walk the tree", () => {
+      parser.setLanguage(Rust);
+
+      //    let mut parser = Parser::new();
+      // parser.set_language(&get_language("rust")).unwrap();
+      //
+      // let tree = parser
+      //     .parse(
+      //         "
+      //             struct Stuff {
+      //                 a: A,
+      //                 b: Option<B>,
+      //             }
+      //         ",
+      //         None,
+      //     )
+      //     .unwrap();
+      //
+
+      const tree = parser.parse(`
+                struct Stuff {
+                    a: A,
+                    b: Option<B>,
+                }
+      `);
+
+      const cursor = tree.walk();
+      assert.equal(cursor.nodeType, "source_file");
+
+      assert(cursor.gotoFirstChild());
+      assert.equal(cursor.nodeType, "struct_item");
+
+      assert(cursor.gotoFirstChild());
+      assert.equal(cursor.nodeType, "struct");
+      assert(!cursor.nodeIsNamed);
+
+      assert(cursor.gotoNextSibling());
+      assert.equal(cursor.nodeType, "type_identifier");
+      assert(cursor.nodeIsNamed);
+
+      assert(cursor.gotoNextSibling());
+      assert.equal(cursor.nodeType, "field_declaration_list");
+      assert(cursor.nodeIsNamed);
+
+      assert(cursor.gotoLastChild());
+      assert.equal(cursor.nodeType, "}");
+      assert(!cursor.nodeIsNamed);
+      assert.deepEqual(cursor.startPosition, { row: 4, column: 16 });
+
+      assert(cursor.gotoPreviousSibling());
+      assert.equal(cursor.nodeType, ",");
+      assert(!cursor.nodeIsNamed);
+      assert.deepEqual(cursor.startPosition, { row: 3, column: 32 });
+
+      assert(cursor.gotoPreviousSibling());
+      assert.equal(cursor.nodeType, "field_declaration");
+      assert(cursor.nodeIsNamed);
+      assert.deepEqual(cursor.startPosition, { row: 3, column: 20 });
+
+      assert(cursor.gotoPreviousSibling());
+      assert.equal(cursor.nodeType, ",");
+      assert(!cursor.nodeIsNamed);
+      assert.deepEqual(cursor.startPosition, { row: 2, column: 24 });
+
+      assert(cursor.gotoPreviousSibling());
+      assert.equal(cursor.nodeType, "field_declaration");
+      assert(cursor.nodeIsNamed);
+      assert.deepEqual(cursor.startPosition, { row: 2, column: 20 });
+
+      assert(cursor.gotoPreviousSibling());
+      assert.equal(cursor.nodeType, "{");
+      assert(!cursor.nodeIsNamed);
+      assert.deepEqual(cursor.startPosition, { row: 1, column: 29 });
+
+      const copy = tree.walk();
+      copy.resetTo(cursor);
+
+      assert.equal(copy.nodeType, "{");
+      assert(!copy.nodeIsNamed);
+
+      assert(copy.gotoParent());
+      assert.equal(copy.nodeType, "field_declaration_list");
+      assert(copy.nodeIsNamed);
+
+      assert(copy.gotoParent());
+      assert.equal(copy.nodeType, "struct_item");
+    });
+
+    it("can fetch the previous sibling", () => {
+      parser.setLanguage(Rust);
+
+      const text = `
+      // Hi there
+      // This is fun!
+      // Another one!
+      `;
+
+      const tree = parser.parse(text);
+
+      const cursor = tree.walk();
+      assert.equal(cursor.nodeType, "source_file");
+
+      assert(cursor.gotoLastChild());
+      assert.equal(cursor.nodeType, "line_comment");
+      assert.equal(cursor.currentNode.text, "// Another one!");
+
+      assert(cursor.gotoPreviousSibling());
+      assert.equal(cursor.nodeType, "line_comment");
+      assert.equal(cursor.currentNode.text, "// This is fun!");
+
+      assert(cursor.gotoPreviousSibling());
+      assert.equal(cursor.nodeType, "line_comment");
+      assert.equal(cursor.currentNode.text, "// Hi there");
+
+      assert(!cursor.gotoPreviousSibling());
+    });
+
+    it("can access fields of nodes", () => {
+      const tree = parser.parse("function /*1*/ bar /*2*/ () {}");
+
+      const cursor = tree.walk();
+      assert.equal(cursor.nodeType, "program");
+
+      assert(cursor.gotoFirstChild());
+      assert.equal(cursor.nodeType, "function_declaration");
+      assert.equal(cursor.currentFieldName, null);
+
+      assert(cursor.gotoFirstChild());
+      assert.equal(cursor.nodeType, "function");
+      assert.equal(cursor.currentFieldName, null);
+
+      assert(cursor.gotoNextSibling());
+      assert.equal(cursor.nodeType, "comment");
+      assert.equal(cursor.currentFieldName, null);
+
+      assert(cursor.gotoNextSibling());
+      assert.equal(cursor.nodeType, "identifier");
+      assert.equal(cursor.currentFieldName, "name");
+
+      assert(cursor.gotoNextSibling());
+      assert.equal(cursor.nodeType, "comment");
+      assert.equal(cursor.currentFieldName, null);
+
+      assert(cursor.gotoNextSibling());
+      assert.equal(cursor.nodeType, "formal_parameters");
+      assert.equal(cursor.currentFieldName, "parameters");
+    });
+
+    it("can access children by positions", () => {
+      const source = `
+    [
+        one,
+        {
+            two: tree
+        },
+        four, five, six
+    ];`.slice(1);
+      const tree = parser.parse(source);
+
+      const cursor = tree.walk();
+      assert.equal(cursor.nodeType, "program");
+
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 7, column: 0 }), null);
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 7 }), null);
+      assert.equal(cursor.nodeType, "program");
+
+      // descend to expression statement
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 6 }), 0);
+      assert.equal(cursor.nodeType, "expression_statement");
+
+      // step into ';' and back up
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 7, column: 0 }), null);
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 6 }), 1);
+      assert.deepEqual(cursor.startPosition, { row: 6, column: 5 });
+      assert.equal(cursor.nodeType, ";");
+      assert(cursor.gotoParent());
+
+      // descend into array
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 4 }), 0);
+      assert.equal(cursor.nodeType, "array");
+      assert.deepEqual(cursor.startPosition, { row: 0, column: 4 });
+
+      // step into '[' and back up
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 0, column: 4 }), 0);
+      assert.equal(cursor.nodeType, "[");
+      assert.deepEqual(cursor.startPosition, { row: 0, column: 4 });
+      assert(cursor.gotoParent());
+
+      // step into identifier 'one' and back up
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 1, column: 0 }), 1);
+      assert.equal(cursor.nodeType, "identifier");
+      assert.deepEqual(cursor.startPosition, { row: 1, column: 8 });
+      assert(cursor.gotoParent());
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 1, column: 10 }), 1);
+      assert.equal(cursor.nodeType, "identifier");
+      assert.deepEqual(cursor.startPosition, { row: 1, column: 8 });
+      assert(cursor.gotoParent());
+
+      // step into first ',' and back up
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 1, column: 12 }), 2);
+      assert.equal(cursor.nodeType, ",");
+      assert.deepEqual(cursor.startPosition, { row: 1, column: 11 });
+      assert(cursor.gotoParent());
+
+      // step into identifier 'four' and back up
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 5, column: 0 }), 5);
+      assert.equal(cursor.nodeType, "identifier");
+      assert.deepEqual(cursor.startPosition, { row: 5, column: 8 });
+      assert(cursor.gotoParent());
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 5, column: 10 }), 5);
+      assert.equal(cursor.nodeType, "identifier");
+      assert.deepEqual(cursor.startPosition, { row: 5, column: 8 });
+      assert(cursor.gotoParent());
+
+      // step into ']' and back up
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 0 }), 10);
+      assert.equal(cursor.nodeType, "]");
+      assert.deepEqual(cursor.startPosition, { row: 6, column: 4 });
+      assert(cursor.gotoParent());
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 0 }), 10);
+      assert.equal(cursor.nodeType, "]");
+      assert.deepEqual(cursor.startPosition, { row: 6, column: 4 });
+      assert(cursor.gotoParent());
+
+      // descend into object
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 2, column: 0 }), 3);
+      assert.equal(cursor.nodeType, "object");
+      assert.deepEqual(cursor.startPosition, { row: 2, column: 8 });
+    });
+
     it('returns a cursor that can be used to walk the tree', () => {
       const tree = parser.parse('a * b + c / d');
 
@@ -160,8 +391,8 @@ describe("Tree", () => {
         nodeType: 'program',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 0},
-        endPosition: {row: 0, column: 13},
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 13 },
         startIndex: 0,
         endIndex: 13
       });
@@ -171,8 +402,8 @@ describe("Tree", () => {
         nodeType: 'expression_statement',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 0},
-        endPosition: {row: 0, column: 13},
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 13 },
         startIndex: 0,
         endIndex: 13
       });
@@ -182,8 +413,8 @@ describe("Tree", () => {
         nodeType: 'binary_expression',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 0},
-        endPosition: {row: 0, column: 13},
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 13 },
         startIndex: 0,
         endIndex: 13
       });
@@ -193,8 +424,8 @@ describe("Tree", () => {
         nodeType: 'binary_expression',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 0},
-        endPosition: {row: 0, column: 5},
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 5 },
         startIndex: 0,
         endIndex: 5
       });
@@ -204,8 +435,8 @@ describe("Tree", () => {
         nodeType: 'identifier',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 0},
-        endPosition: {row: 0, column: 1},
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 1 },
         startIndex: 0,
         endIndex: 1
       });
@@ -216,8 +447,8 @@ describe("Tree", () => {
         nodeType: '*',
         nodeIsNamed: false,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 2},
-        endPosition: {row: 0, column: 3},
+        startPosition: { row: 0, column: 2 },
+        endPosition: { row: 0, column: 3 },
         startIndex: 2,
         endIndex: 3
       });
@@ -227,8 +458,8 @@ describe("Tree", () => {
         nodeType: 'identifier',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 4},
-        endPosition: {row: 0, column: 5},
+        startPosition: { row: 0, column: 4 },
+        endPosition: { row: 0, column: 5 },
         startIndex: 4,
         endIndex: 5
       });
@@ -239,8 +470,8 @@ describe("Tree", () => {
         nodeType: 'binary_expression',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 0},
-        endPosition: {row: 0, column: 5},
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 5 },
         startIndex: 0,
         endIndex: 5
       });
@@ -250,8 +481,8 @@ describe("Tree", () => {
         nodeType: '+',
         nodeIsNamed: false,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 6},
-        endPosition: {row: 0, column: 7},
+        startPosition: { row: 0, column: 6 },
+        endPosition: { row: 0, column: 7 },
         startIndex: 6,
         endIndex: 7
       });
@@ -261,8 +492,8 @@ describe("Tree", () => {
         nodeType: 'binary_expression',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 8},
-        endPosition: {row: 0, column: 13},
+        startPosition: { row: 0, column: 8 },
+        endPosition: { row: 0, column: 13 },
         startIndex: 8,
         endIndex: 13
       });
@@ -272,8 +503,8 @@ describe("Tree", () => {
         nodeType: 'identifier',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 12},
-        endPosition: {row: 0, column: 13},
+        startPosition: { row: 0, column: 12 },
+        endPosition: { row: 0, column: 13 },
         startIndex: 12,
         endIndex: 13
       });
@@ -297,8 +528,8 @@ describe("Tree", () => {
         nodeType: 'binary_expression',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 0},
-        endPosition: {row: 0, column: 5},
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 5 },
         startIndex: 0,
         endIndex: 5
       });
@@ -308,8 +539,8 @@ describe("Tree", () => {
         nodeType: 'identifier',
         nodeIsNamed: true,
         nodeIsMissing: false,
-        startPosition: {row: 0, column: 0},
-        endPosition: {row: 0, column: 1},
+        startPosition: { row: 0, column: 0 },
+        endPosition: { row: 0, column: 1 },
         startIndex: 0,
         endIndex: 1
       });
@@ -317,6 +548,19 @@ describe("Tree", () => {
       assert(cursor.gotoParent());
       assert(!cursor.gotoParent());
     })
+  });
+
+  describe(".rootNode", () => {
+    it("tests tree node equality", () => {
+      parser.setLanguage(Rust);
+
+      const tree = parser.parse("struct A {}");
+      const node1 = tree.rootNode;
+      const node2 = tree.rootNode;
+      assert.deepEqual(node1, node2);
+      assert.deepEqual(node1.firstChild, node2.firstChild);
+      assert.notDeepEqual(node1.firstChild, node2);
+    });
   });
 });
 
@@ -335,7 +579,7 @@ function assertCursorState(cursor, params) {
   const node = cursor.currentNode
   assert.equal(node.type, params.nodeType);
   assert.equal(node.isNamed, params.nodeIsNamed);
-  assert.equal(node.isMissing(), params.nodeIsMissing);
+  assert.equal(node.isMissing, params.nodeIsMissing);
   assert.deepEqual(node.startPosition, params.startPosition);
   assert.deepEqual(node.endPosition, params.endPosition);
   assert.deepEqual(node.startIndex, params.startIndex);
@@ -366,5 +610,5 @@ function getExtent(text) {
     index++
     row++;
   }
-  return {row, column: text.length - index};
+  return { row, column: text.length - index };
 }

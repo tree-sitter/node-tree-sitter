@@ -1,43 +1,50 @@
 #ifndef NODE_TREE_SITTER_TREE_CURSOR_H_
 #define NODE_TREE_SITTER_TREE_CURSOR_H_
 
-#include <v8.h>
-#include <nan.h>
-#include <node_object_wrap.h>
-#include <tree_sitter/api.h>
 #include "./addon_data.h"
+#include "tree_sitter/api.h"
+
+#include <napi.h>
+#include <node_object_wrap.h>
 
 namespace node_tree_sitter {
 
-class TreeCursor : public Nan::ObjectWrap {
+class TreeCursor final : public Napi::ObjectWrap<TreeCursor> {
  public:
-  static void Init(v8::Local<v8::Object> exports, v8::Local<v8::External> data_ext);
-  static v8::Local<v8::Value> NewInstance(AddonData* data, TSTreeCursor);
+  static void Init(Napi::Env env, Napi::Object exports);
+  static Napi::Value NewInstance(Napi::Env Env, TSTreeCursor);
 
- private:
-  explicit TreeCursor(TSTreeCursor);
-  ~TreeCursor();
-
-  static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void GotoParent(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void GotoFirstChild(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void GotoFirstChildForIndex(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void GotoNextSibling(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void StartPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void EndPosition(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void CurrentNode(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void Reset(const Nan::FunctionCallbackInfo<v8::Value> &);
-
-  static void NodeType(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void NodeIsNamed(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void NodeIsMissing(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void CurrentFieldName(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void StartIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
-  static void EndIndex(v8::Local<v8::String>, const Nan::PropertyCallbackInfo<v8::Value> &);
+  explicit TreeCursor(const Napi::CallbackInfo &);
+  ~TreeCursor() final;
 
   TSTreeCursor cursor_;
+
+ private:
+  Napi::Value GotoFirstChild(const Napi::CallbackInfo &);
+  Napi::Value GotoLastChild(const Napi::CallbackInfo &);
+  Napi::Value GotoParent(const Napi::CallbackInfo &);
+  Napi::Value GotoNextSibling(const Napi::CallbackInfo &);
+  Napi::Value GotoPreviousSibling(const Napi::CallbackInfo &);
+  Napi::Value GotoDescendant(const Napi::CallbackInfo &);
+  Napi::Value GotoFirstChildForIndex(const Napi::CallbackInfo &);
+  Napi::Value GotoFirstChildForPosition(const Napi::CallbackInfo &);
+  Napi::Value StartPosition(const Napi::CallbackInfo &);
+  Napi::Value EndPosition(const Napi::CallbackInfo &);
+  Napi::Value CurrentNode(const Napi::CallbackInfo &);
+  Napi::Value Reset(const Napi::CallbackInfo &);
+  Napi::Value ResetTo(const Napi::CallbackInfo &);
+
+  Napi::Value NodeType(const Napi::CallbackInfo &);
+  Napi::Value NodeIsNamed(const Napi::CallbackInfo &);
+  Napi::Value NodeIsMissing(const Napi::CallbackInfo &);
+  Napi::Value CurrentFieldId(const Napi::CallbackInfo &);
+  Napi::Value CurrentFieldName(const Napi::CallbackInfo &);
+  Napi::Value CurrentDepth(const Napi::CallbackInfo &);
+  Napi::Value CurrentDescendantIndex(const Napi::CallbackInfo &);
+  Napi::Value StartIndex(const Napi::CallbackInfo &);
+  Napi::Value EndIndex(const Napi::CallbackInfo &);
 };
 
-}  // namespace node_tree_sitter
+} // namespace node_tree_sitter
 
-#endif  // NODE_TREE_SITTER_TREE_CURSOR_H_
+#endif // NODE_TREE_SITTER_TREE_CURSOR_H_

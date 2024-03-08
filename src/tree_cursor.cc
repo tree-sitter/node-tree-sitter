@@ -1,184 +1,201 @@
-#include "./tree_cursor.h"
-#include <nan.h>
-#include <tree_sitter/api.h>
-#include <v8.h>
-#include "./util.h"
 #include "./conversions.h"
 #include "./node.h"
 #include "./tree.h"
+#include "./tree_cursor.h"
+#include "tree_sitter/api.h"
+
+#include <napi.h>
+
+using namespace Napi;
 
 namespace node_tree_sitter {
 
-using namespace v8;
+void TreeCursor::Init(Napi::Env env, Napi::Object exports) {
+  auto *data = env.GetInstanceData<AddonData>();
 
-void TreeCursor::Init(v8::Local<v8::Object> exports, v8::Local<v8::External> data_ext) {
-  AddonData* data = reinterpret_cast<AddonData*>(data_ext->Value());
-  Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New, data_ext);
-  Local<String> class_name = Nan::New("TreeCursor").ToLocalChecked();
-  tpl->SetClassName(class_name);
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  Function ctor = DefineClass(env, "TreeCursor", {
+    InstanceAccessor("startIndex", &TreeCursor::StartIndex, nullptr, napi_default_method),
+    InstanceAccessor("endIndex", &TreeCursor::EndIndex, nullptr, napi_default_method),
+    InstanceAccessor("nodeType", &TreeCursor::NodeType, nullptr, napi_default_method),
+    InstanceAccessor("nodeIsNamed", &TreeCursor::NodeIsNamed, nullptr, napi_default_method),
+    InstanceAccessor("nodeIsMissing", &TreeCursor::NodeIsMissing, nullptr, napi_default_method),
+    InstanceAccessor("currentFieldId", &TreeCursor::CurrentFieldId, nullptr, napi_default_method),
+    InstanceAccessor("currentFieldName", &TreeCursor::CurrentFieldName, nullptr, napi_default_method),
+    InstanceAccessor("currentDepth", &TreeCursor::CurrentDepth, nullptr, napi_default_method),
+    InstanceAccessor("currentDescendantIndex", &TreeCursor::CurrentDescendantIndex, nullptr, napi_default_method),
 
-  GetterPair getters[] = {
-    {"startIndex", StartIndex},
-    {"endIndex", EndIndex},
-    {"nodeType", NodeType},
-    {"nodeIsNamed", NodeIsNamed},
-    {"nodeIsMissing", NodeIsMissing},
-    {"currentFieldName", CurrentFieldName},
-  };
+    InstanceMethod("gotoFirstChild", &TreeCursor::GotoFirstChild, napi_default_method),
+    InstanceMethod("gotoLastChild", &TreeCursor::GotoLastChild, napi_default_method),
+    InstanceMethod("gotoParent", &TreeCursor::GotoParent, napi_default_method),
+    InstanceMethod("gotoNextSibling", &TreeCursor::GotoNextSibling, napi_default_method),
+    InstanceMethod("gotoPreviousSibling", &TreeCursor::GotoPreviousSibling, napi_default_method),
+    InstanceMethod("gotoDescendant", &TreeCursor::GotoDescendant, napi_default_method),
+    InstanceMethod("gotoFirstChildForIndex", &TreeCursor::GotoFirstChildForIndex, napi_default_method),
+    InstanceMethod("gotoFirstChildForPosition", &TreeCursor::GotoFirstChildForPosition, napi_default_method),
+    InstanceMethod("startPosition", &TreeCursor::StartPosition, napi_default_method),
+    InstanceMethod("endPosition", &TreeCursor::EndPosition, napi_default_method),
+    InstanceMethod("currentNode", &TreeCursor::CurrentNode, napi_default_method),
+    InstanceMethod("reset", &TreeCursor::Reset, napi_default_method),
+    InstanceMethod("resetTo", &TreeCursor::ResetTo, napi_default_method),
+  });
 
-  FunctionPair methods[] = {
-    {"startPosition", StartPosition},
-    {"endPosition", EndPosition},
-    {"gotoParent", GotoParent},
-    {"gotoFirstChild", GotoFirstChild},
-    {"gotoFirstChildForIndex", GotoFirstChildForIndex},
-    {"gotoNextSibling", GotoNextSibling},
-    {"currentNode", CurrentNode},
-    {"reset", Reset},
-  };
-
-  for (size_t i = 0; i < length_of_array(getters); i++) {
-    Nan::SetAccessor(
-      tpl->InstanceTemplate(),
-      Nan::New(getters[i].name).ToLocalChecked(),
-      getters[i].callback);
-  }
-
-  for (size_t i = 0; i < length_of_array(methods); i++) {
-    Nan::SetPrototypeMethod(tpl, methods[i].name, methods[i].callback, data_ext);
-  }
-
-  Local<Function> constructor_local = Nan::GetFunction(tpl).ToLocalChecked();
-  Nan::Set(exports, class_name, constructor_local);
-  data->tree_cursor_constructor.Reset(Nan::Persistent<Function>(constructor_local));
+  exports["TreeCursor"] = ctor;
+  data->tree_cursor_constructor = Napi::Persistent(ctor);
 }
 
-Local<Value> TreeCursor::NewInstance(AddonData* data, TSTreeCursor cursor) {
-  Local<Object> self;
-  MaybeLocal<Object> maybe_self = Nan::New(data->tree_cursor_constructor)->NewInstance(Nan::GetCurrentContext());
-  if (maybe_self.ToLocal(&self)) {
-    (new TreeCursor(cursor))->Wrap(self);
-    return self;
-  } else {
-    return Nan::Null();
-  }
+Napi::Value TreeCursor::NewInstance(Napi::Env env, TSTreeCursor cursor) {
+  auto *data = env.GetInstanceData<AddonData>();
+
+  Object self = data->tree_cursor_constructor.New({});
+  TreeCursor::Unwrap(self)->cursor_ = cursor;
+  return self;
 }
 
-TreeCursor::TreeCursor(TSTreeCursor cursor) : cursor_(cursor) {}
+TreeCursor::TreeCursor(const Napi::CallbackInfo& info) : Napi::ObjectWrap<TreeCursor>(info), cursor_() {}
 
 TreeCursor::~TreeCursor() { ts_tree_cursor_delete(&cursor_); }
 
-void TreeCursor::New(const Nan::FunctionCallbackInfo<Value> &info) {
-  info.GetReturnValue().Set(Nan::Null());
+Napi::Value TreeCursor::GotoFirstChild(const Napi::CallbackInfo &info) {
+  bool result = ts_tree_cursor_goto_first_child(&cursor_);
+  return Boolean::New(info.Env(), result);
 }
 
-void TreeCursor::GotoParent(const Nan::FunctionCallbackInfo<Value> &info) {
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  bool result = ts_tree_cursor_goto_parent(&cursor->cursor_);
-  info.GetReturnValue().Set(Nan::New(result));
+Napi::Value TreeCursor::GotoLastChild(const Napi::CallbackInfo &info) {
+  bool result = ts_tree_cursor_goto_last_child(&cursor_);
+  return Boolean::New(info.Env(), result);
 }
 
-void TreeCursor::GotoFirstChild(const Nan::FunctionCallbackInfo<Value> &info) {
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  bool result = ts_tree_cursor_goto_first_child(&cursor->cursor_);
-  info.GetReturnValue().Set(Nan::New(result));
+Napi::Value TreeCursor::GotoParent(const Napi::CallbackInfo &info) {
+  bool result = ts_tree_cursor_goto_parent(&cursor_);
+  return Boolean::New(info.Env(), result);
 }
 
-void TreeCursor::GotoFirstChildForIndex(const Nan::FunctionCallbackInfo<Value> &info) {
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  auto maybe_index = Nan::To<uint32_t>(info[0]);
-  if (maybe_index.IsNothing()) {
-    Nan::ThrowTypeError("Argument must be an integer");
-    return;
+Napi::Value TreeCursor::GotoNextSibling(const Napi::CallbackInfo &info) {
+  bool result = ts_tree_cursor_goto_next_sibling(&cursor_);
+  return Boolean::New(info.Env(), result);
+}
+
+Napi::Value TreeCursor::GotoPreviousSibling(const Napi::CallbackInfo &info) {
+  bool result = ts_tree_cursor_goto_previous_sibling(&cursor_);
+  return Boolean::New(info.Env(), result);
+}
+
+Napi::Value TreeCursor::GotoDescendant(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  if (!info[0].IsNumber()) {
+    throw TypeError::New(env, "First argument must be an integer");
   }
-  uint32_t goal_byte = maybe_index.FromJust() * 2;
-  int64_t child_index = ts_tree_cursor_goto_first_child_for_byte(&cursor->cursor_, goal_byte);
+  int64_t goal_descendant_index = info[0].As<Number>().Uint32Value();
+  ts_tree_cursor_goto_descendant(&cursor_, goal_descendant_index);
+  return env.Undefined();
+}
+
+Napi::Value TreeCursor::GotoFirstChildForIndex(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  if (!info[0].IsNumber()) {
+    throw TypeError::New(env, "First argument must be an integer");
+  }
+  auto index = info[0].As<Number>();
+  uint32_t goal_byte = index.Uint32Value() * 2;
+  int64_t child_index = ts_tree_cursor_goto_first_child_for_byte(&cursor_, goal_byte);
   if (child_index < 0) {
-    info.GetReturnValue().Set(Nan::Null());
-  } else {
-    info.GetReturnValue().Set(Nan::New(static_cast<uint32_t>(child_index)));
+    return env.Null();
   }
+  return Number::New(env, static_cast<double>(child_index));
+ 
 }
 
-void TreeCursor::GotoNextSibling(const Nan::FunctionCallbackInfo<Value> &info) {
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  bool result = ts_tree_cursor_goto_next_sibling(&cursor->cursor_);
-  info.GetReturnValue().Set(Nan::New(result));
-}
-
-void TreeCursor::StartPosition(const Nan::FunctionCallbackInfo<Value> &info) {
-  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-  TransferPoint(data, ts_node_start_point(node));
-}
-
-void TreeCursor::EndPosition(const Nan::FunctionCallbackInfo<Value> &info) {
-  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-  TransferPoint(data, ts_node_end_point(node));
-}
-
-void TreeCursor::CurrentNode(const Nan::FunctionCallbackInfo<Value> &info) {
-  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  Local<String> key = Nan::New<String>("tree").ToLocalChecked();
-  const Tree *tree = Tree::UnwrapTree(data, Nan::Get(info.This(), key).ToLocalChecked());
-  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-  node_methods::MarshalNode(info, tree, node);
-}
-
-void TreeCursor::Reset(const Nan::FunctionCallbackInfo<Value> &info) {
-  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  Local<String> key = Nan::New<String>("tree").ToLocalChecked();
-  const Tree *tree = Tree::UnwrapTree(data, Nan::Get(info.This(), key).ToLocalChecked());
-  TSNode node = node_methods::UnmarshalNode(data, tree);
-  ts_tree_cursor_reset(&cursor->cursor_, node);
-}
-
-void TreeCursor::NodeType(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-  info.GetReturnValue().Set(Nan::New(ts_node_type(node)).ToLocalChecked());
-}
-
-void TreeCursor::NodeIsNamed(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-
-  info.GetReturnValue().Set(Nan::New(ts_node_is_named(node)));
-}
-
-void TreeCursor::NodeIsMissing(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-
-  info.GetReturnValue().Set(Nan::New(ts_node_is_missing(node)));
-}
-
-void TreeCursor::CurrentFieldName(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  const char *field_name = ts_tree_cursor_current_field_name(&cursor->cursor_);
-  if (field_name) {
-    info.GetReturnValue().Set(Nan::New(field_name).ToLocalChecked());
+Napi::Value TreeCursor::GotoFirstChildForPosition(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  Napi::Maybe<TSPoint> goal_point = PointFromJS(info[0].As<Object>());
+  if (goal_point.IsNothing()) {
+    throw TypeError::New(env, "First argument must be a Point object");
   }
+  int64_t child_index = ts_tree_cursor_goto_first_child_for_point(&cursor_, goal_point.Unwrap());
+  if (child_index < 0) {
+    return env.Null();
+  }
+  return Number::New(env, static_cast<double>(child_index));
 }
 
-void TreeCursor::StartIndex(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
-  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-  info.GetReturnValue().Set(ByteCountToJS(data, ts_node_start_byte(node)));
+Napi::Value TreeCursor::StartPosition(const Napi::CallbackInfo &info) {
+  TSNode node = ts_tree_cursor_current_node(&cursor_);
+  TransferPoint(info.Env(), ts_node_start_point(node));
+  return info.Env().Undefined();
 }
 
-void TreeCursor::EndIndex(v8::Local<v8::String> prop, const Nan::PropertyCallbackInfo<v8::Value> &info) {
-  AddonData* data = reinterpret_cast<AddonData*>(info.Data().As<External>()->Value());
-  TreeCursor *cursor = Nan::ObjectWrap::Unwrap<TreeCursor>(info.This());
-  TSNode node = ts_tree_cursor_current_node(&cursor->cursor_);
-  info.GetReturnValue().Set(ByteCountToJS(data, ts_node_end_byte(node)));
+Napi::Value TreeCursor::EndPosition(const Napi::CallbackInfo &info) {
+  TSNode node = ts_tree_cursor_current_node(&cursor_);
+  TransferPoint(info.Env(), ts_node_end_point(node));
+  return info.Env().Undefined();
 }
 
+Napi::Value TreeCursor::CurrentNode(const Napi::CallbackInfo &info) {
+  const Tree *tree = Tree::UnwrapTree(info.This().As<Object>()["tree"]);
+  TSNode node = ts_tree_cursor_current_node(&cursor_);
+  return node_methods::MarshalNode(info, tree, node);
 }
+
+Napi::Value TreeCursor::Reset(const Napi::CallbackInfo &info) {
+  const Tree *tree = Tree::UnwrapTree(info.This().As<Object>()["tree"]);
+  TSNode node = node_methods::UnmarshalNode(info.Env(), tree);
+  ts_tree_cursor_reset(&cursor_, node);
+  return info.Env().Undefined();
+}
+
+Napi::Value TreeCursor::ResetTo(const Napi::CallbackInfo &info) {
+  TSTreeCursor other_cursor = TreeCursor::Unwrap(info[0].As<Object>())->cursor_;
+  ts_tree_cursor_reset_to(&cursor_, &other_cursor);
+  return info.Env().Undefined();
+}
+
+Napi::Value TreeCursor::NodeType(const Napi::CallbackInfo &info) {
+  TSNode node = ts_tree_cursor_current_node(&cursor_);
+  return String::New(info.Env(), ts_node_type(node));;
+}
+
+Napi::Value TreeCursor::NodeIsNamed(const Napi::CallbackInfo &info) {
+  TSNode node = ts_tree_cursor_current_node(&cursor_);
+  return Boolean::New(info.Env(), ts_node_is_named(node));
+}
+
+Napi::Value TreeCursor::NodeIsMissing(const Napi::CallbackInfo &info) {
+  TSNode node = ts_tree_cursor_current_node(&cursor_);
+  return Boolean::New(info.Env(), ts_node_is_missing(node));
+}
+
+Napi::Value TreeCursor::CurrentFieldId(const Napi::CallbackInfo &info) {
+  TSFieldId field_id = ts_tree_cursor_current_field_id(&cursor_);
+  if (field_id != 0) {
+    return Number::New(info.Env(), static_cast<double>(field_id));
+  }
+  return info.Env().Undefined();
+}
+
+Napi::Value TreeCursor::CurrentFieldName(const Napi::CallbackInfo &info) {
+  const char *field_name = ts_tree_cursor_current_field_name(&cursor_);
+  if (field_name != nullptr) {
+    return String::New(info.Env(), field_name);
+  }
+  return info.Env().Undefined();
+}
+
+Napi::Value TreeCursor::CurrentDepth(const Napi::CallbackInfo &info) {
+  return Number::New(info.Env(), static_cast<double>(ts_tree_cursor_current_depth(&cursor_)));
+}
+
+Napi::Value TreeCursor::CurrentDescendantIndex(const Napi::CallbackInfo &info) {
+  return Number::New(info.Env(), static_cast<double>(ts_tree_cursor_current_descendant_index(&cursor_)));
+}
+
+Napi::Value TreeCursor::StartIndex(const Napi::CallbackInfo &info) {
+  TSNode node = ts_tree_cursor_current_node(&cursor_);
+  return ByteCountToJS(info.Env(), ts_node_start_byte(node));
+}
+
+Napi::Value TreeCursor::EndIndex(const Napi::CallbackInfo &info) {
+  TSNode node = ts_tree_cursor_current_node(&cursor_);
+  return ByteCountToJS(info.Env(), ts_node_end_byte(node));
+}
+
+} // namespace node_tree_sitter

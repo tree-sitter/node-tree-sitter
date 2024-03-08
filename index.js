@@ -10,13 +10,13 @@ try {
 }
 
 const util = require('util')
-const {Query, Parser, NodeMethods, Tree, TreeCursor} = binding;
+const {Query, Parser, NodeMethods, Tree, TreeCursor, LookaheadIterator} = binding;
 
 /*
  * Tree
  */
 
-const {rootNode, edit} = Tree.prototype;
+const {rootNode, rootNodeWithOffset, edit} = Tree.prototype;
 
 Object.defineProperty(Tree.prototype, 'rootNode', {
   get() {
@@ -36,8 +36,12 @@ Object.defineProperty(Tree.prototype, 'rootNode', {
   },
   // Jest worker pool may attempt to override property due to race condition,
   // we don't want to error on this
-  configurable: true 
+  configurable: true
 });
+
+Tree.prototype.rootNodeWithOffset = function(offset_bytes, offset_extent) {
+  return unmarshalNode(rootNodeWithOffset.call(this, offset_bytes, offset_extent.row, offset_extent.column), this);
+}
 
 Tree.prototype.edit = function(arg) {
   if (this instanceof Tree && edit) {
@@ -75,9 +79,9 @@ class SyntaxNode {
       '}'
   }
 
-  get type() {
+  get id() {
     marshalNode(this);
-    return NodeMethods.type(this.tree);
+    return NodeMethods.id(this.tree);
   }
 
   get typeId() {
@@ -85,9 +89,49 @@ class SyntaxNode {
     return NodeMethods.typeId(this.tree);
   }
 
+  get grammarId() {
+    marshalNode(this);
+    return NodeMethods.grammarId(this.tree);
+  }
+
+  get type() {
+    marshalNode(this);
+    return NodeMethods.type(this.tree);
+  }
+
+  get grammarName() {
+    marshalNode(this);
+    return NodeMethods.grammarName(this.tree);
+  }
+
+  get isExtra() {
+    marshalNode(this);
+    return NodeMethods.isExtra(this.tree);
+  }
+
   get isNamed() {
     marshalNode(this);
     return NodeMethods.isNamed(this.tree);
+  }
+
+  get isMissing() {
+    marshalNode(this);
+    return NodeMethods.isMissing(this.tree);
+  }
+
+  get hasChanges() {
+    marshalNode(this);
+    return NodeMethods.hasChanges(this.tree);
+  }
+
+  get hasError() {
+    marshalNode(this);
+    return NodeMethods.hasError(this.tree);
+  }
+
+  get isError() {
+    marshalNode(this);
+    return NodeMethods.isError(this.tree);
   }
 
   get text() {
@@ -181,19 +225,19 @@ class SyntaxNode {
     return unmarshalNode(NodeMethods.previousNamedSibling(this.tree), this.tree);
   }
 
-  hasChanges() {
+  get parseState() {
     marshalNode(this);
-    return NodeMethods.hasChanges(this.tree);
+    return NodeMethods.parseState(this.tree);
   }
 
-  hasError() {
+  get nextParseState() {
     marshalNode(this);
-    return NodeMethods.hasError(this.tree);
+    return NodeMethods.nextParseState(this.tree);
   }
 
-  isMissing() {
+  get descendantCount() {
     marshalNode(this);
-    return NodeMethods.isMissing(this.tree);
+    return NodeMethods.descendantCount(this.tree);
   }
 
   toString() {
@@ -209,6 +253,31 @@ class SyntaxNode {
   namedChild(index) {
     marshalNode(this);
     return unmarshalNode(NodeMethods.namedChild(this.tree, index), this.tree);
+  }
+
+  childForFieldName(fieldName) {
+    marshalNode(this);
+    return unmarshalNode(NodeMethods.childForFieldName(this.tree, fieldName), this.tree);
+  }
+
+  childForFieldId(fieldId) {
+    marshalNode(this);
+    return unmarshalNode(NodeMethods.childForFieldId(this.tree, fieldId), this.tree);
+  }
+
+  fieldNameForChild(childIndex) {
+    marshalNode(this);
+    return NodeMethods.fieldNameForChild(this.tree, childIndex);
+  }
+
+  childrenForFieldName(fieldName, cursor) {
+    marshalNode(this);
+    return unmarshalNodes(NodeMethods.childrenForFieldName(this.tree, fieldName, cursor), this.tree);
+  }
+
+  childrenForFieldId(fieldId) {
+    marshalNode(this);
+    return unmarshalNodes(NodeMethods.childrenForFieldId(this.tree, fieldId), this.tree);
   }
 
   firstChildForIndex(index) {
@@ -302,7 +371,8 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
       input,
       oldTree,
       bufferSize,
-      includedRanges)
+      includedRanges,
+    )
     : undefined;
 
   if (tree) {
@@ -556,11 +626,22 @@ Query.prototype._init = function() {
   this.refutedProperties = Object.freeze(refutedProperties);
 }
 
-Query.prototype.matches = function(rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
+Query.prototype.matches = function(
+  rootNode,
+  {
+    startPosition = ZERO_POINT,
+    endPosition = ZERO_POINT,
+    startIndex = 0,
+    endIndex = 0,
+    matchLimit = 0xFFFFFFFF,
+    maxStartDepth = 0xFFFFFFFF
+  } = {}
+) {
   marshalNode(rootNode);
   const [returnedMatches, returnedNodes] = _matches.call(this, rootNode.tree,
     startPosition.row, startPosition.column,
-    endPosition.row, endPosition.column
+    endPosition.row, endPosition.column,
+    startIndex, endIndex, matchLimit, maxStartDepth
   );
   const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
   const results = [];
@@ -798,3 +879,4 @@ module.exports.Query = Query;
 module.exports.Tree = Tree;
 module.exports.SyntaxNode = SyntaxNode;
 module.exports.TreeCursor = TreeCursor;
+module.exports.LookaheadIterator = LookaheadIterator;

@@ -1,33 +1,39 @@
 #ifndef NODE_TREE_SITTER_QUERY_H_
 #define NODE_TREE_SITTER_QUERY_H_
 
-#include <v8.h>
-#include <nan.h>
-#include <node_object_wrap.h>
-#include <unordered_map>
-#include <tree_sitter/api.h>
 #include "./addon_data.h"
+#include "tree_sitter/api.h"
+
+#include <napi.h>
+#include <node_object_wrap.h>
 
 namespace node_tree_sitter {
 
-class Query : public Nan::ObjectWrap {
+class Query final : public Napi::ObjectWrap<Query> {
  public:
-  static void Init(v8::Local<v8::Object> exports, v8::Local<v8::External> data_ext);
-  static v8::Local<v8::Value> NewInstance(AddonData* data, TSQuery *);
-  static Query *UnwrapQuery(AddonData* data, const v8::Local<v8::Value> &);
+  static void Init(Napi::Env env, Napi::Object exports);
+  static Query *UnwrapQuery(const Napi::Value &);
 
-  TSQuery *query_;
+  explicit Query(const Napi::CallbackInfo &info);
+  ~Query() final;
 
  private:
-  explicit Query(TSQuery *);
-  ~Query();
+  TSQuery *query_;
 
-  static void New(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void Matches(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void Captures(const Nan::FunctionCallbackInfo<v8::Value> &);
-  static void GetPredicates(const Nan::FunctionCallbackInfo<v8::Value> &);
+  Napi::Value New(const Napi::CallbackInfo &);
+  Napi::Value Matches(const Napi::CallbackInfo &);
+  Napi::Value Captures(const Napi::CallbackInfo &);
+  Napi::Value GetPredicates(const Napi::CallbackInfo &);
+  Napi::Value DisableCapture(const Napi::CallbackInfo &);
+  Napi::Value DisablePattern(const Napi::CallbackInfo &);
+  Napi::Value IsPatternGuaranteedAtStep(const Napi::CallbackInfo &);
+  Napi::Value IsPatternRooted(const Napi::CallbackInfo &);
+  Napi::Value IsPatternNonLocal(const Napi::CallbackInfo &);
+  Napi::Value StartIndexForPattern(const Napi::CallbackInfo &);
+  Napi::Value DidExceedMatchLimit(const Napi::CallbackInfo &);
+  Napi::Value MatchLimit(const Napi::CallbackInfo &);
 };
 
-}  // namespace node_tree_sitter
+} // namespace node_tree_sitter
 
-#endif  // NODE_TREE_SITTER_QUERY_H_
+#endif // NODE_TREE_SITTER_QUERY_H_
