@@ -579,7 +579,7 @@ function assertCursorState(cursor, params) {
   const node = cursor.currentNode
   assert.equal(node.type, params.nodeType);
   assert.equal(node.isNamed, params.nodeIsNamed);
-  assert.equal(node.isMissing(), params.nodeIsMissing);
+  assert.equal(node.isMissing, params.nodeIsMissing);
   assert.deepEqual(node.startPosition, params.startPosition);
   assert.deepEqual(node.endPosition, params.endPosition);
   assert.deepEqual(node.startIndex, params.startIndex);

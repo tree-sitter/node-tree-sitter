@@ -621,7 +621,7 @@ describe("Node", () => {
     });
   });
 
-  describe(".hasError()", () => {
+  describe(".hasError", () => {
     it("returns true if the node contains an error", () => {
       const tree = parser.parse("1 + 2 * * 3");
       const node = tree.rootNode;
@@ -631,14 +631,14 @@ describe("Node", () => {
       );
 
       const sum = node.firstChild.firstChild;
-      assert(sum.hasError());
-      assert(!sum.children[0].hasError());
-      assert(!sum.children[1].hasError());
-      assert(sum.children[2].hasError());
+      assert(sum.hasError);
+      assert(!sum.children[0].hasError);
+      assert(!sum.children[1].hasError);
+      assert(sum.children[2].hasError);
     });
   });
 
-  describe(".isMissing()", () => {
+  describe(".isMissing)", () => {
     it("returns true if the node is missing from the source and was inserted via error recovery", () => {
       const tree = parser.parse("(2 ||)");
       const node = tree.rootNode;
@@ -649,14 +649,14 @@ describe("Node", () => {
 
       const sum = node.firstChild.firstChild.firstNamedChild;
       assert.equal(sum.type, 'binary_expression')
-      assert(sum.hasError());
-      assert(!sum.children[0].isMissing());
-      assert(!sum.children[1].isMissing());
-      assert(sum.children[2].isMissing());
+      assert(sum.hasError);
+      assert(!sum.children[0].isMissing);
+      assert(!sum.children[1].isMissing);
+      assert(sum.children[2].isMissing);
     });
   });
 
-  describe(".isExtra()", () => {
+  describe(".isExtra", () => {
     it("returns true if the node is an extra node like comments", () => {
       const tree = parser.parse("foo(/* hi */);");
       const node = tree.rootNode;
@@ -664,8 +664,8 @@ describe("Node", () => {
 
       assert.equal(node.type, "program");
       assert.equal(comment_node.type, "comment");
-      assert(!node.isExtra());
-      assert(comment_node.isExtra());
+      assert(!node.isExtra);
+      assert(comment_node.isExtra);
     });
   });
 
@@ -907,6 +907,10 @@ describe("Node", () => {
         "type",
         "typeId",
         "isNamed",
+        "isMissing",
+        "hasChanges",
+        "hasError",
+        "isError",
         "text",
         "startPosition",
         "endPosition",
@@ -931,9 +935,6 @@ describe("Node", () => {
       }
 
       const methods = [
-        "hasChanges",
-        "hasError",
-        "isMissing",
         "toString",
         "walk",
         // these take arguments but the "this" check happens first

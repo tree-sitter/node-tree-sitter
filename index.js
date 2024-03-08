@@ -104,9 +104,34 @@ class SyntaxNode {
     return NodeMethods.grammarName(this.tree);
   }
 
+  get isExtra() {
+    marshalNode(this);
+    return NodeMethods.isExtra(this.tree);
+  }
+
   get isNamed() {
     marshalNode(this);
     return NodeMethods.isNamed(this.tree);
+  }
+
+  get isMissing() {
+    marshalNode(this);
+    return NodeMethods.isMissing(this.tree);
+  }
+
+  get hasChanges() {
+    marshalNode(this);
+    return NodeMethods.hasChanges(this.tree);
+  }
+
+  get hasError() {
+    marshalNode(this);
+    return NodeMethods.hasError(this.tree);
+  }
+
+  get isError() {
+    marshalNode(this);
+    return NodeMethods.isError(this.tree);
   }
 
   get text() {
@@ -213,31 +238,6 @@ class SyntaxNode {
   get descendantCount() {
     marshalNode(this);
     return NodeMethods.descendantCount(this.tree);
-  }
-
-  hasChanges() {
-    marshalNode(this);
-    return NodeMethods.hasChanges(this.tree);
-  }
-
-  hasError() {
-    marshalNode(this);
-    return NodeMethods.hasError(this.tree);
-  }
-
-  isMissing() {
-    marshalNode(this);
-    return NodeMethods.isMissing(this.tree);
-  }
-
-  isExtra() {
-    marshalNode(this);
-    return NodeMethods.isExtra(this.tree);
-  }
-
-  isError() {
-    marshalNode(this);
-    return NodeMethods.isError(this.tree);
   }
 
   toString() {
