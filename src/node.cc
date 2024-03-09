@@ -323,7 +323,7 @@ Napi::Value Type(const Napi::CallbackInfo &info) {
   return env.Undefined();
 }
 
-Napi::Value GrammarName(const Napi::CallbackInfo &info) {
+Napi::Value GrammarType(const Napi::CallbackInfo &info) {
   Env env = info.Env();
   const Tree *tree = Tree::UnwrapTree(info[0]);
   TSNode node = UnmarshalNode(env, tree);
@@ -635,24 +635,21 @@ Napi::Value ChildrenForFieldName(const Napi::CallbackInfo &info) {
   }
   std::string field_name = info[1].As<String>().Utf8Value();
 
-  if (!info[2].IsObject()) {
-    throw TypeError::New(env, "Second argument must be a cursor");
-  }
-  TSTreeCursor *cursor = &TreeCursor::Unwrap(info[2].As<Object>())->cursor_;
+  TSTreeCursor cursor = ts_tree_cursor_new(node);
 
   const TSLanguage *language = ts_tree_language(node.tree);
   TSFieldId field_id = ts_language_field_id_for_name(language, field_name.c_str(), field_name.length());
 
   bool done = field_id == 0;
   if (!done) {
-    ts_tree_cursor_reset(cursor, node);
-    ts_tree_cursor_goto_first_child(cursor);
+    ts_tree_cursor_reset(&cursor, node);
+    ts_tree_cursor_goto_first_child(&cursor);
   }
 
   vector<TSNode> result;
   while (!done) {
-    while (ts_tree_cursor_current_field_id(cursor) != field_id) {
-      if (!ts_tree_cursor_goto_next_sibling(cursor)) {
+    while (ts_tree_cursor_current_field_id(&cursor) != field_id) {
+      if (!ts_tree_cursor_goto_next_sibling(&cursor)) {
         done = true;
         break;
       }
@@ -660,8 +657,8 @@ Napi::Value ChildrenForFieldName(const Napi::CallbackInfo &info) {
     if (done) {
       break;
     }
-    TSNode result_node = ts_tree_cursor_current_node(cursor);
-    if (!ts_tree_cursor_goto_next_sibling(cursor)) {
+    TSNode result_node = ts_tree_cursor_current_node(&cursor);
+    if (!ts_tree_cursor_goto_next_sibling(&cursor)) {
       done = true;
     }
     result.push_back(result_node);
@@ -683,21 +680,19 @@ Napi::Value ChildrenForFieldId(const Napi::CallbackInfo &info) {
   }
   uint32_t field_id = info[1].As<Number>().Uint32Value();
 
-  if (!info[2].IsObject()) {
-    throw TypeError::New(env, "Second argument must be a cursor");
-  }
-  TSTreeCursor *cursor = &TreeCursor::Unwrap(info[2].As<Object>())->cursor_;
+
+  TSTreeCursor cursor = ts_tree_cursor_new(node);
 
   bool done = field_id == 0;
   if (!done) {
-    ts_tree_cursor_reset(cursor, node);
-    ts_tree_cursor_goto_first_child(cursor);
+    ts_tree_cursor_reset(&cursor, node);
+    ts_tree_cursor_goto_first_child(&cursor);
   }
 
   vector<TSNode> result;
   while (!done) {
-    while (ts_tree_cursor_current_field_id(cursor) != field_id) {
-      if (!ts_tree_cursor_goto_next_sibling(cursor)) {
+    while (ts_tree_cursor_current_field_id(&cursor) != field_id) {
+      if (!ts_tree_cursor_goto_next_sibling(&cursor)) {
         done = true;
         break;
       }
@@ -705,8 +700,8 @@ Napi::Value ChildrenForFieldId(const Napi::CallbackInfo &info) {
     if (done) {
       break;
     }
-    TSNode result_node = ts_tree_cursor_current_node(cursor);
-    if (!ts_tree_cursor_goto_next_sibling(cursor)) {
+    TSNode result_node = ts_tree_cursor_current_node(&cursor);
+    if (!ts_tree_cursor_goto_next_sibling(&cursor)) {
       done = true;
     }
     result.push_back(result_node);
@@ -998,7 +993,7 @@ void Init(Napi::Env env, Napi::Object exports) {
     {"typeId", TypeId},
     {"grammarId", GrammarId},
     {"type", Type},
-    {"grammarName", GrammarName},
+    {"grammarType", GrammarType},
     {"isNamed", IsNamed},
     {"isExtra", IsExtra},
     {"hasChanges", HasChanges},

@@ -207,14 +207,14 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
   }
 
   TSQuery *ts_query = query->query_;
-  TSNode rootNode = node_methods::UnmarshalNode(env, tree);
+  TSNode root_node = node_methods::UnmarshalNode(env, tree);
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
   ts_query_cursor_set_point_range(data->ts_query_cursor, start_point, end_point);
   ts_query_cursor_set_byte_range(data->ts_query_cursor, start_index, end_index);
   ts_query_cursor_set_match_limit(data->ts_query_cursor, match_limit);
   ts_query_cursor_set_max_start_depth(data->ts_query_cursor, max_start_depth);
-  ts_query_cursor_exec(data->ts_query_cursor, ts_query, rootNode);
+  ts_query_cursor_exec(data->ts_query_cursor, ts_query, root_node);
 
   Array js_matches = Array::New(env);
   unsigned index = 0;
@@ -252,21 +252,33 @@ Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
   auto *data = env.GetInstanceData<AddonData>();
   Query *query = Query::UnwrapQuery(info.This());
   const Tree *tree = Tree::UnwrapTree(info[0]);
-  uint32_t start_row = 0;
+
+  uint32_t start_row = 0, start_column = 0, end_row = 0, end_column = 0, start_index = 0, end_index = 0,
+             match_limit = UINT32_MAX, max_start_depth = UINT32_MAX;
+
   if (info.Length() > 1 && info[1].IsNumber()) {
     start_row = info[1].As<Number>().Uint32Value();
   }
-  uint32_t start_column = 0;
   if (info.Length() > 2 && info[2].IsNumber()) {
     start_column = info[2].As<Number>().Uint32Value() << 1;
   }
-  uint32_t end_row = 0;
   if (info.Length() > 3 && info[3].IsNumber()) {
     end_row = info[3].As<Number>().Uint32Value();
   }
-  uint32_t end_column = 0;
   if (info.Length() > 4 && info[4].IsNumber()) {
     end_column = info[4].As<Number>().Uint32Value() << 1;
+  }
+  if (info.Length() > 5 && info[5].IsNumber()) {
+    start_index = info[5].As<Number>().Uint32Value();
+  }
+  if (info.Length() > 6 && info[6].IsNumber()) {
+    end_index = info[6].As<Number>().Uint32Value() << 1;
+  }
+  if (info.Length() > 7 && info[7].IsNumber()) {
+    match_limit = info[7].As<Number>().Uint32Value();
+  }
+  if (info.Length() > 8 && info[8].IsNumber()) {
+    max_start_depth = info[8].As<Number>().Uint32Value();
   }
 
   if (query == nullptr) {
@@ -278,11 +290,14 @@ Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
   }
 
   TSQuery *ts_query = query->query_;
-  TSNode rootNode = node_methods::UnmarshalNode(env, tree);
+  TSNode root_node = node_methods::UnmarshalNode(env, tree);
   TSPoint start_point = {start_row, start_column};
   TSPoint end_point = {end_row, end_column};
   ts_query_cursor_set_point_range(data->ts_query_cursor, start_point, end_point);
-  ts_query_cursor_exec(data->ts_query_cursor, ts_query, rootNode);
+  ts_query_cursor_set_byte_range(data->ts_query_cursor, start_index, end_index);
+  ts_query_cursor_set_match_limit(data->ts_query_cursor, match_limit);
+  ts_query_cursor_set_max_start_depth(data->ts_query_cursor, max_start_depth);
+  ts_query_cursor_exec(data->ts_query_cursor, ts_query, root_node);
 
   Array js_matches = Array::New(env);
   unsigned index = 0;

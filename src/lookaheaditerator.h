@@ -23,10 +23,9 @@ class LookaheadIterator final : public Napi::ObjectWrap<LookaheadIterator> {
   Napi::Value Reset(const Napi::CallbackInfo &);
   Napi::Value ResetState(const Napi::CallbackInfo &);
   Napi::Value Next(const Napi::CallbackInfo &);
-  Napi::Value IterNames(const Napi::CallbackInfo &);
 
-  Napi::Value CurrentSymbol(const Napi::CallbackInfo &);
-  Napi::Value CurrentSymbolName(const Napi::CallbackInfo &);
+  Napi::Value CurrentTypeId(const Napi::CallbackInfo &);
+  Napi::Value CurrentType(const Napi::CallbackInfo &);
 };
 
 } // namespace node_tree_sitter

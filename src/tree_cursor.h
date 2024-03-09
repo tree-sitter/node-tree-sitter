@@ -35,6 +35,8 @@ class TreeCursor final : public Napi::ObjectWrap<TreeCursor> {
   Napi::Value ResetTo(const Napi::CallbackInfo &);
 
   Napi::Value NodeType(const Napi::CallbackInfo &);
+  Napi::Value NodeTypeId(const Napi::CallbackInfo &);
+  Napi::Value NodeStateId(const Napi::CallbackInfo &);
   Napi::Value NodeIsNamed(const Napi::CallbackInfo &);
   Napi::Value NodeIsMissing(const Napi::CallbackInfo &);
   Napi::Value CurrentFieldId(const Napi::CallbackInfo &);

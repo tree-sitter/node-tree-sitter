@@ -278,8 +278,7 @@ describe("Node", () => {
       const tree = parser.parse(source);
       const node = tree.rootNode.firstChild;
       assert.equal(node.type, 'if_statement');
-      const cursor = tree.walk();
-      const alternatives = node.childrenForFieldName('alternative', cursor);
+      const alternatives = node.childrenForFieldName('alternative');
       const alternative_texts = alternatives.map(n => {
         const condition = n.childForFieldName('condition');
         return source.slice(condition.startIndex, condition.endIndex);
@@ -638,7 +637,7 @@ describe("Node", () => {
     });
   });
 
-  describe(".isMissing)", () => {
+  describe(".isMissing", () => {
     it("returns true if the node is missing from the source and was inserted via error recovery", () => {
       const tree = parser.parse("(2 ||)");
       const node = tree.rootNode;

@@ -21,18 +21,21 @@ describe("LookaheadIterator", () => {
       assert.notEqual(nextState, 0);
       assert(cursor.gotoNextSibling()); // type_identifier
       assert.equal(nextState, cursor.currentNode.parseState);
-      assert.equal(cursor.currentNode.grammarName, "identifier");
+      assert.equal(cursor.currentNode.grammarType, "identifier");
       assert.notEqual(cursor.currentNode.grammarId, cursor.currentNode.typeId);
 
       const expectedSymbols = ["//", "/*", "identifier", "line_comment", "block_comment"]
       const lookahead = new LookaheadIterator(Rust, nextState);
-      assert.deepEqual(lookahead.iterNames(), expectedSymbols);
+      let symbols = Array.from(lookahead);
+      assert.deepEqual(symbols, expectedSymbols);
 
       assert(lookahead.resetState(nextState));
-      assert.deepEqual(lookahead.iterNames(), expectedSymbols);
+      symbols = Array.from(lookahead);
+      assert.deepEqual(symbols, expectedSymbols);
 
       assert(lookahead.reset(Rust, nextState));
-      assert.deepEqual(lookahead.iterNames(), expectedSymbols);
+      symbols = Array.from(lookahead);
+      assert.deepEqual(symbols, expectedSymbols);
     });
   });
 });
