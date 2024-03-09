@@ -13,13 +13,12 @@ void LookaheadIterator::Init(Napi::Env env, Napi::Object exports) {
   auto *data = env.GetInstanceData<AddonData>();
 
   Function ctor = DefineClass(env, "LookaheadIterator", {
-    InstanceAccessor("currentSymbol", &LookaheadIterator::CurrentSymbol, nullptr, napi_default_method),
-    InstanceAccessor("currentSymbolName", &LookaheadIterator::CurrentSymbolName, nullptr, napi_default_method),
+    InstanceAccessor("currentTypeId", &LookaheadIterator::CurrentTypeId, nullptr, napi_default_method),
+    InstanceAccessor("currentType", &LookaheadIterator::CurrentType, nullptr, napi_default_method),
 
     InstanceMethod("reset", &LookaheadIterator::Reset, napi_default_method),
     InstanceMethod("resetState", &LookaheadIterator::ResetState, napi_default_method),
-    InstanceMethod("next", &LookaheadIterator::Next, napi_default_method),
-    InstanceMethod("iterNames", &LookaheadIterator::IterNames, napi_default_method),
+    InstanceMethod("_next", &LookaheadIterator::Next, napi_default_method),
   });
 
   exports["LookaheadIterator"] = ctor;
@@ -75,12 +74,12 @@ LookaheadIterator *LookaheadIterator::UnwrapLookaheadIterator(const Napi::Value 
   return LookaheadIterator::Unwrap(js_iterator);
 }
 
-Napi::Value LookaheadIterator::CurrentSymbolName(const Napi::CallbackInfo &info) {
+Napi::Value LookaheadIterator::CurrentType(const Napi::CallbackInfo &info) {
   LookaheadIterator *iterator = UnwrapLookaheadIterator(info.This());
   return Napi::String::New(info.Env(), ts_lookahead_iterator_current_symbol_name(iterator->iterator_));
 }
 
-Napi::Value LookaheadIterator::CurrentSymbol(const Napi::CallbackInfo &info) {
+Napi::Value LookaheadIterator::CurrentTypeId(const Napi::CallbackInfo &info) {
   LookaheadIterator *iterator = UnwrapLookaheadIterator(info.This());
   return Napi::Number::New(info.Env(), ts_lookahead_iterator_current_symbol(iterator->iterator_));
 }
@@ -118,18 +117,6 @@ Napi::Value LookaheadIterator::ResetState(const Napi::CallbackInfo &info) {
 Napi::Value LookaheadIterator::Next(const Napi::CallbackInfo &info) {
   LookaheadIterator *iterator = UnwrapLookaheadIterator(info.This());
   return Napi::Boolean::New(info.Env(), ts_lookahead_iterator_next(iterator->iterator_));
-}
-
-Napi::Value LookaheadIterator::IterNames(const Napi::CallbackInfo &info) {
-  LookaheadIterator *iterator = UnwrapLookaheadIterator(info.This());
-  auto result = Napi::Array::New(info.Env());
-
-  while (ts_lookahead_iterator_next(iterator->iterator_)) {
-    const char *name = ts_lookahead_iterator_current_symbol_name(iterator->iterator_);
-    result.Set(result.Length(), Napi::String::New(info.Env(), name));
-  }
-
-  return result;
 }
 
 } // namespace node_tree_sitter

@@ -17,6 +17,8 @@ void TreeCursor::Init(Napi::Env env, Napi::Object exports) {
     InstanceAccessor("startIndex", &TreeCursor::StartIndex, nullptr, napi_default_method),
     InstanceAccessor("endIndex", &TreeCursor::EndIndex, nullptr, napi_default_method),
     InstanceAccessor("nodeType", &TreeCursor::NodeType, nullptr, napi_default_method),
+    InstanceAccessor("nodeTypeId", &TreeCursor::NodeTypeId, nullptr, napi_default_method),
+    InstanceAccessor("nodeStateId", &TreeCursor::NodeStateId, nullptr, napi_default_method),
     InstanceAccessor("nodeIsNamed", &TreeCursor::NodeIsNamed, nullptr, napi_default_method),
     InstanceAccessor("nodeIsMissing", &TreeCursor::NodeIsMissing, nullptr, napi_default_method),
     InstanceAccessor("currentFieldId", &TreeCursor::CurrentFieldId, nullptr, napi_default_method),
@@ -152,6 +154,16 @@ Napi::Value TreeCursor::ResetTo(const Napi::CallbackInfo &info) {
 Napi::Value TreeCursor::NodeType(const Napi::CallbackInfo &info) {
   TSNode node = ts_tree_cursor_current_node(&cursor_);
   return String::New(info.Env(), ts_node_type(node));;
+}
+
+Napi::Value TreeCursor::NodeTypeId(const Napi::CallbackInfo &info) {
+  TSNode node = ts_tree_cursor_current_node(&cursor_);
+  return Number::New(info.Env(), static_cast<double>(ts_node_symbol(node)));
+}
+
+Napi::Value TreeCursor::NodeStateId(const Napi::CallbackInfo &info) {
+  TSNode node = ts_tree_cursor_current_node(&cursor_);
+  return Number::New(info.Env(), static_cast<double>(ts_node_parse_state(node)));
 }
 
 Napi::Value TreeCursor::NodeIsNamed(const Napi::CallbackInfo &info) {

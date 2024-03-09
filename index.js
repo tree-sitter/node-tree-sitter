@@ -99,9 +99,9 @@ class SyntaxNode {
     return NodeMethods.type(this.tree);
   }
 
-  get grammarName() {
+  get grammarType() {
     marshalNode(this);
-    return NodeMethods.grammarName(this.tree);
+    return NodeMethods.grammarType(this.tree);
   }
 
   get isExtra() {
@@ -270,9 +270,9 @@ class SyntaxNode {
     return NodeMethods.fieldNameForChild(this.tree, childIndex);
   }
 
-  childrenForFieldName(fieldName, cursor) {
+  childrenForFieldName(fieldName) {
     marshalNode(this);
-    return unmarshalNodes(NodeMethods.childrenForFieldName(this.tree, fieldName, cursor), this.tree);
+    return unmarshalNodes(NodeMethods.childrenForFieldName(this.tree, fieldName), this.tree);
   }
 
   childrenForFieldId(fieldId) {
@@ -330,6 +330,7 @@ class SyntaxNode {
     marshalNode(this);
     const cursor = NodeMethods.walk(this.tree);
     cursor.tree = this.tree;
+    unmarshalNode(cursor.currentNode, this.tree);
     return cursor;
   }
 }
@@ -352,7 +353,7 @@ Parser.prototype.setLanguage = function(language) {
   return this;
 };
 
-Parser.prototype.getLanguage = function(language) {
+Parser.prototype.getLanguage = function(_language) {
   return this[languageSymbol] || null;
 };
 
@@ -360,7 +361,7 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
   let getText, treeInput = input
   if (typeof input === 'string') {
     const inputString = input;
-    input = (offset, position) => inputString.slice(offset)
+    input = (offset, _position) => inputString.slice(offset)
     getText = getTextFromString
   } else {
     getText = getTextFromFunction
@@ -387,7 +388,7 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
  * TreeCursor
  */
 
-const {startPosition, endPosition, currentNode, reset} = TreeCursor.prototype;
+const {startPosition, endPosition, currentNode} = TreeCursor.prototype;
 
 Object.defineProperties(TreeCursor.prototype, {
   currentNode: {
@@ -423,13 +424,6 @@ Object.defineProperties(TreeCursor.prototype, {
     configurable: true
   }
 });
-
-TreeCursor.prototype.reset = function(node) {
-  marshalNode(node);
-  if (this instanceof TreeCursor && reset) {
-    reset.call(this);
-  }
-}
 
 /*
  * Query
@@ -627,7 +621,7 @@ Query.prototype._init = function() {
 }
 
 Query.prototype.matches = function(
-  rootNode,
+  node,
   {
     startPosition = ZERO_POINT,
     endPosition = ZERO_POINT,
@@ -637,13 +631,13 @@ Query.prototype.matches = function(
     maxStartDepth = 0xFFFFFFFF
   } = {}
 ) {
-  marshalNode(rootNode);
-  const [returnedMatches, returnedNodes] = _matches.call(this, rootNode.tree,
+  marshalNode(node);
+  const [returnedMatches, returnedNodes] = _matches.call(this, node.tree,
     startPosition.row, startPosition.column,
     endPosition.row, endPosition.column,
     startIndex, endIndex, matchLimit, maxStartDepth
   );
-  const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
+  const nodes = unmarshalNodes(returnedNodes, node.tree);
   const results = [];
 
   let i = 0
@@ -675,13 +669,24 @@ Query.prototype.matches = function(
   return results;
 }
 
-Query.prototype.captures = function(rootNode, startPosition = ZERO_POINT, endPosition = ZERO_POINT) {
-  marshalNode(rootNode);
-  const [returnedMatches, returnedNodes] = _captures.call(this, rootNode.tree,
+Query.prototype.captures = function(
+  node,
+  {
+    startPosition = ZERO_POINT,
+    endPosition = ZERO_POINT,
+    startIndex = 0,
+    endIndex = 0,
+    matchLimit = 0xFFFFFFFF,
+    maxStartDepth = 0xFFFFFFFF
+  } = {}
+) {
+  marshalNode(node);
+  const [returnedMatches, returnedNodes] = _captures.call(this, node.tree,
     startPosition.row, startPosition.column,
-    endPosition.row, endPosition.column
+    endPosition.row, endPosition.column,
+    startIndex, endIndex, matchLimit, maxStartDepth
   );
-  const nodes = unmarshalNodes(returnedNodes, rootNode.tree);
+  const nodes = unmarshalNodes(returnedNodes, node.tree);
   const results = [];
 
   let i = 0
@@ -715,6 +720,23 @@ Query.prototype.captures = function(rootNode, startPosition = ZERO_POINT, endPos
 }
 
 /*
+ * LookaheadIterator
+ */
+
+LookaheadIterator.prototype[Symbol.iterator] = function() {
+  const self = this;
+  return {
+    next() {
+      if (self._next()) {
+        return {done: false, value: self.currentType};
+      }
+
+      return {done: true, value: ''};
+    },
+  };
+}
+
+/*
  * Other functions
  */
 
@@ -730,7 +752,7 @@ function getTextFromFunction ({startIndex, endIndex}) {
     const text = input(startIndex + result.length);
     result += text;
   }
-  return result.substr(0, goalLength);
+  return result.slice(0, goalLength);
 }
 
 const {pointTransferArray} = binding;
@@ -869,7 +891,7 @@ function initializeLanguageNodeClasses(language) {
 }
 
 function camelCase(name, upperCase) {
-  name = name.replace(/_(\w)/g, (match, letter) => letter.toUpperCase());
+  name = name.replace(/_(\w)/g, (_match, letter) => letter.toUpperCase());
   if (upperCase) name = name[0].toUpperCase() + name.slice(1);
   return name;
 }

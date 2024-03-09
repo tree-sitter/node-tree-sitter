@@ -1,18 +1,22 @@
 declare module "tree-sitter" {
   class Parser {
-    parse(input: string | Parser.Input | Parser.InputReader, oldTree?: Parser.Tree, options?: { bufferSize?: number, includedRanges?: Parser.Range[] }): Parser.Tree;
+    parse(input: string | Parser.Input, oldTree?: Parser.Tree, options?: Parser.Options): Parser.Tree;
     getIncludedRanges(): Parser.Range[];
     getTimeoutMicros(): number;
     setTimeoutMicros(timeout: number): void;
-    getLanguage(): any;
-    setLanguage(language: any): void;
-    getLogger(): Parser.Logger;
-    setLogger(logFunc: Parser.Logger): void;
-    printDotGraphs(enabled?: boolean, fd?: number): void;
     reset(): void;
+    getLanguage(): any;
+    setLanguage(language?: any): void;
+    getLogger(): Parser.Logger;
+    setLogger(logFunc?: Parser.Logger | false | null): void;
+    printDotGraphs(enabled?: boolean, fd?: number): void;
   }
 
   namespace Parser {
+    export type Options = {
+      bufferSize?: number, includedRanges?: Range[];
+    };
+
     export type Point = {
       row: number;
       column: number;
@@ -36,17 +40,12 @@ declare module "tree-sitter" {
 
     export type Logger = (
       message: string,
-      params: {[param: string]: string},
+      params: { [param: string]: string },
       type: "parse" | "lex"
     ) => void;
 
-    export interface InputReader {
-      (index: any, position: Point): string;
-    }
-
     export interface Input {
-      seek(index: number): void;
-      read(): any;
+      (index: number, position?: Point): string | null;
     }
 
     export interface SyntaxNode {
@@ -55,9 +54,16 @@ declare module "tree-sitter" {
       typeId: number;
       grammarId: number;
       type: string;
-      grammarName: string;
+      grammarType: string;
       isNamed: boolean;
+      isMissing: boolean;
+      isExtra: boolean;
+      hasChanges: boolean;
+      hasError: boolean;
+      isError: boolean;
       text: string;
+      parseState: number;
+      nextParseState: number;
       startPosition: Point;
       endPosition: Point;
       startIndex: number;
@@ -75,15 +81,8 @@ declare module "tree-sitter" {
       nextNamedSibling: SyntaxNode | null;
       previousSibling: SyntaxNode | null;
       previousNamedSibling: SyntaxNode | null;
-      parseState: number;
-      nextParseState: number;
       descendantCount: number;
 
-      hasChanges(): boolean;
-      hasError(): boolean;
-      isMissing(): boolean;
-      isExtra(): boolean;
-      isError(): boolean;
       toString(): string;
       child(index: number): SyntaxNode | null;
       namedChild(index: number): SyntaxNode | null;
@@ -111,6 +110,8 @@ declare module "tree-sitter" {
 
     export interface TreeCursor {
       nodeType: string;
+      nodeTypeId: number;
+      nodeStateId: number;
       nodeText: string;
       nodeIsNamed: boolean;
       nodeIsMissing: boolean;
@@ -124,8 +125,8 @@ declare module "tree-sitter" {
       readonly currentDepth: number;
       readonly currentDescendantIndex: number;
 
-      reset(node: SyntaxNode): void
-      resetTo(other: TreeCursor): void;
+      reset(node: SyntaxNode): void;
+      resetTo(cursor: TreeCursor): void;
       gotoParent(): boolean;
       gotoFirstChild(): boolean;
       gotoLastChild(): boolean;
@@ -133,7 +134,7 @@ declare module "tree-sitter" {
       gotoFirstChildForPosition(goalPosition: Point): boolean;
       gotoNextSibling(): boolean;
       gotoPreviousSibling(): boolean;
-      gotoDescendant(goalDescendantIndex: number): boolean;
+      gotoDescendant(goalDescendantIndex: number): void;
     }
 
     export interface Tree {
@@ -148,18 +149,32 @@ declare module "tree-sitter" {
       printDotGraph(fd?: number): void;
     }
 
-    export interface QueryMatch {
-      pattern: number,
-      captures: QueryCapture[],
+    export interface QueryCapture {
+      name: string;
+      text?: string;
+      node: SyntaxNode;
+      setProperties?: { [prop: string]: string | null };
+      assertedProperties?: { [prop: string]: string | null };
+      refutedProperties?: { [prop: string]: string | null };
     }
 
-    export interface QueryCapture {
-      name: string,
-      text?: string,
-      node: SyntaxNode,
-      setProperties?: {[prop: string]: string | null},
-      assertedProperties?: {[prop: string]: string | null},
-      refutedProperties?: {[prop: string]: string | null},
+    export interface QueryMatch {
+      pattern: number;
+      captures: QueryCapture[];
+    }
+
+    export type QueryOptions = {
+      startPosition?: Point;
+      endPosition?: Point;
+      startIndex?: number;
+      endIndex?: number;
+      matchLimit?: number;
+      maxStartDepth?: number;
+    };
+
+    export interface PredicateResult {
+      operator: string;
+      operands: { name: string; type: string }[];
     }
 
     export class Query {
@@ -169,33 +184,10 @@ declare module "tree-sitter" {
       readonly refutedProperties: any[];
       readonly matchLimit: number;
 
-      constructor(
-        language: any,
-        source: string | Buffer,
-      );
+      constructor(language: any, source: string | Buffer);
 
-      matches(
-        rootNode: SyntaxNode,
-        options?: {
-          startPosition?: Point;
-          endPosition?: Point;
-          startIndex?: number;
-          endIndex?: number;
-          matchLimit?: number;
-          maxStartDepth?: number;
-        }
-      ): QueryMatch[];
-      captures(
-        rootNode: SyntaxNode,
-        options?: {
-          startPosition?: Point;
-          endPosition?: Point;
-          startIndex?: number;
-          endIndex?: number;
-          matchLimit?: number;
-          maxStartDepth?: number;
-        }
-      ): QueryCapture[];
+      captures(node: SyntaxNode, options?: QueryOptions): QueryCapture[];
+      matches(node: SyntaxNode, options?: QueryOptions): QueryMatch[];
       disableCapture(captureName: string): void;
       disablePattern(patternIndex: number): void;
       isPatternGuaranteedAtStep(byteOffset: number): boolean;
@@ -205,14 +197,13 @@ declare module "tree-sitter" {
       didExceedMatchLimit(): boolean;
     }
 
-    export class LookaheadIterator {
-      readonly currentSymbol: number;
-      readonly currentSymbolName: string;
+    export class LookaheadIterable {
+      readonly currentTypeId: number;
+      readonly currentType: string;
 
-      reset(language: any, state: number): boolean;
-      resetState(state: number): boolean;
-      next(): number;
-      iterNames(): string[];
+      reset(language: any, stateId: number): boolean;
+      resetState(stateId: number): boolean;
+      [Symbol.iterator](): Iterator<string>;
     }
   }
 
