@@ -1,29 +1,43 @@
 {
   "name": "tree-sitter",
-  "version": "0.20.6",
+  "version": "0.21.0",
   "description": "Incremental parsers for node",
   "author": "Max Brunsfeld",
+  "contributors": [
+    "Segev Finer",
+    "Boris Verkhovskiy",
+    "Amaan Qureshi"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "http://github.com/tree-sitter/node-tree-sitter.git"
   },
   "keywords": [
-    "parser",
-    "lexer"
+    "incremental",
+    "parsing",
+    "tree-sitter"
   ],
   "main": "index.js",
   "types": "tree-sitter.d.ts",
+  "files": [
+    "binding.gyp",
+    "tree-sitter.d.ts",
+    "prebuilds/*",
+    "src/*",
+    "vendor/tree-sitter/lib/include/*",
+    "vendor/tree-sitter/lib/src/*"
+  ],
   "dependencies": {
     "node-addon-api": "^7.1.0",
-    "prebuild-install": "^7.1.1"
+    "node-gyp-build": "^4.8.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.16",
     "chai": "^4.3.10",
     "mocha": "^8.4.0",
     "node-gyp": "^10.0.1",
-    "prebuild": "^13.0.0",
+    "prebuildify": "^6.0.0",
     "tmp": "^0.2.1",
     "tree-sitter-c": "github:amaanq/tree-sitter-c#napi",
     "tree-sitter-embedded-template": "github:tree-sitter/tree-sitter-embedded-template#napi",
@@ -32,17 +46,16 @@
     "tree-sitter-javascript": "github:amaanq/tree-sitter-javascript#napi",
     "tree-sitter-json": "github:tree-sitter/tree-sitter-json#napi",
     "tree-sitter-python": "github:amaanq/tree-sitter-python#napi",
-    "tree-sitter-rust": "github:amaanq/tree-sitter-rust#napi",
-    "tree-sitter-ruby": "github:tree-sitter/tree-sitter-ruby#napi"
+    "tree-sitter-ruby": "github:tree-sitter/tree-sitter-ruby#napi",
+    "tree-sitter-rust": "github:amaanq/tree-sitter-rust#napi"
   },
   "scripts": {
-    "install": "prebuild-install -r napi || node-gyp rebuild",
-    "build": "node-gyp build",
+    "install": "node-gyp-build",
+    "build": "prebuildify --napi --strip",
+    "rebuild": "node-gyp rebuild",
     "test": "mocha"
   },
-  "binary": {
-    "napi_versions": [
-      8
-    ]
+  "publishConfig": {
+    "access": "public"
   }
 }
