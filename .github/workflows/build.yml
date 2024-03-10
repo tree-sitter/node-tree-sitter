@@ -4,25 +4,25 @@ on:
   push:
     branches:
       - master
+    tags:
+      - v*
   pull_request:
     branches:
       - master
-  release:
-    types:
-      - released
 
-env:
-  PREBUILD_CMD: npx prebuild -r napi --all --strip -u ${{ secrets.GH_TOKEN }}
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
+
 
 jobs:
-
   test:
     strategy:
       matrix:
         os:
-          - windows-2019
+          - windows-2022
           - macos-14
-          - ubuntu-20.04
+          - ubuntu-22.04
         node:
           - 18
           - 20
@@ -37,15 +37,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-
       - run: npm install
+      - run: npm run build -- --arch x64
+      - if: runner.os == 'macOS'
+        run: npm run build -- --arch arm64
       - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: github.ref_type == 'tag' && matrix.node == 20
+        with:
+          path: prebuilds/**
+          name: prebuilds-${{matrix.os}}
+          retention-days: 2
 
   publish:
-    if: ${{ github.event_name == 'release' }}
+    if: github.ref_type == 'tag'
     name: Publish to npm
-    runs-on: ubuntu-20.04
-    needs: test
+    runs-on: ubuntu-22.04
+    needs: [test]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,31 +63,13 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
+        with:
+          path: prebuilds
+          pattern: prebuilds-*
+          merge-multiple: true
+      - run: tree prebuilds
       - run: npm install
-      - run: npm publish --access public
+      - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  prebuild:
-    strategy:
-      matrix:
-        os:
-          - windows-2019
-          - macos-14
-          - ubuntu-20.04
-      fail-fast: false
-    name: Prebuild for ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    needs: publish
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm install
-      - run: ${{ env.PREBUILD_CMD }}
-      - if: runner.os == 'macOS'
-        run: ${{ env.PREBUILD_CMD }} --arch arm64
