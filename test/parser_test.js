@@ -345,18 +345,24 @@ describe("Parser", () => {
         assert.equal(scriptContentNode.type, "raw_text");
 
         parser.setLanguage(JavaScript);
+        assert.deepEqual(parser.getIncludedRanges(), [{
+          startIndex: 0,
+          endIndex: 2147483647,
+          startPosition: { row: 0, column: 0 },
+          endPosition: { row: 4294967295, column: 2147483647 },
+        }]);
+        const ranges = [{
+          startIndex: scriptContentNode.startIndex,
+          endIndex: scriptContentNode.endIndex,
+          startPosition: scriptContentNode.startPosition,
+          endPosition: scriptContentNode.endPosition
+        }];
         const jsTree = parser.parse(
           sourceCode,
           null,
-          {
-            includedRanges: [{
-              startIndex: scriptContentNode.startIndex,
-              endIndex: scriptContentNode.endIndex,
-              startPosition: scriptContentNode.startPosition,
-              endPosition: scriptContentNode.endPosition
-            }]
-          }
+          { includedRanges: ranges }
         );
+        assert.deepEqual(parser.getIncludedRanges(), ranges);
 
         assert.equal(
           jsTree.rootNode.toString(),

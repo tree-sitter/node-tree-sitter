@@ -141,7 +141,7 @@ declare module "tree-sitter" {
       readonly rootNode: SyntaxNode;
 
       rootNodeWithOffset(offsetBytes: number, offsetExtent: Point): SyntaxNode;
-      edit(delta: Edit): Tree;
+      edit(edit: Edit): Tree;
       walk(): TreeCursor;
       getChangedRanges(other: Tree): Range[];
       getIncludedRanges(): Range[];
