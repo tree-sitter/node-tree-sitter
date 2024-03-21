@@ -29,16 +29,16 @@
     "vendor/tree-sitter/lib/src/*"
   ],
   "dependencies": {
-    "node-addon-api": "^7.1.0",
+    "node-addon-api": "^8.0.0",
     "node-gyp-build": "^4.8.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.16",
+    "@types/node": "^20.11.30",
     "chai": "^4.3.10",
     "mocha": "^8.4.0",
     "node-gyp": "^10.0.1",
     "prebuildify": "^6.0.0",
-    "tmp": "^0.2.1",
+    "tmp": "^0.2.3",
     "tree-sitter-c": "github:amaanq/tree-sitter-c#napi",
     "tree-sitter-embedded-template": "github:tree-sitter/tree-sitter-embedded-template#napi",
     "tree-sitter-html": "github:amaanq/tree-sitter-html#napi",
