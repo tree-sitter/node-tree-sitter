@@ -248,7 +248,6 @@ describe("Parser", () => {
       it('stops after a certain number of microseconds', () => {
         parser.setLanguage(JSON);
 
-        // dont use Date.now(), we need microseconds
         let startTime = performance.now() * 1000;
         parser.setTimeoutMicros(1000);
         let tree = parser.parse((offset, _) => offset === 0 ? " [" : ",0");
