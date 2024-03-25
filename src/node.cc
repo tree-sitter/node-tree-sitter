@@ -61,7 +61,10 @@ Napi::Value GetMarshalNodes(const Napi::CallbackInfo &info,
   for (unsigned i = 0; i < node_count; i++) {
     TSNode node = nodes[i];
     const auto &cache_entry = tree->cached_nodes_.find(node.id);
-    if (cache_entry == tree->cached_nodes_.end()) {
+    Napi::Value value;
+    if (cache_entry != tree->cached_nodes_.end() && (value = cache_entry->second->node.Value(), !value.IsEmpty())) {
+      result[i] = value;
+    } else {
       MarshalNodeId(node.id, p);
       p += 2;
       *(p++) = node.context[0];
@@ -73,8 +76,6 @@ Napi::Value GetMarshalNodes(const Napi::CallbackInfo &info,
       } else {
         result[i] = env.Null();
       }
-    } else {
-      result[i] = cache_entry->second->node.Value();
     }
   }
   return result;
@@ -84,7 +85,10 @@ Napi::Value GetMarshalNode(const Napi::CallbackInfo &info, const Tree *tree, TSN
   Env env = info.Env();
   auto* data = env.GetInstanceData<AddonData>();
   const auto &cache_entry = tree->cached_nodes_.find(node.id);
-  if (cache_entry == tree->cached_nodes_.end()) {
+  Napi::Value value;
+  if (cache_entry != tree->cached_nodes_.end() && (value = cache_entry->second->node.Value(), !value.IsEmpty())) {
+    return value;
+  } else {
     setup_transfer_buffer(env, 1);
     uint32_t *p = data->transfer_buffer;
     MarshalNodeId(node.id, p);
@@ -96,8 +100,6 @@ Napi::Value GetMarshalNode(const Napi::CallbackInfo &info, const Tree *tree, TSN
     if (node.id != nullptr) {
       return Number::New(env, ts_node_symbol(node));
     }
-  } else {
-    return cache_entry->second->node.Value();
   }
   return env.Null();
 }
