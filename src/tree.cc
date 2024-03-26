@@ -102,6 +102,9 @@ Napi::Value Tree::Edit(const Napi::CallbackInfo &info) {
 
   for (auto &entry : cached_nodes_) {
     Object js_node = entry.second->node.Value();
+    if (js_node.IsEmpty()) {
+      continue;
+    }
     TSNode node;
     node.id = entry.first;
     for (unsigned i = 0; i < 4; i++) {
@@ -256,11 +259,14 @@ void CacheNodeForTree(Tree *tree, Napi::Env _env, Object js_node) {
   };
   const void *key = UnmarshalNodeId(key_parts);
 
-  auto *cache_entry = new Tree::NodeCacheEntry{tree, key, {}};
-  cache_entry->node.Reset(js_node, 0);
-  js_node.AddFinalizer(&FinalizeNode, cache_entry);
+  // A Node could have been garbage collected but the finalizer has not yet run to remove its cache entry
+  if (tree->cached_nodes_.count(key)) {
+    return;
+  }
 
-  assert(!tree->cached_nodes_.count(key));
+  auto *cache_entry = new Tree::NodeCacheEntry{tree, key, {}};
+  cache_entry->node = Napi::Weak(js_node);
+  js_node.AddFinalizer(&FinalizeNode, cache_entry);
 
   tree->cached_nodes_[key] = cache_entry;
 }
