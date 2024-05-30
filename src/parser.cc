@@ -24,6 +24,11 @@ class CallbackInput final {
     }
   }
 
+  ~CallbackInput() {
+    callback.Reset();
+    partial_string.Reset();
+  }
+
   TSInput Input() {
     TSInput result;
     result.payload = static_cast<void *>(this);
