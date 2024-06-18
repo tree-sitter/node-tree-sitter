@@ -121,10 +121,10 @@ TSNode UnmarshalNode(Napi::Env env, const Tree *tree) {
 }
 
 struct SymbolSet {
-  void add(TSSymbol symbol) { symbols += symbol; }
-  [[nodiscard]] bool contains(TSSymbol symbol) const { return symbols.find(symbol) != symbols.npos; }
+  void add(TSSymbol symbol) { symbols.push_back(symbol); }
+  [[nodiscard]] bool contains(TSSymbol symbol) const { return std::find(symbols.begin(), symbols.end(), symbol) != symbols.end(); }
  private:
-  std::basic_string<TSSymbol> symbols;
+  std::vector<TSSymbol> symbols;
 };
 
 void symbol_set_from_js(SymbolSet *symbols, const Napi::Value &value, const TSLanguage *language) {
