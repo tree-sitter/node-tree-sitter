@@ -231,7 +231,16 @@ Napi::Value Tree::GetEditedRange(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value Tree::PrintDotGraph(const Napi::CallbackInfo &info) {
-  ts_tree_print_dot_graph(tree_, fileno(stderr));
+  int fd = fileno(stderr);
+
+  if (info.Length() > 1) {
+    if (!info[1].IsNumber()) {
+      throw TypeError::New(info.Env(), "Second argument must be a number");
+    }
+    fd = info[1].As<Number>().Int32Value();
+  }
+
+  ts_tree_print_dot_graph(tree_, fd);
   return info.This();
 }
 
