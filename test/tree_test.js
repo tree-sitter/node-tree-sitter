@@ -562,6 +562,30 @@ describe("Tree", () => {
       assert.notDeepEqual(node1.firstChild, node2);
     });
   });
+
+  describe(".printDotGraph()", () => {
+    it("prints a dot graph to the output file", () => {
+      if (process.platform === "win32") {
+        return;
+      }
+
+      const tmp = require("tmp");
+      const debugGraphFile = tmp.fileSync({ postfix: ".dot" });
+      const tree = parser.parse("const zero = 0");
+      tree.printDotGraph(debugGraphFile.fd);
+
+      const fs = require('fs');
+      const logReader = fs.readFileSync(debugGraphFile.name, 'utf8').split('\n');
+      for (let line of logReader) {
+        const match = line.match(/error-cost: (\d+)/);
+        if (match) {
+          assert.equal(parseInt(match[1]), 0); // error-cost should always be 0
+        }
+      }
+
+      debugGraphFile.removeCallback();
+    });
+  });
 });
 
 function assertCursorState(cursor, params) {

@@ -274,7 +274,7 @@ Napi::Value Parser::SetLogger(const Napi::CallbackInfo &info) {
 
 Napi::Value Parser::PrintDotGraphs(const Napi::CallbackInfo &info) {
   bool should_print = true;
-  int32_t fd = fileno(stderr);
+  int fd = fileno(stderr);
 
   if (info.Length() > 0) {
     if (!info[0].IsBoolean()) {
