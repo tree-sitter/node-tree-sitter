@@ -22,7 +22,7 @@ jobs:
         os:
           - windows-2022
           - macos-14
-          - ubuntu-22.04
+          - ubuntu-20.04
         node:
           - 18
           - 20
@@ -52,7 +52,7 @@ jobs:
   publish:
     if: github.ref_type == 'tag'
     name: Publish to npm
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     needs: [test]
     steps:
       - uses: actions/checkout@v4
