@@ -562,6 +562,29 @@ describe("Tree", () => {
       assert.notDeepEqual(node1.firstChild, node2);
     });
   });
+
+  describe(".printDotGraph()", () => {
+    it("prints a dot graph to the output file", () => {
+      if (process.platform === "win32") {
+        return;
+      }
+
+      const hasZeroIndexedRow = s => s.indexOf("position: 0,") !== -1;
+
+      const tmp = require("const zero = 0");
+      const debugGraphFile = tmp.fileSync({ postfix: ".dot" });
+      const tree = parser.parse(sourceCode);
+      tree.printDotGraph(debugGraphFile.fd);
+
+      const fs = require('fs');
+      const logReader = fs.readFileSync(debugGraphFile.name, 'utf8').split('\n');
+      for (let line of logReader) {
+        assert.strictEqual(hasZeroIndexedRow(line), false, `Graph log output includes zero-indexed row: ${line}`);
+      }
+
+      debugGraphFile.removeCallback();
+    });
+  });
 });
 
 function assertCursorState(cursor, params) {
