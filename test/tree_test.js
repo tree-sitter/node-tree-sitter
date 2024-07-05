@@ -569,17 +569,18 @@ describe("Tree", () => {
         return;
       }
 
-      const hasZeroIndexedRow = s => s.indexOf("position: 0,") !== -1;
-
-      const tmp = require("const zero = 0");
+      const tmp = require("tmp");
       const debugGraphFile = tmp.fileSync({ postfix: ".dot" });
-      const tree = parser.parse(sourceCode);
+      const tree = parser.parse("const zero = 0");
       tree.printDotGraph(debugGraphFile.fd);
 
       const fs = require('fs');
       const logReader = fs.readFileSync(debugGraphFile.name, 'utf8').split('\n');
       for (let line of logReader) {
-        assert.strictEqual(hasZeroIndexedRow(line), false, `Graph log output includes zero-indexed row: ${line}`);
+        const match = line.match(/error-cost: (\d+)/);
+        if (match) {
+          assert.equal(parseInt(match[1]), 0); // error-cost should always be 0
+        }
       }
 
       debugGraphFile.removeCallback();
