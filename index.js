@@ -1,5 +1,5 @@
 const binding = require('node-gyp-build')(__dirname);
-const {Query, Parser, NodeMethods, Tree, TreeCursor, LookaheadIterator} = binding;
+const {Query, MatchesIterator, Parser, NodeMethods, Tree, TreeCursor, LookaheadIterator} = binding;
 
 const util = require('util');
 
@@ -15,10 +15,10 @@ Object.defineProperty(Tree.prototype, 'rootNode', {
       Due to a race condition arising from Jest's worker pool, "this"
       has no knowledge of the native extension if the extension has not
       yet loaded when multiple Jest tests are being run simultaneously.
-      If the extension has correctly loaded, "this" should be an instance 
+      If the extension has correctly loaded, "this" should be an instance
       of the class whose prototype we are acting on (in this case, Tree).
-      Furthermore, the race condition sometimes results in the function in 
-      question being undefined even when the context is correct, so we also 
+      Furthermore, the race condition sometimes results in the function in
+      question being undefined even when the context is correct, so we also
       perform a null function check.
     */
     if (this instanceof Tree && rootNode) {
@@ -420,7 +420,7 @@ Object.defineProperties(TreeCursor.prototype, {
  * Query
  */
 
-const {_matches, _captures} = Query.prototype;
+const {_matches, _matchesIter, _captures} = Query.prototype;
 
 const PREDICATE_STEP_TYPE = {
   DONE: 0,
@@ -660,6 +660,25 @@ Query.prototype.matches = function(
   return results;
 }
 
+Query.prototype.matchesIter = function(
+  node,
+  {
+    startPosition = ZERO_POINT,
+    endPosition = ZERO_POINT,
+    startIndex = 0,
+    endIndex = 0,
+    matchLimit = 0xFFFFFFFF,
+    maxStartDepth = 0xFFFFFFFF
+  } = {}
+) {
+  marshalNode(node);
+  return _matchesIter.call(this, node.tree,
+    startPosition.row, startPosition.column,
+    endPosition.row, endPosition.column,
+    startIndex, endIndex, matchLimit, maxStartDepth
+  );
+}
+
 Query.prototype.captures = function(
   node,
   {
@@ -708,6 +727,49 @@ Query.prototype.captures = function(
   }
 
   return results;
+}
+
+/**
+ * MatchesIterator
+ */
+
+const { _next: _matchesNext } = MatchesIterator.prototype;
+
+MatchesIterator.prototype.next = function () {
+  while (true) {
+    const { done, value } = _matchesNext.call(this);
+    if (done) {
+      return { done };
+    }
+    const [returnedMatches, returnedNodes] = value;
+    const nodes = unmarshalNodes(returnedNodes, this.tree);
+
+    let i = 0
+    let nodeIndex = 0;
+    while (i < returnedMatches.length) {
+      const patternIndex = returnedMatches[i++];
+      const captures = [];
+
+      while (i < returnedMatches.length && typeof returnedMatches[i] === 'string') {
+        const captureName = returnedMatches[i++];
+        captures.push({
+          name: captureName,
+          node: nodes[nodeIndex++],
+        })
+      }
+
+      if (this.query.predicates[patternIndex].every(p => p(captures))) {
+        const result = {pattern: patternIndex, captures};
+        const setProperties = this.query.setProperties[patternIndex];
+        const assertedProperties = this.query.assertedProperties[patternIndex];
+        const refutedProperties = this.query.refutedProperties[patternIndex];
+        if (setProperties) result.setProperties = setProperties;
+        if (assertedProperties) result.assertedProperties = assertedProperties;
+        if (refutedProperties) result.refutedProperties = refutedProperties;
+        return { value: result };
+      }
+    }
+  }
 }
 
 /*

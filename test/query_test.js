@@ -109,6 +109,20 @@ describe("Query", () => {
       ]);
     });
 
+    it("returns all of the matches (iterator) for the given query", () => {
+      const tree = parser.parse("function one() { two(); function three() {} }");
+      const query = new Query(JavaScript, `
+        (function_declaration name: (identifier) @fn-def)
+        (call_expression function: (identifier) @fn-ref)
+      `);
+      const matches = [...query.matchesIter(tree.rootNode)];
+      assert.deepEqual(formatMatches(tree, matches), [
+        { pattern: 0, captures: [{ name: "fn-def", text: "one" }] },
+        { pattern: 1, captures: [{ name: "fn-ref", text: "two" }] },
+        { pattern: 0, captures: [{ name: "fn-def", text: "three" }] },
+      ]);
+    });
+
     it("can search in a specified ranges", () => {
       const tree = parser.parse("[a, b,\nc, d,\ne, f,\ng, h]");
       const query = new Query(JavaScript, "(identifier) @element");

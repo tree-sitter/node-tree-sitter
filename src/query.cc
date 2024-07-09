@@ -39,6 +39,7 @@ void Query::Init(Napi::Env env, Napi::Object exports) {
     InstanceAccessor("matchLimit", &Query::MatchLimit, nullptr, napi_default_method),
 
     InstanceMethod("_matches", &Query::Matches, napi_default_method),
+    InstanceMethod("_matchesIter", &Query::MatchesIter, napi_default_method),
     InstanceMethod("_captures", &Query::Captures, napi_default_method),
     InstanceMethod("_getPredicates", &Query::GetPredicates, napi_default_method),
     InstanceMethod("disableCapture", &Query::DisableCapture, napi_default_method),
@@ -245,6 +246,17 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
   result[0U] = js_matches;
   result[1] = js_nodes;
   return result;
+}
+
+Napi::Value Query::MatchesIter(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  auto *data = info.Env().GetInstanceData<AddonData>();
+  size_t argc = info.Length();
+  std::vector<napi_value> args(argc + 1);
+  args[0] = info.This();
+  napi_status status = napi_get_cb_info(env, static_cast<napi_callback_info>(info), &argc, args.data() + 1, nullptr, nullptr);
+  NAPI_THROW_IF_FAILED_VOID(env, status);
+  return data->matches_iterator_constructor.New(args);
 }
 
 Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
