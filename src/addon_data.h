@@ -42,7 +42,7 @@ public:
   Napi::FunctionReference lookahead_iterator_constructor;
 
   // matches_iterator
-  Napi::FunctionReference matches_iterator_constructor;
+  Napi::FunctionReference query_iterator_constructor;
 };
 
 } // namespace node_tree_sitter

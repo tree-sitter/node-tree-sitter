@@ -40,6 +40,7 @@ void Query::Init(Napi::Env env, Napi::Object exports) {
 
     InstanceMethod("_matches", &Query::Matches, napi_default_method),
     InstanceMethod("_matchesIter", &Query::MatchesIter, napi_default_method),
+    InstanceMethod("_capturesIter", &Query::CapturesIter, napi_default_method),
     InstanceMethod("_captures", &Query::Captures, napi_default_method),
     InstanceMethod("_getPredicates", &Query::GetPredicates, napi_default_method),
     InstanceMethod("disableCapture", &Query::DisableCapture, napi_default_method),
@@ -252,11 +253,24 @@ Napi::Value Query::MatchesIter(const Napi::CallbackInfo &info) {
   Napi::Env env = info.Env();
   auto *data = info.Env().GetInstanceData<AddonData>();
   size_t argc = info.Length();
-  std::vector<napi_value> args(argc + 1);
-  args[0] = info.This();
-  napi_status status = napi_get_cb_info(env, static_cast<napi_callback_info>(info), &argc, args.data() + 1, nullptr, nullptr);
+  std::vector<napi_value> args(argc + 2);
+  args[0] = Boolean::New(env, false);
+  args[1] = info.This();
+  napi_status status = napi_get_cb_info(env, static_cast<napi_callback_info>(info), &argc, args.data() + 2, nullptr, nullptr);
   NAPI_THROW_IF_FAILED_VOID(env, status);
-  return data->matches_iterator_constructor.New(args);
+  return data->query_iterator_constructor.New(args);
+}
+
+Napi::Value Query::CapturesIter(const Napi::CallbackInfo &info) {
+  Napi::Env env = info.Env();
+  auto *data = info.Env().GetInstanceData<AddonData>();
+  size_t argc = info.Length();
+  std::vector<napi_value> args(argc + 2);
+  args[0] = Boolean::New(env, true);
+  args[1] = info.This();
+  napi_status status = napi_get_cb_info(env, static_cast<napi_callback_info>(info), &argc, args.data() + 2, nullptr, nullptr);
+  NAPI_THROW_IF_FAILED_VOID(env, status);
+  return data->query_iterator_constructor.New(args);
 }
 
 Napi::Value Query::Captures(const Napi::CallbackInfo &info) {

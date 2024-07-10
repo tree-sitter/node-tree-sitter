@@ -6,20 +6,22 @@
 
 namespace node_tree_sitter {
 
-class MatchesIterator final : public Napi::ObjectWrap<MatchesIterator> {
+class QueryIterator final : public Napi::ObjectWrap<QueryIterator> {
  public:
   static void Init(Napi::Env env, Napi::Object exports);
 
-  explicit MatchesIterator(const Napi::CallbackInfo &info);
-  ~MatchesIterator() final;
+  explicit QueryIterator(const Napi::CallbackInfo &info);
+  ~QueryIterator() final;
 
  private:
+  bool captures_;
   Napi::Reference<Napi::Value> query_;
   Napi::Reference<Napi::Value> tree_;
   TSQueryCursor *query_cursor_ = nullptr;
 
   Napi::Value Iterator(const Napi::CallbackInfo &info);
   Napi::Value Next(const Napi::CallbackInfo &info);
+  Napi::Value GetCaptures(const Napi::CallbackInfo &info);
   Napi::Value GetQuery(const Napi::CallbackInfo &info);
   Napi::Value GetTree(const Napi::CallbackInfo &info);
 };

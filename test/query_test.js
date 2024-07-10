@@ -200,6 +200,47 @@ describe("Query", () => {
       ]);
     });
 
+    it("returns all of the captures (iterator) for the given query, in order", () => {
+      const tree = parser.parse(`
+        a({
+          bc: function de() {
+            const fg = function hi() {}
+          },
+          jk: function lm() {
+            const no = function pq() {}
+          },
+        });
+      `);
+      const query = new Query(JavaScript, `
+        (pair
+          key: _ @method.def
+          (function_expression
+            name: (identifier) @method.alias))
+        (variable_declarator
+          name: _ @function.def
+          value: (function_expression
+            name: (identifier) @function.alias))
+        ":" @delimiter
+        "=" @operator
+      `);
+
+      const captures = [...query.capturesIter(tree.rootNode)];
+      assert.deepEqual(formatCaptures(tree, captures), [
+        { name: "method.def", text: "bc" },
+        { name: "delimiter", text: ":" },
+        { name: "method.alias", text: "de" },
+        { name: "function.def", text: "fg" },
+        { name: "operator", text: "=" },
+        { name: "function.alias", text: "hi" },
+        { name: "method.def", text: "jk" },
+        { name: "delimiter", text: ":" },
+        { name: "method.alias", text: "lm" },
+        { name: "function.def", text: "no" },
+        { name: "operator", text: "=" },
+        { name: "function.alias", text: "pq" },
+      ]);
+    });
+
     it("handles conditions that compare the text of capture to literal strings", () => {
       const tree = parser.parse(`
         const ab = require('./ab');

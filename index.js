@@ -1,5 +1,5 @@
 const binding = require('node-gyp-build')(__dirname);
-const {Query, MatchesIterator, Parser, NodeMethods, Tree, TreeCursor, LookaheadIterator} = binding;
+const {Query, QueryIterator, Parser, NodeMethods, Tree, TreeCursor, LookaheadIterator} = binding;
 
 const util = require('util');
 
@@ -420,7 +420,7 @@ Object.defineProperties(TreeCursor.prototype, {
  * Query
  */
 
-const {_matches, _matchesIter, _captures} = Query.prototype;
+const {_matches, _matchesIter, _captures, _capturesIter} = Query.prototype;
 
 const PREDICATE_STEP_TYPE = {
   DONE: 0,
@@ -729,13 +729,32 @@ Query.prototype.captures = function(
   return results;
 }
 
+Query.prototype.capturesIter = function(
+  node,
+  {
+    startPosition = ZERO_POINT,
+    endPosition = ZERO_POINT,
+    startIndex = 0,
+    endIndex = 0,
+    matchLimit = 0xFFFFFFFF,
+    maxStartDepth = 0xFFFFFFFF
+  } = {}
+) {
+  marshalNode(node);
+  return _capturesIter.call(this, node.tree,
+    startPosition.row, startPosition.column,
+    endPosition.row, endPosition.column,
+    startIndex, endIndex, matchLimit, maxStartDepth
+  );
+}
+
 /**
- * MatchesIterator
+ * QueryIterator
  */
 
-const { _next: _matchesNext } = MatchesIterator.prototype;
+const { _next: _matchesNext } = QueryIterator.prototype;
 
-MatchesIterator.prototype.next = function () {
+QueryIterator.prototype.next = function () {
   while (true) {
     const { done, value } = _matchesNext.call(this);
     if (done) {
@@ -746,27 +765,54 @@ MatchesIterator.prototype.next = function () {
 
     let i = 0
     let nodeIndex = 0;
-    while (i < returnedMatches.length) {
-      const patternIndex = returnedMatches[i++];
-      const captures = [];
+    if (this.captures) {
+      while (i < returnedMatches.length) {
+        const patternIndex = returnedMatches[i++];
+        const captureIndex = returnedMatches[i++];
+        const captures = [];
 
-      while (i < returnedMatches.length && typeof returnedMatches[i] === 'string') {
-        const captureName = returnedMatches[i++];
-        captures.push({
-          name: captureName,
-          node: nodes[nodeIndex++],
-        })
+        while (i < returnedMatches.length && typeof returnedMatches[i] === 'string') {
+          const captureName = returnedMatches[i++];
+          captures.push({
+            name: captureName,
+            node: nodes[nodeIndex++],
+          })
+        }
+
+        if (this.query.predicates[patternIndex].every(p => p(captures))) {
+          const result = captures[captureIndex];
+          const setProperties = this.query.setProperties[patternIndex];
+          const assertedProperties = this.query.assertedProperties[patternIndex];
+          const refutedProperties = this.query.refutedProperties[patternIndex];
+          if (setProperties) result.setProperties = setProperties;
+          if (assertedProperties) result.assertedProperties = assertedProperties;
+          if (refutedProperties) result.refutedProperties = refutedProperties;
+          return { value: result };
+        }
       }
+    } else {
+      while (i < returnedMatches.length) {
+        const patternIndex = returnedMatches[i++];
+        const captures = [];
 
-      if (this.query.predicates[patternIndex].every(p => p(captures))) {
-        const result = {pattern: patternIndex, captures};
-        const setProperties = this.query.setProperties[patternIndex];
-        const assertedProperties = this.query.assertedProperties[patternIndex];
-        const refutedProperties = this.query.refutedProperties[patternIndex];
-        if (setProperties) result.setProperties = setProperties;
-        if (assertedProperties) result.assertedProperties = assertedProperties;
-        if (refutedProperties) result.refutedProperties = refutedProperties;
-        return { value: result };
+        while (i < returnedMatches.length && typeof returnedMatches[i] === 'string') {
+          const captureName = returnedMatches[i++];
+          captures.push({
+            name: captureName,
+            node: nodes[nodeIndex++],
+          })
+        }
+
+        if (this.query.predicates[patternIndex].every(p => p(captures))) {
+          const result = {pattern: patternIndex, captures};
+          const setProperties = this.query.setProperties[patternIndex];
+          const assertedProperties = this.query.assertedProperties[patternIndex];
+          const refutedProperties = this.query.refutedProperties[patternIndex];
+          if (setProperties) result.setProperties = setProperties;
+          if (assertedProperties) result.assertedProperties = assertedProperties;
+          if (refutedProperties) result.refutedProperties = refutedProperties;
+          return { value: result };
+        }
       }
     }
   }

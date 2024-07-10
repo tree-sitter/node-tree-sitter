@@ -188,6 +188,8 @@ declare module "tree-sitter" {
 
       captures(node: SyntaxNode, options?: QueryOptions): QueryCapture[];
       matches(node: SyntaxNode, options?: QueryOptions): QueryMatch[];
+      capturesIter(node: SyntaxNode, options?: QueryOptions): IterableIterator<QueryCapture[]>;
+      matchesIter(node: SyntaxNode, options?: QueryOptions): IterableIterator<QueryCapture[]>;
       disableCapture(captureName: string): void;
       disablePattern(patternIndex: number): void;
       isPatternGuaranteedAtStep(byteOffset: number): boolean;

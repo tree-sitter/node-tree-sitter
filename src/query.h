@@ -16,7 +16,7 @@ class Query final : public Napi::ObjectWrap<Query> {
   explicit Query(const Napi::CallbackInfo &info);
   ~Query() final;
 
-  const TSQuery *get() const {
+  const TSQuery *Get() const {
     return query_;
   }
 
@@ -25,8 +25,9 @@ class Query final : public Napi::ObjectWrap<Query> {
 
   Napi::Value New(const Napi::CallbackInfo &);
   Napi::Value Matches(const Napi::CallbackInfo &);
-  Napi::Value MatchesIter(const Napi::CallbackInfo &);
   Napi::Value Captures(const Napi::CallbackInfo &);
+  Napi::Value MatchesIter(const Napi::CallbackInfo &);
+  Napi::Value CapturesIter(const Napi::CallbackInfo &);
   Napi::Value GetPredicates(const Napi::CallbackInfo &);
   Napi::Value DisableCapture(const Napi::CallbackInfo &);
   Napi::Value DisablePattern(const Napi::CallbackInfo &);
