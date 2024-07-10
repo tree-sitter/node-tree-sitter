@@ -151,7 +151,6 @@ declare module "tree-sitter" {
 
     export interface QueryCapture {
       name: string;
-      text?: string;
       node: SyntaxNode;
       setProperties?: { [prop: string]: string | null };
       assertedProperties?: { [prop: string]: string | null };
