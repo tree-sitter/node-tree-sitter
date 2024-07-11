@@ -161,6 +161,9 @@ declare module "tree-sitter" {
     export interface QueryMatch {
       pattern: number;
       captures: QueryCapture[];
+      setProperties?: { [prop: string]: string | null };
+      assertedProperties?: { [prop: string]: string | null };
+      refutedProperties?: { [prop: string]: string | null };
     }
 
     export type QueryOptions = {
