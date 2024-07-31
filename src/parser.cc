@@ -56,7 +56,7 @@ class CallbackInput final {
     *bytes_read = 0;
     String result;
     if (!reader->partial_string.IsEmpty()) {
-      result = reader->partial_string.Value().As<String>();
+      result = reader->partial_string.Get("value").As<String>();
     } else {
       Function callback = reader->callback.Value();
       Napi::Value result_value = callback({
@@ -92,7 +92,10 @@ class CallbackInput final {
     reader->byte_offset += *bytes_read;
 
     if (utf16_units_read < length) {
-      reader->partial_string.Reset(slice(result, utf16_units_read));
+      if (reader->partial_string.IsEmpty()) {
+        reader->partial_string = Napi::Persistent(Object::New(env));
+      }
+      reader->partial_string.Set("value",  slice(result, utf16_units_read));
     } else {
       reader->partial_string.Reset();
     }
@@ -103,7 +106,7 @@ class CallbackInput final {
   FunctionReference callback;
   std::vector<uint16_t> buffer;
   size_t byte_offset {};
-  Reference<String> partial_string;
+  ObjectReference partial_string;
 };
 
 void Parser::Init(Napi::Env env, Napi::Object exports) {
