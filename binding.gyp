@@ -12,6 +12,7 @@
         "src/language.cc",
         "src/logger.cc",
         "src/lookaheaditerator.cc",
+        "src/query_iterator.cc",
         "src/node.cc",
         "src/parser.cc",
         "src/query.cc",
