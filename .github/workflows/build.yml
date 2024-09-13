@@ -39,8 +39,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm install
       - run: npm run build -- --arch x64
-      - if: runner.os == 'macOS'
-        run: npm run build -- --arch arm64
+      - run: npm run build -- --arch arm64
       - run: npm test
       - uses: actions/upload-artifact@v4
         if: github.ref_type == 'tag' && matrix.node == 20
