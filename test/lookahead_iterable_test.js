@@ -1,6 +1,7 @@
 const Parser = require("..");
 const Rust = require("tree-sitter-rust");
-const { assert } = require("chai");
+const assert = require('node:assert');
+const { describe, it } = require('node:test');
 const { LookaheadIterator } = Parser;
 
 describe("LookaheadIterator", () => {

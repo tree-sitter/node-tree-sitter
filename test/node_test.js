@@ -4,7 +4,8 @@ const EmbeddedTemplate = require('tree-sitter-embedded-template');
 const JavaScript = require('tree-sitter-javascript');
 const JSON = require('tree-sitter-json');
 const Python = require('tree-sitter-python');
-const { assert } = require("chai");
+const assert = require('node:assert');
+const { beforeEach, describe, it } = require('node:test');
 
 const JSON_EXAMPLE = `
 

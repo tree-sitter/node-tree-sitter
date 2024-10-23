@@ -3,7 +3,8 @@ const HTML = require('tree-sitter-html');
 const JavaScript = require('tree-sitter-javascript');
 const JSON = require('tree-sitter-json');
 const Rust = require('tree-sitter-rust');
-const { assert } = require("chai");
+const assert = require('node:assert');
+const { afterEach, beforeEach, describe, it } = require('node:test');
 
 describe("Parser", () => {
   let parser;
@@ -30,7 +31,10 @@ describe("Parser", () => {
 
     it("calls the given callback for each parse event", () => {
       parser.parse("a + b + c");
-      assert.includeMembers(debugMessages, ["reduce", "accept", "shift"]);
+      assert.ok(
+        ["reduce", "accept", "shift"].every(msg => debugMessages.includes(msg)),
+        'Expected messages are not included in debugMessages'
+      );
     });
 
     it("allows the callback to be retrieved later", () => {
@@ -252,14 +256,14 @@ describe("Parser", () => {
         parser.setTimeoutMicros(1000);
         let tree = parser.parse((offset, _) => offset === 0 ? " [" : ",0");
         assert.equal(tree, null);
-        assert.isBelow(performance.now() * 1000 - startTime, 2000);
+        assert.ok(performance.now() * 1000 - startTime < 2000);
 
         startTime = performance.now() * 1000;
         parser.setTimeoutMicros(5000);
         tree = parser.parse((offset, _) => offset === 0 ? " [" : ",0");
         assert.equal(tree, null);
-        assert.isAbove(performance.now() * 1000 - startTime, 100);
-        assert.isBelow(performance.now() * 1000 - startTime, 10000);
+        assert.ok(performance.now() * 1000 - startTime > 100);
+        assert.ok(performance.now() * 1000 - startTime < 10000);
 
         parser.setTimeoutMicros(0);
         tree = parser.parse((offset, _) => offset > 5000 ? "" : offset == 5000 ? "]" : ",0");
