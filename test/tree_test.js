@@ -1,7 +1,8 @@
 const Parser = require("..");
 const JavaScript = require('tree-sitter-javascript');
 const Rust = require('tree-sitter-rust');
-const { assert } = require("chai");
+const assert = require('node:assert');
+const { beforeEach, describe, it } = require('node:test');
 
 describe("Tree", () => {
   let parser;
@@ -589,8 +590,8 @@ describe("Tree", () => {
 });
 
 function assertCursorState(cursor, params) {
-  assert.isBoolean(cursor.nodeIsNamed);
-  assert.isBoolean(cursor.nodeIsMissing);
+  assert.strictEqual(typeof cursor.nodeIsNamed, 'boolean');
+  assert.strictEqual(typeof cursor.nodeIsMissing, 'boolean');
 
   assert.equal(cursor.nodeType, params.nodeType);
   assert.equal(cursor.nodeIsNamed, params.nodeIsNamed);

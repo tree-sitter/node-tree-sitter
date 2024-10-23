@@ -7,7 +7,8 @@ const JSON = require("tree-sitter-json");
 const Python = require("tree-sitter-python");
 const Ruby = require("tree-sitter-ruby");
 const Rust = require("tree-sitter-rust");
-const { assert } = require("chai");
+const assert = require('node:assert');
+const { describe, it } = require('node:test');
 const { Query, QueryCursor } = Parser
 
 describe("Query", () => {
