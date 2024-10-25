@@ -1,6 +1,6 @@
 declare module "tree-sitter" {
   class Parser {
-    parse(input: string | Parser.Input, oldTree?: Parser.Tree, options?: Parser.Options): Parser.Tree;
+    parse(input: string | Parser.Input, oldTree?: Parser.Tree | null, options?: Parser.Options): Parser.Tree;
     getIncludedRanges(): Parser.Range[];
     getTimeoutMicros(): number;
     setTimeoutMicros(timeout: number): void;
@@ -8,7 +8,7 @@ declare module "tree-sitter" {
     getLanguage(): any;
     setLanguage(language?: any): void;
     getLogger(): Parser.Logger;
-    setLogger(logFunc?: Parser.Logger | false | null): void;
+    setLogger(logFunc?: Parser.Logger | string | false | null): void;
     printDotGraphs(enabled?: boolean, fd?: number): void;
   }
 
@@ -45,7 +45,7 @@ declare module "tree-sitter" {
     ) => void;
 
     export interface Input {
-      (index: number, position?: Point): string | null;
+      (index: number, position?: Point): string | null | undefined | {};
     }
 
     export interface SyntaxNode {
@@ -143,9 +143,10 @@ declare module "tree-sitter" {
       rootNodeWithOffset(offsetBytes: number, offsetExtent: Point): SyntaxNode;
       edit(edit: Edit): Tree;
       walk(): TreeCursor;
+      getText(node: SyntaxNode): string;
       getChangedRanges(other: Tree): Range[];
       getIncludedRanges(): Range[];
-      getEditedRange(other: Tree): Range;
+      getEditedRange(): Range;
       printDotGraph(fd?: number): void;
     }
 
@@ -203,6 +204,7 @@ declare module "tree-sitter" {
       readonly currentTypeId: number;
       readonly currentType: string;
 
+      constructor(language: any, state: number);
       reset(language: any, stateId: number): boolean;
       resetState(stateId: number): boolean;
       [Symbol.iterator](): Iterator<string>;

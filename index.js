@@ -581,7 +581,7 @@ Query.prototype._init = function() {
           if (steps[SECOND] !== PREDICATE_STEP_TYPE.CAPTURE) throw new Error(
             `First argument of \`#${operator}\` predicate must be a capture. Got "${steps[1].value}".`
           );
-          stringValues = [];
+          const stringValues = [];
           for (let k = THIRD; k < 2 * stepsLength; k += 2) {
             if (steps[k] !== PREDICATE_STEP_TYPE.STRING) throw new Error(
               `Arguments to \`#${operator}\` predicate must be a strings.".`

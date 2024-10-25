@@ -1,4 +1,5 @@
-const Parser = require("..");
+/** @type {typeof import('tree-sitter')} */
+const Parser = require("../index.js");
 const Rust = require("tree-sitter-rust");
 const assert = require('node:assert');
 const { describe, it } = require('node:test');
