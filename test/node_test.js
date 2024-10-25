@@ -1,4 +1,6 @@
-const Parser = require("..");
+/** @type {typeof import('tree-sitter')} */
+const Parser = require("../index.js");
+
 const C = require('tree-sitter-c');
 const EmbeddedTemplate = require('tree-sitter-embedded-template');
 const JavaScript = require('tree-sitter-javascript');
@@ -18,6 +20,9 @@ const JSON_EXAMPLE = `
 ]
 `
 
+/**
+ * @param {import('tree-sitter').Tree} tree
+ */
 function getAllNodes(tree) {
   const result = [];
   let visitedChildren = false;
@@ -38,10 +43,12 @@ function getAllNodes(tree) {
 }
 
 describe("Node", () => {
+  /** @type {import('tree-sitter')} */
   let parser;
 
   beforeEach(() => {
-    parser = new Parser().setLanguage(JavaScript);
+    parser = new Parser();
+    parser.setLanguage(JavaScript);
   });
 
   describe("subclasses", () => {
@@ -57,8 +64,10 @@ describe("Node", () => {
       `);
 
       const classNode = tree.rootNode.firstChild;
+      // @ts-ignore
       assert.deepEqual(classNode.fields, ['bodyNode', 'decoratorNodes', 'nameNode'])
 
+      // @ts-ignore
       const methodNode = classNode.bodyNode.firstNamedChild;
       assert.equal(methodNode.constructor.name, 'MethodDefinitionNode');
       assert.equal(methodNode.nameNode.text, 'b');
@@ -455,10 +464,12 @@ describe("Node", () => {
       assert.equal("+", sumNode.descendantForIndex(4, 4).type);
 
       assert.throws(() => {
+        // @ts-ignore
         sumNode.descendantForIndex(1, {});
       }, /Character index must be a number/);
 
       assert.throws(() => {
+        // @ts-ignore
         sumNode.descendantForIndex();
       }, /Character index must be a number/);
     });
@@ -492,10 +503,12 @@ describe("Node", () => {
       );
 
       assert.throws(() => {
+        // @ts-ignore
         sumNode.descendantForPosition(1, {});
       }, /Point must be a {row, column} object/);
 
       assert.throws(() => {
+        // @ts-ignore
         sumNode.descendantForPosition();
       }, /Point must be a {row, column} object/);
     });
@@ -594,6 +607,7 @@ describe("Node", () => {
       const tree = parser.parse("a + 1 * b * 2 + c + 3");
       const number = tree.rootNode.descendantForIndex(4)
 
+      // @ts-ignore
       assert.throws(() => number.closest({ a: 1 }), /Argument must be a string or array of strings/)
     });
   });

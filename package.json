@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.7.8",
+    "@types/tmp": "^0.2.6",
     "node-gyp": "^10.2.0",
     "prebuildify": "^6.0.1",
     "tmp": "^0.2.3",

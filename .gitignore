@@ -1,3 +1,4 @@
+.cache
 *.pyc
 *.log
 lib-cov

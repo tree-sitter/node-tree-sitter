@@ -1,15 +1,15 @@
-const fs = require("fs");
-const Parser = require("..");
+/** @type {typeof import('tree-sitter')} */
+const Parser = require("../index.js");
+
 const C = require("tree-sitter-c");
 const Java = require("tree-sitter-java");
 const JavaScript = require("tree-sitter-javascript");
 const JSON = require("tree-sitter-json");
 const Python = require("tree-sitter-python");
 const Ruby = require("tree-sitter-ruby");
-const Rust = require("tree-sitter-rust");
 const assert = require('node:assert');
 const { describe, it } = require('node:test');
-const { Query, QueryCursor } = Parser
+const { Query } = Parser
 
 describe("Query", () => {
 
@@ -279,6 +279,11 @@ describe("Query", () => {
         )
       `);
 
+      /**
+       * @param {import('tree-sitter').Tree} tree
+       * @param {string} queryText
+       * @param {number} expectedCount
+       */
       let expectCount = (tree, queryText, expectedCount) => {
         query = new Query(JavaScript, queryText);
         captures = query.captures(tree.rootNode);
@@ -513,6 +518,7 @@ describe("Query", () => {
 
   describe(".isPatternGuaranteedAtStep", () => {
     it("returns true if the given pattern is guaranteed to match at the given step", () => {
+      /** @type {Array<{description: string, language: any, pattern: string, resultsBySubstring: Array<[string, boolean]>}>} */
       const rows = [
         {
           description: "no guaranteed steps",
@@ -874,6 +880,7 @@ describe("Query", () => {
 
   describe(".isPatternNonLocal", () => {
     it("returns true if the given pattern has a single root node", () => {
+      /** @type {Array<{ description: string, pattern: string, language: any, isNonLocal: boolean }>} */
       const rows = [
         {
           description: "simple token",
@@ -961,6 +968,7 @@ if (d) {
 }
 `;
 
+      /** @type {Array<{ description: string, depth: number, pattern: string, matches: Array<[number, Array<[string, string]>]> }>} */
       const rows = [
         {
           description: "depth 0: match translation unit",
@@ -1046,6 +1054,7 @@ if (d) {
     }
 }
 `
+      /** @type {Array<{ depth: number, matches: Array<[number, Array<[string, string]>]> }>} */
       const rows = [
         {
           depth: 0,
@@ -1071,7 +1080,6 @@ if (d) {
           ]
         },
       ];
-
       parser.setLanguage(C);
       const tree = parser.parse(source);
       const query = new Query(C, "(compound_statement) @capture");
@@ -1091,6 +1099,10 @@ if (d) {
   });
 });
 
+/**
+  * @param {import('tree-sitter').Tree} tree
+  * @param {import('tree-sitter').QueryMatch[]} matches
+  */
 function formatMatches(tree, matches) {
   return matches.map(({ pattern, captures }) => ({
     pattern,
@@ -1098,6 +1110,10 @@ function formatMatches(tree, matches) {
   }));
 }
 
+/**
+  * @param {import('tree-sitter').Tree} tree
+  * @param {(import('tree-sitter').QueryCapture & { text?: string })[]} captures
+  */
 function formatCaptures(tree, captures) {
   return captures.map((c) => {
     const node = c.node;

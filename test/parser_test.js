@@ -1,4 +1,5 @@
-const Parser = require("..");
+/** @type {typeof import('tree-sitter')} */
+const Parser = require("../index.js");
 const HTML = require('tree-sitter-html');
 const JavaScript = require('tree-sitter-javascript');
 const JSON = require('tree-sitter-json');
@@ -7,6 +8,7 @@ const assert = require('node:assert');
 const { afterEach, beforeEach, describe, it } = require('node:test');
 
 describe("Parser", () => {
+  /** @type {import('tree-sitter')} */
   let parser;
 
   beforeEach(() => {
@@ -61,6 +63,7 @@ describe("Parser", () => {
     describe("when given a truthy value that isn't a function", () => {
       it("raises an exception", () => {
         assert.throws(
+          // @ts-ignore
           () => parser.setLogger("5"),
           /Logger callback must .* function .* falsy/
         );
@@ -75,6 +78,10 @@ describe("Parser", () => {
         thrownError = new Error("dang.");
 
         originalConsoleError = console.error;
+        /**
+          * @param {string} message
+          * @param {Error} error
+          */
         console.error = (message, error) => {
           errorMessages.push([message, error]);
         };
@@ -109,6 +116,7 @@ describe("Parser", () => {
         return;
       }
 
+      /** @param {string} s */
       const hasZeroIndexedRow = s => s.indexOf("position: 0,") !== -1;
 
       const tmp = require("tmp");
@@ -171,8 +179,11 @@ describe("Parser", () => {
 
     describe("when the given input is not a function", () => {
       it("throws an exception", () => {
+        // @ts-ignore
         assert.throws(() => parser.parse(null), /Input.*function/);
+        // @ts-ignore
         assert.throws(() => parser.parse(5), /Input.*function/);
+        // @ts-ignore
         assert.throws(() => parser.parse({}), /Input.*function/);
       });
     });
@@ -600,6 +611,10 @@ describe("Parser", () => {
     });
 
     describe('parsing with a newly included range', () => {
+      /**
+        * @param {number} startIndex
+        * @param {number} endIndex
+        */
       function simpleRange(startIndex, endIndex) {
         return {
           startIndex,

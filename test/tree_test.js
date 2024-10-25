@@ -1,10 +1,12 @@
-const Parser = require("..");
+/** @type {typeof import('tree-sitter')} */
+const Parser = require("../index.js");
 const JavaScript = require('tree-sitter-javascript');
 const Rust = require('tree-sitter-rust');
 const assert = require('node:assert');
 const { beforeEach, describe, it } = require('node:test');
 
 describe("Tree", () => {
+  /** @type {import('tree-sitter')} */
   let parser;
 
   beforeEach(() => {
@@ -13,7 +15,14 @@ describe("Tree", () => {
   });
 
   describe('.edit', () => {
-    let input, edit
+    /** @type {string} */
+    let input;
+
+    /** @type {import('tree-sitter').Edit} */
+    let edit;
+
+    /** @type {import('tree-sitter').Tree} */
+    let tree;
 
     it('updates the positions of existing nodes', () => {
       input = 'abc + cde';
@@ -32,7 +41,7 @@ describe("Tree", () => {
       assert.equal(variableNode2.startIndex, 6);
       assert.equal(variableNode2.endIndex, 9);
 
-      ([input, edit] = spliceInput(input, input.indexOf('bc'), 0, ' * '));
+      [input, edit] = spliceInput(input, input.indexOf('bc'), 0, ' * ');
       assert.equal(input, 'a * bc + cde');
 
       tree.edit(edit);
@@ -59,7 +68,7 @@ describe("Tree", () => {
 
       const variableNode = tree.rootNode.firstChild.firstChild.lastChild;
 
-      ([input, edit] = spliceInput(input, input.indexOf('δ'), 0, '👍 * '));
+      [input, edit] = spliceInput(input, input.indexOf('δ'), 0, '👍 * ');
       assert.equal(input, 'αβ👍 * δ + cde');
 
       tree.edit(edit);
@@ -78,6 +87,7 @@ describe("Tree", () => {
       const inputString = 'abc + def + ghi + jkl + mno';
       const tree = parser.parse(inputString);
 
+      // @ts-ignore
       assert.equal(tree.getEditedRange(), null)
 
       tree.edit({
@@ -98,6 +108,7 @@ describe("Tree", () => {
         newEndPosition: { row: 0, column: 22 }
       });
 
+      // @ts-ignore
       assert.deepEqual(tree.getEditedRange(), {
         startIndex: 6,
         endIndex: 23,
@@ -148,6 +159,7 @@ describe("Tree", () => {
       const tree1 = parser.parse("abcdefg + hij");
 
       assert.throws(() => {
+        // @ts-ignore
         tree1.getChangedRanges({});
       }, /Argument must be a tree/);
     })
@@ -156,22 +168,6 @@ describe("Tree", () => {
   describe(".walk()", () => {
     it("returns a cursor that can be used to walk the tree", () => {
       parser.setLanguage(Rust);
-
-      //    let mut parser = Parser::new();
-      // parser.set_language(&get_language("rust")).unwrap();
-      //
-      // let tree = parser
-      //     .parse(
-      //         "
-      //             struct Stuff {
-      //                 a: A,
-      //                 b: Option<B>,
-      //             }
-      //         ",
-      //         None,
-      //     )
-      //     .unwrap();
-      //
 
       const tree = parser.parse(`
                 struct Stuff {
@@ -589,6 +585,10 @@ describe("Tree", () => {
   });
 });
 
+/**
+  * @param {import('tree-sitter').TreeCursor} cursor
+  * @param {Object} params
+  */
 function assertCursorState(cursor, params) {
   assert.strictEqual(typeof cursor.nodeIsNamed, 'boolean');
   assert.strictEqual(typeof cursor.nodeIsMissing, 'boolean');
@@ -611,6 +611,14 @@ function assertCursorState(cursor, params) {
   assert.deepEqual(node.endIndex, params.endIndex);
 }
 
+/**
+ * @param {string} input
+ * @param {number} startIndex
+ * @param {number} lengthRemoved
+ * @param {string} newText
+ *
+ * @returns {[string, import('tree-sitter').Edit]}
+ */
 function spliceInput(input, startIndex, lengthRemoved, newText) {
   const oldEndIndex = startIndex + lengthRemoved;
   const newEndIndex = startIndex + newText.length;
@@ -628,6 +636,9 @@ function spliceInput(input, startIndex, lengthRemoved, newText) {
   ];
 }
 
+/**
+  * @param {string} text
+  */
 function getExtent(text) {
   let row = 0
   let index;
