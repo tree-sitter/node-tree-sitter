@@ -12,7 +12,7 @@ void Init(Napi::Env env, Napi::Object exports);
 Napi::Value MarshalNode(const Napi::CallbackInfo &info, const Tree *, TSNode);
 Napi::Value GetMarshalNode(const Napi::CallbackInfo &info, const Tree *tree, TSNode node);
 Napi::Value GetMarshalNodes(const Napi::CallbackInfo &info, const Tree *tree, const TSNode *nodes, uint32_t node_count);
-TSNode UnmarshalNode(Napi::Env env, const Tree *tree);
+TSNode UnmarshalNode(Napi::Env env, const Tree *tree, uint8_t offset = 0);
 
 static inline const void *UnmarshalNodeId(const uint32_t *buffer) {
   const void *result;

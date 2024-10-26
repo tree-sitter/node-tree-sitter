@@ -1,5 +1,6 @@
 /** @type {typeof import('tree-sitter')} */
 const Parser = require("../index.js");
+const PHP = require('tree-sitter-php').php;
 const JavaScript = require('tree-sitter-javascript');
 const Rust = require('tree-sitter-rust');
 const assert = require('node:assert');
@@ -165,6 +166,31 @@ describe("Tree", () => {
     })
   });
 
+  describe('cursor on aliased root node with extra child', () => {
+    it('returns the correct node type', () => {
+      const source = `
+fn main() {
+    C/* hi */::<D>::E;
+}
+`;
+      parser.setLanguage(Rust);
+      const tree = parser.parse(source);
+
+      const functionNode = tree.rootNode.firstChild;
+      const block = functionNode.lastChild;
+      const expressionStatement = block.child(1);
+      const scopedIdentifier = expressionStatement.firstChild;
+      const genericType = scopedIdentifier.firstChild;
+      assert.equal(genericType.type, "generic_type");
+
+      const cursor = genericType.walk();
+      assert(cursor.gotoFirstChild());
+      assert.equal(cursor.nodeType, "type_identifier");
+      assert(cursor.gotoNextSibling());
+      assert.equal(cursor.nodeType, "block_comment");
+    })
+  });
+
   describe(".walk()", () => {
     it("returns a cursor that can be used to walk the tree", () => {
       parser.setLanguage(Rust);
@@ -317,12 +343,13 @@ describe("Tree", () => {
       assert.equal(cursor.nodeType, "program");
 
       // descend to expression statement
-      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 6 }), 0);
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 5 }), 0);
       assert.equal(cursor.nodeType, "expression_statement");
 
       // step into ';' and back up
       assert.equal(cursor.gotoFirstChildForPosition({ row: 7, column: 0 }), null);
-      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 6 }), 1);
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 6 }), null);
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 6, column: 5 }), 1);
       assert.deepEqual(cursor.startPosition, { row: 6, column: 5 });
       assert.equal(cursor.nodeType, ";");
       assert(cursor.gotoParent());
@@ -349,7 +376,7 @@ describe("Tree", () => {
       assert(cursor.gotoParent());
 
       // step into first ',' and back up
-      assert.equal(cursor.gotoFirstChildForPosition({ row: 1, column: 12 }), 2);
+      assert.equal(cursor.gotoFirstChildForPosition({ row: 1, column: 11 }), 2);
       assert.equal(cursor.nodeType, ",");
       assert.deepEqual(cursor.startPosition, { row: 1, column: 11 });
       assert(cursor.gotoParent());

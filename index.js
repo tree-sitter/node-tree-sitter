@@ -261,6 +261,11 @@ class SyntaxNode {
     return NodeMethods.fieldNameForChild(this.tree, childIndex);
   }
 
+  fieldNameForNamedChild(namedChildIndex) {
+    marshalNode(this);
+    return NodeMethods.fieldNameForNamedChild(this.tree, namedChildIndex);
+  }
+
   childrenForFieldName(fieldName) {
     marshalNode(this);
     return unmarshalNodes(NodeMethods.childrenForFieldName(this.tree, fieldName), this.tree);
@@ -279,6 +284,11 @@ class SyntaxNode {
   firstNamedChildForIndex(index) {
     marshalNode(this);
     return unmarshalNode(NodeMethods.firstNamedChildForIndex(this.tree, index), this.tree);
+  }
+
+  childWithDescendant(descendant) {
+    marshalNodes([this, descendant]);
+    return unmarshalNode(NodeMethods.childWithDescendant(this.tree, descendant.tree), this.tree);
   }
 
   namedDescendantForIndex(start, end) {
@@ -545,7 +555,7 @@ Query.prototype._init = function() {
             return matchAll
               ? nodes.every(text => test(text, isPositive))
               : nodes.some(text => test(text, isPositive))
-            });
+          });
           break;
 
         case 'set!':
@@ -619,14 +629,15 @@ Query.prototype.matches = function(
     startIndex = 0,
     endIndex = 0,
     matchLimit = 0xFFFFFFFF,
-    maxStartDepth = 0xFFFFFFFF
+    maxStartDepth = 0xFFFFFFFF,
+    timeoutMicros = 0
   } = {}
 ) {
   marshalNode(node);
   const [returnedMatches, returnedNodes] = _matches.call(this, node.tree,
     startPosition.row, startPosition.column,
     endPosition.row, endPosition.column,
-    startIndex, endIndex, matchLimit, maxStartDepth
+    startIndex, endIndex, matchLimit, maxStartDepth, timeoutMicros
   );
   const nodes = unmarshalNodes(returnedNodes, node.tree);
   const results = [];
@@ -668,14 +679,15 @@ Query.prototype.captures = function(
     startIndex = 0,
     endIndex = 0,
     matchLimit = 0xFFFFFFFF,
-    maxStartDepth = 0xFFFFFFFF
+    maxStartDepth = 0xFFFFFFFF,
+    timeoutMicros = 0,
   } = {}
 ) {
   marshalNode(node);
   const [returnedMatches, returnedNodes] = _captures.call(this, node.tree,
     startPosition.row, startPosition.column,
     endPosition.row, endPosition.column,
-    startIndex, endIndex, matchLimit, maxStartDepth
+    startIndex, endIndex, matchLimit, maxStartDepth, timeoutMicros
   );
   const nodes = unmarshalNodes(returnedNodes, node.tree);
   const results = [];
@@ -810,13 +822,19 @@ function unmarshalNodes(nodes, tree) {
   return nodes;
 }
 
-function marshalNode(node) {
-  if (!(node.tree instanceof Tree)){
+function marshalNode(node, offset = 0) {
+  if (!(node.tree instanceof Tree)) {
     throw new TypeError("SyntaxNode must belong to a Tree")
   }
-  const {nodeTransferArray} = binding;
+  const { nodeTransferArray } = binding;
   for (let i = 0; i < NODE_FIELD_COUNT; i++) {
-    nodeTransferArray[i] = node[i];
+    nodeTransferArray[offset * NODE_FIELD_COUNT + i] = node[i];
+  }
+}
+
+function marshalNodes(nodes) {
+  for (let i = 0, { length } = nodes; i < length; i++) {
+    marshalNode(nodes[i], i);
   }
 }
 

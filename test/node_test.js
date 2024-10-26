@@ -197,6 +197,12 @@ describe("Node", () => {
       assert.equal(objectNode.parent, arrayNode);
       assert.equal(arrayNode.parent, tree.rootNode);
       assert.equal(tree.rootNode.parent, null);
+
+      assert.equal(tree.rootNode.childWithDescendant(nullNode), arrayNode);
+      assert.equal(arrayNode.childWithDescendant(nullNode), objectNode);
+      assert.equal(objectNode.childWithDescendant(nullNode), pairNode);
+      assert.equal(pairNode.childWithDescendant(nullNode), nullNode);
+      assert.equal(nullNode.childWithDescendant(nullNode), null);
     });
   });
 

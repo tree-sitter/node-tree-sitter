@@ -104,7 +104,7 @@ Napi::Value GetMarshalNode(const Napi::CallbackInfo &info, const Tree *tree, TSN
   return env.Null();
 }
 
-TSNode UnmarshalNode(Napi::Env env, const Tree *tree) {
+TSNode UnmarshalNode(Napi::Env env, const Tree *tree, uint8_t offset) {
   auto* data = env.GetInstanceData<AddonData>();
   TSNode result = {{0, 0, 0, 0}, nullptr, nullptr};
   result.tree = tree->tree_;
@@ -112,11 +112,11 @@ TSNode UnmarshalNode(Napi::Env env, const Tree *tree) {
     throw TypeError::New(env, "Argument must be a tree");
   }
 
-  result.id = UnmarshalNodeId(&data->transfer_buffer[0]);
-  result.context[0] = data->transfer_buffer[2];
-  result.context[1] = data->transfer_buffer[3];
-  result.context[2] = data->transfer_buffer[4];
-  result.context[3] = data->transfer_buffer[5];
+  result.id = UnmarshalNodeId(&data->transfer_buffer[offset * FIELD_COUNT_PER_NODE]);
+  result.context[0] = data->transfer_buffer[offset * FIELD_COUNT_PER_NODE + 2];
+  result.context[1] = data->transfer_buffer[offset * FIELD_COUNT_PER_NODE + 3];
+  result.context[2] = data->transfer_buffer[offset * FIELD_COUNT_PER_NODE + 4];
+  result.context[3] = data->transfer_buffer[offset * FIELD_COUNT_PER_NODE + 5];
   return result;
 }
 
@@ -580,6 +580,24 @@ Napi::Value FieldNameForChild(const Napi::CallbackInfo &info) {
   return env.Undefined();
 }
 
+Napi::Value FieldNameForNamedChild(const Napi::CallbackInfo &info) {
+  Env env = info.Env();
+  const Tree *tree = Tree::UnwrapTree(info[0]);
+  TSNode node = UnmarshalNode(env, tree);
+  if (node.id != nullptr) {
+    if (!info[1].IsNumber()) {
+      throw TypeError::New(env, "Second argument must be an integer");
+    }
+    uint32_t child_id = info[1].As<Number>().Uint32Value();
+    const char *field_name = ts_node_field_name_for_named_child(node, child_id);
+    if (field_name != nullptr) {
+      return String::New(env, field_name);
+    }
+  }
+  return env.Undefined();
+}
+
+
 Napi::Value Children(const Napi::CallbackInfo &info) {
   Env env = info.Env();
   auto* data = env.GetInstanceData<AddonData>();
@@ -764,6 +782,18 @@ Napi::Value Parent(const Napi::CallbackInfo &info) {
   TSNode node = UnmarshalNode(env, tree);
   if (node.id != nullptr) {
     return MarshalNode(info, tree, ts_node_parent(node));
+  }
+  return MarshalNullNode(env);
+}
+
+Napi::Value ChildWithDescendant(const Napi::CallbackInfo &info) {
+  Env env = info.Env();
+  const Tree *tree = Tree::UnwrapTree(info[0]);
+  TSNode self = UnmarshalNode(env, tree);
+  const Tree *child_tree = Tree::UnwrapTree(info[1]);
+  TSNode child_node = UnmarshalNode(env, child_tree, 1);
+  if (self.id != nullptr && child_node.id != nullptr) {
+	return MarshalNode(info, tree, ts_node_child_with_descendant(self, child_node));
   }
   return MarshalNullNode(env);
 }
@@ -1015,11 +1045,13 @@ void Init(Napi::Env env, Napi::Object exports) {
     {"childForFieldName", ChildForFieldName},
     {"childForFieldId", ChildForFieldId},
     {"fieldNameForChild", FieldNameForChild},
+    {"fieldNameForNamedChild", FieldNameForNamedChild},
     {"children", Children},
     {"namedChildren", NamedChildren},
     {"childrenForFieldName", ChildrenForFieldName},
     {"childrenForFieldId", ChildrenForFieldId},
     {"parent", Parent},
+    {"childWithDescendant", ChildWithDescendant},
     {"nextSibling", NextSibling},
     {"previousSibling", PreviousSibling},
     {"nextNamedSibling", NextNamedSibling},

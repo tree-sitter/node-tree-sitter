@@ -32,7 +32,7 @@ class CallbackInput final {
   TSInput Input() {
     TSInput result;
     result.payload = static_cast<void *>(this);
-    result.encoding = TSInputEncodingUTF16;
+    result.encoding = TSInputEncodingUTF16LE;
     result.read = Read;
     return result;
   }
