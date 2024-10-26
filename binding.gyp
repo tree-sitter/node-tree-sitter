@@ -24,17 +24,14 @@
       "defines": [
         "NAPI_VERSION=<(napi_build_version)",
       ],
-      "cflags": [
-        "-std=c++17"
-      ],
       "cflags_cc": [
-        "-std=c++17"
+        "-std=c++20"
       ],
       "conditions": [
         ["OS=='mac'", {
           "xcode_settings": {
             "GCC_SYMBOLS_PRIVATE_EXTERN": "YES", # -fvisibility=hidden
-            "CLANG_CXX_LANGUAGE_STANDARD": "c++17",
+            "CLANG_CXX_LANGUAGE_STANDARD": "c++20",
             "MACOSX_DEPLOYMENT_TARGET": "10.9",
           },
         }],
@@ -42,7 +39,7 @@
           "msvs_settings": {
             "VCCLCompilerTool": {
               "AdditionalOptions": [
-                "/std:c++17",
+                "/std:c++20",
               ],
               "RuntimeLibrary": 0,
             },
