@@ -89,11 +89,13 @@ declare module "tree-sitter" {
       childForFieldName(fieldName: string): SyntaxNode | null;
       childForFieldId(fieldId: number): SyntaxNode | null;
       fieldNameForChild(childIndex: number): string | null;
+      fieldNameForNamedChild(namedChildIndex: number): string | null;
       childrenForFieldName(fieldName: string): Array<SyntaxNode>;
       childrenForFieldId(fieldId: number): Array<SyntaxNode>;
       firstChildForIndex(index: number): SyntaxNode | null;
       firstNamedChildForIndex(index: number): SyntaxNode | null;
 
+      childWithDescendant(descendant: SyntaxNode): SyntaxNode | null;
       descendantForIndex(index: number): SyntaxNode;
       descendantForIndex(startIndex: number, endIndex: number): SyntaxNode;
       namedDescendantForIndex(index: number): SyntaxNode;
@@ -173,6 +175,7 @@ declare module "tree-sitter" {
       endIndex?: number;
       matchLimit?: number;
       maxStartDepth?: number;
+      timeoutMicros?: number;
     };
 
     export interface PredicateResult {
@@ -197,10 +200,11 @@ declare module "tree-sitter" {
       isPatternRooted(patternIndex: number): boolean;
       isPatternNonLocal(patternIndex: number): boolean;
       startIndexForPattern(patternIndex: number): number;
+      endIndexForPattern(patternIndex: number): number;
       didExceedMatchLimit(): boolean;
     }
 
-    export class LookaheadIterable {
+    export class LookaheadIterator {
       readonly currentTypeId: number;
       readonly currentType: string;
 

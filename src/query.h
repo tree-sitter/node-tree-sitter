@@ -30,6 +30,7 @@ class Query final : public Napi::ObjectWrap<Query> {
   Napi::Value IsPatternRooted(const Napi::CallbackInfo &);
   Napi::Value IsPatternNonLocal(const Napi::CallbackInfo &);
   Napi::Value StartIndexForPattern(const Napi::CallbackInfo &);
+  Napi::Value EndIndexForPattern(const Napi::CallbackInfo &);
   Napi::Value DidExceedMatchLimit(const Napi::CallbackInfo &);
   Napi::Value MatchLimit(const Napi::CallbackInfo &);
 };

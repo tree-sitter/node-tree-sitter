@@ -47,6 +47,7 @@ void Query::Init(Napi::Env env, Napi::Object exports) {
     InstanceMethod("isPatternRooted", &Query::IsPatternRooted, napi_default_method),
     InstanceMethod("isPatternNonLocal", &Query::IsPatternNonLocal, napi_default_method),
     InstanceMethod("startIndexForPattern", &Query::StartIndexForPattern, napi_default_method),
+    InstanceMethod("endIndexForPattern", &Query::EndIndexForPattern, napi_default_method),
     InstanceMethod("didExceedMatchLimit", &Query::DidExceedMatchLimit, napi_default_method),
   });
 
@@ -171,7 +172,7 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
 
   uint32_t start_row = 0, start_column = 0, end_row = 0, end_column = 0, start_index = 0, end_index = 0,
-             match_limit = UINT32_MAX, max_start_depth = UINT32_MAX;
+             match_limit = UINT32_MAX, max_start_depth = UINT32_MAX, timeout_micros = 0;
 
   if (info.Length() > 1 && info[1].IsNumber()) {
     start_row = info[1].As<Number>().Uint32Value();
@@ -197,6 +198,9 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
   if (info.Length() > 8 && info[8].IsNumber()) {
     max_start_depth = info[8].As<Number>().Uint32Value();
   }
+  if (info.Length() > 9 && info[9].IsNumber()) {
+    timeout_micros = info[9].As<Number>().Uint32Value();
+  }
 
   if (query == nullptr) {
     throw Error::New(env, "Missing argument query");
@@ -214,6 +218,7 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
   ts_query_cursor_set_byte_range(data->ts_query_cursor, start_index, end_index);
   ts_query_cursor_set_match_limit(data->ts_query_cursor, match_limit);
   ts_query_cursor_set_max_start_depth(data->ts_query_cursor, max_start_depth);
+  ts_query_cursor_set_timeout_micros(data->ts_query_cursor, timeout_micros);
   ts_query_cursor_exec(data->ts_query_cursor, ts_query, root_node);
 
   Array js_matches = Array::New(env);
@@ -254,7 +259,7 @@ Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
   const Tree *tree = Tree::UnwrapTree(info[0]);
 
   uint32_t start_row = 0, start_column = 0, end_row = 0, end_column = 0, start_index = 0, end_index = 0,
-             match_limit = UINT32_MAX, max_start_depth = UINT32_MAX;
+             match_limit = UINT32_MAX, max_start_depth = UINT32_MAX, timeout_micros = 0;
 
   if (info.Length() > 1 && info[1].IsNumber()) {
     start_row = info[1].As<Number>().Uint32Value();
@@ -280,6 +285,9 @@ Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
   if (info.Length() > 8 && info[8].IsNumber()) {
     max_start_depth = info[8].As<Number>().Uint32Value();
   }
+  if (info.Length() > 9 && info[9].IsNumber()) {
+    timeout_micros = info[9].As<Number>().Uint32Value();
+  }
 
   if (query == nullptr) {
     throw Error::New(env, "Missing argument query");
@@ -297,6 +305,7 @@ Napi::Value Query::Captures(const Napi::CallbackInfo &info) {
   ts_query_cursor_set_byte_range(data->ts_query_cursor, start_index, end_index);
   ts_query_cursor_set_match_limit(data->ts_query_cursor, match_limit);
   ts_query_cursor_set_max_start_depth(data->ts_query_cursor, max_start_depth);
+  ts_query_cursor_set_timeout_micros(data->ts_query_cursor, timeout_micros);
   ts_query_cursor_exec(data->ts_query_cursor, ts_query, root_node);
 
   Array js_matches = Array::New(env);
@@ -368,6 +377,11 @@ Napi::Value Query::IsPatternNonLocal(const Napi::CallbackInfo &info) {
 Napi::Value Query::StartIndexForPattern(const Napi::CallbackInfo &info) {
   uint32_t pattern_index = info[0].As<Number>().Uint32Value();
   return Number::New(info.Env(), ts_query_start_byte_for_pattern(query_, pattern_index));
+}
+
+Napi::Value Query::EndIndexForPattern(const Napi::CallbackInfo &info) {
+  uint32_t pattern_index = info[0].As<Number>().Uint32Value();
+  return Number::New(info.Env(), ts_query_end_byte_for_pattern(query_, pattern_index));
 }
 
 Napi::Value Query::DidExceedMatchLimit(const Napi::CallbackInfo &info) {
