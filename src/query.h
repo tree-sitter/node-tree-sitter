@@ -5,7 +5,6 @@
 #include "tree_sitter/api.h"
 
 #include <napi.h>
-#include <node_object_wrap.h>
 
 namespace node_tree_sitter {
 
@@ -17,12 +16,18 @@ class Query final : public Napi::ObjectWrap<Query> {
   explicit Query(const Napi::CallbackInfo &info);
   ~Query() final;
 
+  const TSQuery *Get() const {
+    return query_;
+  }
+
  private:
   TSQuery *query_;
 
   Napi::Value New(const Napi::CallbackInfo &);
   Napi::Value Matches(const Napi::CallbackInfo &);
   Napi::Value Captures(const Napi::CallbackInfo &);
+  Napi::Value MatchesIter(const Napi::CallbackInfo &);
+  Napi::Value CapturesIter(const Napi::CallbackInfo &);
   Napi::Value GetPredicates(const Napi::CallbackInfo &);
   Napi::Value DisableCapture(const Napi::CallbackInfo &);
   Napi::Value DisablePattern(const Napi::CallbackInfo &);

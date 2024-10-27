@@ -110,6 +110,20 @@ describe("Query", () => {
       ]);
     });
 
+    it("returns all of the matches (iterator) for the given query", () => {
+      const tree = parser.parse("function one() { two(); function three() {} }");
+      const query = new Query(JavaScript, `
+        (function_declaration name: (identifier) @fn-def)
+        (call_expression function: (identifier) @fn-ref)
+      `);
+      const matches = [...query.matchesIter(tree.rootNode)];
+      assert.deepEqual(formatMatches(tree, matches), [
+        { pattern: 0, captures: [{ name: "fn-def", text: "one" }] },
+        { pattern: 1, captures: [{ name: "fn-ref", text: "two" }] },
+        { pattern: 0, captures: [{ name: "fn-def", text: "three" }] },
+      ]);
+    });
+
     it("can search in a specified ranges", () => {
       const tree = parser.parse("[a, b,\nc, d,\ne, f,\ng, h]");
       const query = new Query(JavaScript, "(identifier) @element");
@@ -171,6 +185,47 @@ describe("Query", () => {
       `);
 
       const captures = query.captures(tree.rootNode);
+      assert.deepEqual(formatCaptures(tree, captures), [
+        { name: "method.def", text: "bc" },
+        { name: "delimiter", text: ":" },
+        { name: "method.alias", text: "de" },
+        { name: "function.def", text: "fg" },
+        { name: "operator", text: "=" },
+        { name: "function.alias", text: "hi" },
+        { name: "method.def", text: "jk" },
+        { name: "delimiter", text: ":" },
+        { name: "method.alias", text: "lm" },
+        { name: "function.def", text: "no" },
+        { name: "operator", text: "=" },
+        { name: "function.alias", text: "pq" },
+      ]);
+    });
+
+    it("returns all of the captures (iterator) for the given query, in order", () => {
+      const tree = parser.parse(`
+        a({
+          bc: function de() {
+            const fg = function hi() {}
+          },
+          jk: function lm() {
+            const no = function pq() {}
+          },
+        });
+      `);
+      const query = new Query(JavaScript, `
+        (pair
+          key: _ @method.def
+          (function_expression
+            name: (identifier) @method.alias))
+        (variable_declarator
+          name: _ @function.def
+          value: (function_expression
+            name: (identifier) @function.alias))
+        ":" @delimiter
+        "=" @operator
+      `);
+
+      const captures = [...query.capturesIter(tree.rootNode)];
       assert.deepEqual(formatCaptures(tree, captures), [
         { name: "method.def", text: "bc" },
         { name: "delimiter", text: ":" },
