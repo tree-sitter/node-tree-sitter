@@ -10,5 +10,4 @@ tree_sitter
 *.xcodeproj
 node_modules
 .vagrant
-package-lock.json
 prebuilds
