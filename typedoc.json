@@ -1,0 +1,24 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["tree-sitter.d.ts"],
+  "entryPointStrategy": "expand",
+  "tsconfig": "./tsconfig.typedoc.json",
+  "out": "docs/api",
+  "readme": "README.md",
+  "cleanOutputDir": true,
+  "excludeReferences": true,
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "includeVersion": true,
+  "searchInComments": true,
+  "navigationLinks": {
+    "GitHub": "https://github.com/tree-sitter/node-tree-sitter"
+  },
+  "visibilityFilters": {
+    "protected": false,
+    "private": false,
+    "inherited": true,
+    "external": false
+  },
+  "plugin": ["typedoc-plugin-rename-defaults"]
+}

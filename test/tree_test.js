@@ -1,6 +1,5 @@
 /** @type {typeof import('tree-sitter')} */
 const Parser = require("../index.js");
-const PHP = require('tree-sitter-php').php;
 const JavaScript = require('tree-sitter-javascript');
 const Rust = require('tree-sitter-rust');
 const assert = require('node:assert');

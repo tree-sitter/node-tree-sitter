@@ -11,7 +11,7 @@
 		]
 	},
 	"include": [
-		"./**/*.js"
+		"./test/*.js"
 	],
 	"exclude": [
 		"node_modules"

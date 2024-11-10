@@ -1,0 +1,8 @@
+{
+	"compilerOptions": {
+		"allowJs": false
+	},
+	"include": [
+		"./tree-sitter.d.ts"
+	]
+}

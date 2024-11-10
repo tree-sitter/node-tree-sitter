@@ -1,0 +1,48 @@
+name: Docs
+
+run-name: Update API docs
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.ref_name}}
+
+permissions:
+  pages: write
+  id-token: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    name: Publish docs on GitHub pages
+    if: github.event.workflow_run.conclusion == 'success'
+    environment:
+      name: github-pages
+      url: ${{steps.deployment.outputs.page_url}}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate documentation
+        run: npm run docs
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/api
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

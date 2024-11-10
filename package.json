@@ -29,28 +29,31 @@
     "vendor/tree-sitter/lib/src/*"
   ],
   "dependencies": {
-    "node-addon-api": "^8.2.1",
+    "node-addon-api": "^8.2.2",
     "node-gyp-build": "^4.8.2"
   },
   "devDependencies": {
-    "@types/node": "^22.7.8",
+    "@types/node": "^22.9.0",
     "@types/tmp": "^0.2.6",
     "glob": "^11.0.0",
     "node-gyp": "^10.2.0",
     "prebuildify": "^6.0.1",
     "tmp": "^0.2.3",
     "tree-sitter-c": "^0.23.1",
-    "tree-sitter-embedded-template": "^0.23.0",
-    "tree-sitter-html": "^0.23.0",
-    "tree-sitter-java": "^0.23.2",
-    "tree-sitter-javascript": "^0.23.0",
-    "tree-sitter-json": "^0.23.0",
-    "tree-sitter-php": "^0.23.4",
-    "tree-sitter-python": "^0.23.2",
+    "tree-sitter-embedded-template": "^0.23.1",
+    "tree-sitter-html": "^0.23.1",
+    "tree-sitter-java": "^0.23.3",
+    "tree-sitter-javascript": "^0.23.1",
+    "tree-sitter-json": "^0.24.7",
+    "tree-sitter-python": "^0.23.3",
     "tree-sitter-ruby": "^0.23.0",
-    "tree-sitter-rust": "^0.23.0"
+    "tree-sitter-rust": "^0.23.1",
+    "typedoc": "^0.26.11",
+    "typedoc-plugin-rename-defaults": "^0.7.1",
+    "typescript": "^5.6.3"
   },
   "scripts": {
+    "docs": "typedoc --out docs/api tree-sitter.d.ts --readme README.md",
     "install": "node-gyp-build",
     "build": "prebuildify --napi --strip",
     "build_x64": "prebuildify --napi --strip --arch x64 --target 20.9.0",
