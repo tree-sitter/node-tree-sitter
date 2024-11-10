@@ -53,8 +53,8 @@
   "scripts": {
     "install": "node-gyp-build",
     "build": "prebuildify --napi --strip",
-    "build_x64": "prebuildify --napi --strip --arch x64",
-    "build_arm64": "prebuildify --napi --strip --arch arm64",
+    "build_x64": "prebuildify --napi --strip --arch x64 --target 20.9.0",
+    "build_arm64": "prebuildify --napi --strip --arch arm64 --target 20.9.0",
     "rebuild": "node-gyp rebuild",
     "test": "node -e \"require('child_process').spawnSync('node', ['--test', ...require('glob').sync('test/**/*.js')], {stdio:'inherit'})\""
   },
