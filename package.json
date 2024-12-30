@@ -1,25 +1,39 @@
 {
   "name": "tree-sitter",
   "version": "0.22.1",
-  "description": "Incremental parsers for node",
-  "author": "Max Brunsfeld",
-  "contributors": [
-    "Segev Finer",
-    "Boris Verkhovskiy",
-    "Amaan Qureshi"
-  ],
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "http://github.com/tree-sitter/node-tree-sitter.git"
+  "description": "Node.js bindings to the Tree-sitter parsing library",
+  "repository": "http://github.com/tree-sitter/node-tree-sitter",
+  "publishConfig": {
+    "access": "public"
   },
+  "license": "MIT",
+  "author": {
+    "name": "Max Brunsfeld",
+    "email": "maxbrunsfeld@gmail.com"
+  },
+  "maintainers": [
+    {
+      "name": "Amaan Qureshi",
+      "email": "amaanq12@gmail.com"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Segev Finer",
+      "email": "segev208@gmail.com"
+    },
+    {
+      "name": "Boris Verkhovskiy",
+      "email": "boris.verk@gmail.com"
+    }
+  ],
+  "main": "index.js",
+  "types": "tree-sitter.d.ts",
   "keywords": [
     "incremental",
     "parsing",
     "tree-sitter"
   ],
-  "main": "index.js",
-  "types": "tree-sitter.d.ts",
   "files": [
     "binding.gyp",
     "tree-sitter.d.ts",
@@ -58,8 +72,5 @@
     "build": "prebuildify --napi --strip",
     "rebuild": "node-gyp rebuild",
     "test": "node -e \"require('child_process').spawnSync('node', ['--test', ...require('glob').sync('test/**/*.js')], {stdio:'inherit'})\""
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }
