@@ -44,9 +44,17 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Prepare release artifacts
+        run: |
+          mkdir -p dist
+          for dir in prebuilds/*/; do
+            platform=$(basename "$dir")
+            cp "$dir/tree-sitter.node" "dist/tree-sitter-$platform.node"
+          done
+          ls -l dist
+
       - name: Create release
         run: |-
-          files=$(find prebuilds -name "*.node")
-          gh release create ${{ github.ref_name }} --generate-notes $files
+          gh release create ${{ github.ref_name }} --generate-notes dist/*
         env:
           GH_TOKEN: ${{ github.token }}
