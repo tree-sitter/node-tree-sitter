@@ -24,7 +24,7 @@ so long as the author has published them.
 npm install tree-sitter-javascript
 ```
 
-You can also develop a new grammar by using the [Tree-sitter CLI][cli] and following the [docs][docs].
+You can also develop a new grammar by using the [Tree-sitter CLI][cli] and following the [docs][ts docs].
 
 ### Parsing Source Code
 
@@ -120,8 +120,9 @@ which should map closely to the C API, though there are some differences.
 
 [ci]: https://img.shields.io/github/actions/workflow/status/tree-sitter/node-tree-sitter/ci.yml?logo=github&label=CI
 [cli]: https://github.com/tree-sitter/tree-sitter/tree/master/cli
-[docs]: https://tree-sitter.github.io/tree-sitter/creating-parsers
+[docs]: https://img.shields.io/badge/docs-website-blue
 [npm]: https://img.shields.io/npm/v/tree-sitter?logo=npm
 [grammars]: https://github.com/tree-sitter/tree-sitter/wiki/List-of-parsers
 [javascript]: http://github.com/tree-sitter/tree-sitter-javascript
+[ts docs]: https://tree-sitter.github.io/tree-sitter/creating-parsers
 [usage docs]: https://tree-sitter.github.io/tree-sitter/using-parsers
