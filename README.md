@@ -6,7 +6,7 @@
 
 This module provides Node.js bindings to the [tree-sitter] parsing library.
 
-Something else ok hmm 1 2 3.
+Something else ok hmm 1 2 3 4.
 
 ## Installation
 
