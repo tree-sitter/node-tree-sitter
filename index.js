@@ -18,7 +18,7 @@ Object.defineProperty(Tree.prototype, 'rootNode', {
       Due to a race condition arising from Jest's worker pool, "this"
       has no knowledge of the native extension if the extension has not
       yet loaded when multiple Jest tests are being run simultaneously.
-      If the extension has correctly loaded, "this" should be an instance 
+      If the extension has correctly loaded, "this" should be an instance  
       of the class whose prototype we are acting on (in this case, Tree).
       Furthermore, the race condition sometimes results in the function in 
       question being undefined even when the context is correct, so we also 
@@ -59,7 +59,7 @@ Tree.prototype.walk = function() {
  * Node
  */
 
-class SyntaxNode {
+class Node {
   constructor(tree) {
     this.tree = tree;
   }
@@ -782,7 +782,7 @@ function unmarshalNode(value, tree, offset = 0, cache = null) {
   /* case 2: node being transferred */
   const nodeTypeId = value;
   const NodeClass = nodeTypeId === ERROR_TYPE_ID
-    ? SyntaxNode
+    ? Node
     : tree.language.nodeSubclasses[nodeTypeId];
 
   const {nodeTransferArray} = binding;
@@ -827,7 +827,7 @@ function unmarshalNodes(nodes, tree) {
 
 function marshalNode(node, offset = 0) {
   if (!(node.tree instanceof Tree)) {
-    throw new TypeError("SyntaxNode must belong to a Tree")
+    throw new TypeError("Node must belong to a Tree")
   }
   const { nodeTransferArray } = binding;
   for (let i = 0; i < NODE_FIELD_COUNT; i++) {
@@ -856,7 +856,7 @@ function initializeLanguageNodeClasses(language) {
 
   const nodeSubclasses = [];
   for (let id = 0, n = nodeTypeNamesById.length; id < n; id++) {
-    nodeSubclasses[id] = SyntaxNode;
+    nodeSubclasses[id] = Node;
 
     const typeName = nodeTypeNamesById[id];
     if (!typeName) continue;
@@ -893,7 +893,7 @@ function initializeLanguageNodeClasses(language) {
     }
 
     const className = camelCase(typeName, true) + 'Node';
-    const nodeSubclass = eval(`class ${className} extends SyntaxNode {${classBody}}; ${className}`);
+    const nodeSubclass = eval(`class ${className} extends Node {${classBody}}; ${className}`);
     nodeSubclass.prototype.type = typeName;
     nodeSubclass.prototype.fields = Object.freeze(fieldNames.sort())
     nodeSubclasses[id] = nodeSubclass;
@@ -911,6 +911,6 @@ function camelCase(name, upperCase) {
 module.exports = Parser;
 module.exports.Query = Query;
 module.exports.Tree = Tree;
-module.exports.SyntaxNode = SyntaxNode;
+module.exports.Node = Node;
 module.exports.TreeCursor = TreeCursor;
 module.exports.LookaheadIterator = LookaheadIterator;
