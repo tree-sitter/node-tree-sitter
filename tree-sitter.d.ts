@@ -128,19 +128,6 @@ declare module 'tree-sitter' {
 		/** The parser's current language. */
 		language: Language | null;
 		/**
-		 * This must always be called before creating a Parser.
-		 *
-		 * You can optionally pass in options to configure the WASM module, the most common
-		 * one being `locateFile` to help the module find the `.wasm` file.
-		 */
-		static init(moduleOptions?: EmscriptenModule): Promise<void>;
-		/**
-		 * Create a new parser.
-		 */
-		constructor();
-		/** Delete the parser, freeing its resources. */
-		delete(): void;
-		/**
 		 * Set the language that the parser should use for parsing.
 		 *
 		 * If the language was not successfully assigned, an error will be thrown.
