@@ -40,8 +40,7 @@ const TSLanguage *UnwrapLanguage(Napi::Value value) {
           std::to_string(TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION) + " - " +
           std::to_string(TREE_SITTER_LANGUAGE_VERSION) + ". Got: " +
           std::to_string(ts_language_version(language));
-        RangeError::New(env, message.c_str());
-        return nullptr;
+        throw RangeError::New(env, message.c_str());
       }
       return language;
     }
