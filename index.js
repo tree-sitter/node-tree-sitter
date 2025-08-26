@@ -894,7 +894,10 @@ function initializeLanguageNodeClasses(language) {
 
     const className = camelCase(typeName, true) + 'Node';
     const nodeSubclass = eval(`class ${className} extends SyntaxNode {${classBody}}; ${className}`);
-    nodeSubclass.prototype.type = typeName;
+    Object.defineProperty(nodeSubclass.prototype, 'type', {
+        value: typeName,
+        enumerable: true,
+    });
     nodeSubclass.prototype.fields = Object.freeze(fieldNames.sort())
     nodeSubclasses[id] = nodeSubclass;
   }
