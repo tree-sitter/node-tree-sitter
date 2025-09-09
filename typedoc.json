@@ -2,7 +2,7 @@
   "$schema": "https://typedoc.org/schema.json",
   "entryPoints": ["tree-sitter.d.ts"],
   "entryPointStrategy": "expand",
-  "tsconfig": "./tsconfig.typedoc.json",
+  "tsconfig": "tsconfig.typedoc.json",
   "out": "docs/api",
   "readme": "README.md",
   "cleanOutputDir": true,
