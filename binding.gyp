@@ -24,14 +24,11 @@
       "defines": [
         "NAPI_VERSION=<(napi_build_version)",
       ],
-      "cflags_cc": [
-        "-std=c++17"
-      ],
       "conditions": [
         ["OS=='mac'", {
           "xcode_settings": {
             "GCC_SYMBOLS_PRIVATE_EXTERN": "YES", # -fvisibility=hidden
-            "CLANG_CXX_LANGUAGE_STANDARD": "c++17",
+            "CLANG_CXX_LANGUAGE_STANDARD": "<(cxxstd)",
             "MACOSX_DEPLOYMENT_TARGET": "10.9",
           },
         }],
@@ -39,7 +36,7 @@
           "msvs_settings": {
             "VCCLCompilerTool": {
               "AdditionalOptions": [
-                "/std:c++17",
+                "/std:<(cxxstd)",
               ],
               "RuntimeLibrary": 0,
             },
@@ -47,7 +44,9 @@
         }],
         ["OS == 'linux'", {
           "cflags_cc": [
-            "-Wno-cast-function-type"
+            "-std=<(cxxstd)",
+            "-fvisibility=hidden",
+            "-Wno-cast-function-type",
           ]
         }],
       ]
@@ -62,13 +61,21 @@
         "vendor/tree-sitter/lib/src",
         "vendor/tree-sitter/lib/include",
       ],
-      "cflags": [
-        "-std=c11"
-      ],
       "defines": [
         "_POSIX_C_SOURCE=200112L",
         "_DEFAULT_SOURCE",
-      ]
+      ],
+      "conditions": [
+        ["OS!='win'", {
+          "cflags_c": [
+            "-std=c11",
+          ],
+        }, { # OS == "win"
+          "cflags_c": [
+            "/std:c11",
+          ],
+        }],
+      ],
     }
   ],
   "variables": {
@@ -76,5 +83,6 @@
     "openssl_fips": "",
     "v8_enable_pointer_compression%": 0,
     "v8_enable_31bit_smis_on_64bit_arch%": 0,
+    "cxxstd%": "<!(node -p \"parseInt(process.env.npm_config_target ?? process.versions.node) < 22 ? 'c++17' : 'c++20'\")",
   }
 }
