@@ -239,6 +239,15 @@ class SyntaxNode {
     return NodeMethods.toString(this.tree);
   }
 
+  toJSON() {
+    return {
+      type: this.type,
+      startPosition: this.startPosition,
+      endPosition: this.endPosition,
+      childCount: this.childCount,
+    }
+  }
+
   child(index) {
     marshalNode(this);
     return unmarshalNode(NodeMethods.child(this.tree, index), this.tree);

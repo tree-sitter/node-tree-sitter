@@ -341,6 +341,11 @@ declare module "tree-sitter" {
       toString(): string;
 
       /**
+       * Convert this node to its JSON representation
+       */
+      toJSON(): object;
+
+      /**
        * Get the node's child at the given index, where zero represents the first child.
        *
        * Note: While fairly fast, this method's cost is technically log(i).
