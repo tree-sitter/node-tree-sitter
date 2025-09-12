@@ -1,4 +1,5 @@
-/** @type {typeof import('tree-sitter')} */
+/// <reference path="../tree-sitter.d.ts" />
+/** @type {typeof import("tree-sitter")} */
 const Parser = require("../index.js");
 const Rust = require("tree-sitter-rust");
 const assert = require('node:assert');

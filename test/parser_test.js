@@ -1,4 +1,5 @@
-/** @type {typeof import('tree-sitter')} */
+/// <reference path="../tree-sitter.d.ts" />
+/** @type {typeof import("tree-sitter")} */
 const Parser = require("../index.js");
 const HTML = require('tree-sitter-html');
 const JavaScript = require('tree-sitter-javascript');
@@ -17,6 +18,7 @@ describe("Parser", () => {
 
   describe(".setLanguage", () => {
     it("throws an exception when the supplied object is not a tree-sitter language", () => {
+      // @ts-expect-error: Invalid language
       assert.throws(() => parser.setLanguage({}), /Invalid language/);
       assert.throws(() => parser.setLanguage(undefined), /Invalid language/);
     });
@@ -166,7 +168,7 @@ describe("Parser", () => {
 
     describe("when the input callback returns something other than a string", () => {
       it("stops reading", () => {
-        const parts = ["abc", "def", "ghi", {}, {}, {}, "second-word", " "];
+        const parts = ["abc", "def", "ghi", null, null, null, "second-word", " "];
         const tree = parser.parse(() => parts.shift());
         assert.equal(
           tree.rootNode.toString(),

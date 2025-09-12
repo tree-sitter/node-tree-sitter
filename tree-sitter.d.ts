@@ -187,13 +187,13 @@ declare module "tree-sitter" {
        * @param position - Optional position in the text as {row, column}
        * @returns A string chunk, or null/undefined if no text at this index
        */
-      (index: number, position?: Point): string | null | undefined | {};
+      (index: number, position?: Point): string | null | undefined;
     }
 
     /** The syntax tree that contains this node */
     export interface SyntaxNode {
       /** The syntax tree that contains this node */
-      tree: Tree;
+      readonly tree: Tree;
 
       /**
        * A unique numeric identifier for this node.
@@ -201,139 +201,144 @@ declare module "tree-sitter" {
        * If a new tree is created based on an older tree and reuses
        * a node, that node will have the same id in both trees.
        */
-      id: number;
+      readonly id: number;
 
       /**
        * This node's type as a numeric id
        */
-      typeId: number;
+      readonly typeId: number;
 
       /**
        * This node's type as a numeric id as it appears in the grammar,
        * ignoring aliases
        */
-      grammarId: number;
+      readonly grammarId: number;
 
       /**
        * This node's type as a string
        */
-      type: string;
+      readonly type: string;
 
       /**
         * This node's symbol name as it appears in the grammar,
         * ignoring aliases
         */
-      grammarType: string;
+      readonly grammarType: string;
 
       /**
        * Whether this node is named.
        * Named nodes correspond to named rules in the grammar,
        * whereas anonymous nodes correspond to string literals in the grammar.
        */
-      isNamed: boolean;
+      readonly isNamed: boolean;
 
       /**
        * Whether this node is missing.
        * Missing nodes are inserted by the parser in order to
        * recover from certain kinds of syntax errors.
        */
-      isMissing: boolean;
+      readonly isMissing: boolean;
 
       /**
         * Whether this node is extra.
         * Extra nodes represent things like comments, which are not
         * required by the grammar but can appear anywhere.
         */
-      isExtra: boolean;
+      readonly isExtra: boolean;
 
       /**
        * Whether this node has been edited
        */
-      hasChanges: boolean;
+      readonly hasChanges: boolean;
 
       /**
        * Whether this node represents a syntax error or contains
        * any syntax errors within it
        */
-      hasError: boolean;
+      readonly hasError: boolean;
 
       /**
        * Whether this node represents a syntax error.
        * Syntax errors represent parts of the code that could not
        * be incorporated into a valid syntax tree.
        */
-      isError: boolean;
+      readonly isError: boolean;
 
       /** The text content for this node from the source code */
-      text: string;
+      readonly text: string;
 
       /** The parse state of this node */
-      parseState: number;
+      readonly parseState: number;
 
       /** The parse state that follows this node */
-      nextParseState: number;
+      readonly nextParseState: number;
 
       /** The position where this node starts in terms of rows and columns */
-      startPosition: Point;
+      readonly startPosition: Point;
 
       /** The position where this node ends in terms of rows and columns */
-      endPosition: Point;
+      readonly endPosition: Point;
 
       /** The byte offset where this node starts */
-      startIndex: number;
+      readonly startIndex: number;
 
       /** The byte offset where this node ends */
-      endIndex: number;
+      readonly endIndex: number;
 
       /**
        * This node's immediate parent.
        * For iterating over ancestors, prefer using {@link childWithDescendant}
        */
-      parent: SyntaxNode | null;
+      readonly parent: SyntaxNode | null;
 
       /** Array of all child nodes */
-      children: Array<SyntaxNode>;
+      readonly children: Array<SyntaxNode>;
 
       /** Array of all named child nodes */
-      namedChildren: Array<SyntaxNode>;
+      readonly namedChildren: Array<SyntaxNode>;
 
       /** The number of children this node has */
-      childCount: number;
+      readonly childCount: number;
 
       /**
        * The number of named children this node has.
        * @see {@link isNamed}
        */
-      namedChildCount: number;
+      readonly namedChildCount: number;
 
       /** The first child of this node */
-      firstChild: SyntaxNode | null;
+      readonly firstChild: SyntaxNode | null;
 
       /** The first named child of this node */
-      firstNamedChild: SyntaxNode | null;
+      readonly firstNamedChild: SyntaxNode | null;
 
       /** The last child of this node */
-      lastChild: SyntaxNode | null;
+      readonly lastChild: SyntaxNode | null;
 
       /** The last child of this node */
-      lastNamedChild: SyntaxNode | null;
+      readonly lastNamedChild: SyntaxNode | null;
 
       /** This node's next sibling */
-      nextSibling: SyntaxNode | null;
+      readonly nextSibling: SyntaxNode | null;
 
       /** This node's next named sibling */
-      nextNamedSibling: SyntaxNode | null;
+      readonly nextNamedSibling: SyntaxNode | null;
 
       /** This node's previous sibling */
-      previousSibling: SyntaxNode | null;
+      readonly previousSibling: SyntaxNode | null;
 
       /** This node's previous named sibling */
-      previousNamedSibling: SyntaxNode | null;
+      readonly previousNamedSibling: SyntaxNode | null;
 
       /**
        * The number of descendants this node has, including itself
        */
-      descendantCount: number;
+      readonly descendantCount: number;
+
+      /**
+       * The names of extra fields available in the subclass, if any.
+       */
+      readonly fields: Array<`${string}Node` | `${string}Nodes`>;
 
       /**
        * Convert this node to its string representation
@@ -549,6 +554,10 @@ declare module "tree-sitter" {
        * @returns A new cursor positioned at this node
        */
       walk(): TreeCursor;
+
+      readonly [name: `${string}Node`]: SyntaxNode;
+
+      readonly [name: `${string}Nodes`]: Array<SyntaxNode>;
     }
 
     /** A stateful object for walking a syntax {@link Tree} efficiently */
@@ -631,7 +640,7 @@ declare module "tree-sitter" {
 
       /**
        * Move this cursor to the last child of its current node.
-       * Note: This may be slower than gotoFirstChild() as it needs to iterate 
+       * Note: This may be slower than gotoFirstChild() as it needs to iterate
        * through all children to compute the position.
        *
        * @returns true if cursor successfully moved, false if there were no children
@@ -701,7 +710,7 @@ declare module "tree-sitter" {
 
       /**
        * Edit the syntax tree to keep it in sync with source code that has been edited.
-       * The edit must be described both in terms of byte offsets and in terms of 
+       * The edit must be described both in terms of byte offsets and in terms of
        * row/column coordinates.
        *
        * @param edit - The edit to apply to the tree
@@ -725,11 +734,11 @@ declare module "tree-sitter" {
       getText(node: SyntaxNode): string;
 
       /**
-       * Compare this edited syntax tree to a new syntax tree representing the 
+       * Compare this edited syntax tree to a new syntax tree representing the
        * same document, returning ranges whose syntactic structure has changed.
        *
        * For this to work correctly, this tree must have been edited to match
-       * the new tree's ranges. Generally, you'll want to call this right after 
+       * the new tree's ranges. Generally, you'll want to call this right after
        * parsing, using the old tree that was passed to parse and the new tree
        * that was returned.
        *
@@ -776,7 +785,7 @@ declare module "tree-sitter" {
      * A match of a {@link Query} to a particular set of {@link SyntaxNode}s.
      */
     export interface QueryMatch {
-      /** 
+      /**
        * The index of the pattern that was matched.
        * Each pattern in a query is assigned a numeric index in sequence.
        */
@@ -955,7 +964,7 @@ declare module "tree-sitter" {
        * This returns `null` if the state is invalid for this language.
        *
        * Iterating {@link LookaheadIterator} will yield valid symbols in the given
-       * parse state. Newly created lookahead iterators will have {@link currentType} 
+       * parse state. Newly created lookahead iterators will have {@link currentType}
        * populated with the `ERROR` symbol.
        *
        * Lookahead iterators can be useful to generate suggestions and improve
@@ -1035,9 +1044,9 @@ declare module "tree-sitter" {
     /** Information about a language */
     interface Language {
       /** The name of the language */
-      name: string;
+      name?: string;
       /** The inner language object */
-      language: Language;
+      language: unknown;
       /** The node type information of the language */
       nodeTypeInfo: NodeInfo[];
     }

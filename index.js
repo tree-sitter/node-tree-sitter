@@ -18,10 +18,10 @@ Object.defineProperty(Tree.prototype, 'rootNode', {
       Due to a race condition arising from Jest's worker pool, "this"
       has no knowledge of the native extension if the extension has not
       yet loaded when multiple Jest tests are being run simultaneously.
-      If the extension has correctly loaded, "this" should be an instance 
+      If the extension has correctly loaded, "this" should be an instance
       of the class whose prototype we are acting on (in this case, Tree).
-      Furthermore, the race condition sometimes results in the function in 
-      question being undefined even when the context is correct, so we also 
+      Furthermore, the race condition sometimes results in the function in
+      question being undefined even when the context is correct, so we also
       perform a null function check.
     */
     if (this instanceof Tree && rootNode) {
@@ -61,7 +61,10 @@ Tree.prototype.walk = function() {
 
 class SyntaxNode {
   constructor(tree) {
-    this.tree = tree;
+    Object.defineProperty(this, 'tree', {
+      value: tree,
+      enumerable: true
+    });
   }
 
   [util.inspect.custom]() {
@@ -903,8 +906,16 @@ function initializeLanguageNodeClasses(language) {
 
     const className = camelCase(typeName, true) + 'Node';
     const nodeSubclass = eval(`class ${className} extends SyntaxNode {${classBody}}; ${className}`);
-    nodeSubclass.prototype.type = typeName;
-    nodeSubclass.prototype.fields = Object.freeze(fieldNames.sort())
+    Object.defineProperties(nodeSubclass.prototype, {
+      type: {
+        value: typeName,
+        enumerable: true
+      },
+      fields: {
+        value: Object.freeze(fieldNames.sort()),
+        enumerable: true
+      }
+    });
     nodeSubclasses[id] = nodeSubclass;
   }
 
