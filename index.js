@@ -867,7 +867,8 @@ function initializeLanguageNodeClasses(language) {
   const nodeTypeInfo = language.nodeTypeInfo || [];
 
   const nodeSubclasses = [];
-  for (let id = 0, n = nodeTypeNamesById.length; id < n; id++) {
+
+  for (let id = 0, n = nodeTypeNamesById.length; id < n; ++id) {
     nodeSubclasses[id] = SyntaxNode;
 
     const typeName = nodeTypeNamesById[id];
@@ -877,7 +878,8 @@ function initializeLanguageNodeClasses(language) {
     if (!typeInfo) continue;
 
     const fieldNames = [];
-    let classBody = '\n';
+    const fieldGetters = {};
+
     if (typeInfo.fields) {
       for (const fieldName in typeInfo.fields) {
         const fieldId = nodeFieldNamesById.indexOf(fieldName);
@@ -885,28 +887,38 @@ function initializeLanguageNodeClasses(language) {
         if (typeInfo.fields[fieldName].multiple) {
           const getterName = camelCase(fieldName) + 'Nodes';
           fieldNames.push(getterName);
-          classBody += `
-            get ${getterName}() {
+          fieldGetters[getterName] = {
+            get: function () {
               marshalNode(this);
-              return unmarshalNodes(NodeMethods.childNodesForFieldId(this.tree, ${fieldId}), this.tree);
-            }
-          `.replace(/\s+/g, ' ') + '\n';
+              return unmarshalNodes(
+                NodeMethods.childNodesForFieldId(this.tree, fieldId),
+                this.tree
+              );
+            },
+            enumerable: true
+          };
         } else {
           const getterName = camelCase(fieldName, false) + 'Node';
           fieldNames.push(getterName);
-          classBody += `
-            get ${getterName}() {
+          fieldGetters[getterName] = {
+            get: function () {
               marshalNode(this);
-              return unmarshalNode(NodeMethods.childNodeForFieldId(this.tree, ${fieldId}), this.tree);
-            }
-          `.replace(/\s+/g, ' ') + '\n';
+              return unmarshalNode(
+                NodeMethods.childNodeForFieldId(this.tree, fieldId),
+                this.tree
+              );
+            },
+            enumerable: true
+          };
         }
       }
     }
 
-    const className = camelCase(typeName, true) + 'Node';
-    const nodeSubclass = eval(`class ${className} extends SyntaxNode {${classBody}}; ${className}`);
-    Object.defineProperties(nodeSubclass.prototype, {
+    nodeSubclasses[id] = new Function('SyntaxNode', `
+      return class ${camelCase(typeName, true)}Node extends SyntaxNode {}
+    `)(SyntaxNode);
+
+    Object.defineProperties(nodeSubclasses[id].prototype, {
       type: {
         value: typeName,
         enumerable: true
@@ -914,13 +926,14 @@ function initializeLanguageNodeClasses(language) {
       fields: {
         value: Object.freeze(fieldNames.sort()),
         enumerable: true
-      }
+      },
+      ...fieldGetters
     });
-    nodeSubclasses[id] = nodeSubclass;
   }
 
-  language.nodeSubclasses = nodeSubclasses
+  language.nodeSubclasses = nodeSubclasses;
 }
+
 
 function camelCase(name, upperCase) {
   name = name.replace(/_(\w)/g, (_match, letter) => letter.toUpperCase());
