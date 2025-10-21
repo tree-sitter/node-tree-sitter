@@ -1,4 +1,9 @@
 {
+  "conditions":[ 
+    # When the minimum c++ version changes again, please add another conditional after the last one.
+    ["node_module_version>=131",{
+      "variables":{"cpp_version":"20"}
+  }]],
   "targets": [
     {
       "target_name": "tree_sitter_runtime_binding",
@@ -25,13 +30,13 @@
         "NAPI_VERSION=<(napi_build_version)",
       ],
       "cflags_cc": [
-        "-std=c++17"
+        "-std=c++<(cpp_version)"
       ],
       "conditions": [
         ["OS=='mac'", {
           "xcode_settings": {
             "GCC_SYMBOLS_PRIVATE_EXTERN": "YES", # -fvisibility=hidden
-            "CLANG_CXX_LANGUAGE_STANDARD": "c++17",
+            "CLANG_CXX_LANGUAGE_STANDARD": "c++<(cpp_version)",
             "MACOSX_DEPLOYMENT_TARGET": "10.9",
           },
         }],
@@ -39,7 +44,7 @@
           "msvs_settings": {
             "VCCLCompilerTool": {
               "AdditionalOptions": [
-                "/std:c++17",
+                "/std:c++<(cpp_version)",
               ],
               "RuntimeLibrary": 0,
             },
@@ -72,6 +77,7 @@
     }
   ],
   "variables": {
+    "cpp_version%":"17",
     "runtime%": "node",
     "openssl_fips": "",
     "v8_enable_pointer_compression%": 0,
