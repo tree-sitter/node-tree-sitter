@@ -15,13 +15,11 @@ declare module "tree-sitter" {
      * @param options - Optional parsing settings:
      * - bufferSize: Size of internal parsing buffer
      * - includedRanges: Array of ranges to parse within the input
+     * - progressCallback: A callback that receives the current parse state
      *
      * @returns A syntax tree representing the parsed text
      *
-     * @throws May return null or fail if:
-     * - No language has been set via {@link Parser.setLanguage}
-     * - The parsing timeout (set via {@link Parser.setTimeoutMicros}) was reached
-     * - Parsing was cancelled via cancellation flag
+     * @throws May fail if no language has been set or parsing was halted.
      */
     parse(input: string | Parser.Input, oldTree?: Parser.Tree | null, options?: Parser.Options): Parser.Tree;
 
@@ -38,6 +36,8 @@ declare module "tree-sitter" {
      * This timeout can be set via {@link Parser.setTimeoutMicros}.
      *
      * @returns The parsing timeout in microseconds
+     *
+     * @deprecated Use the {@link progressCallback}
      */
     getTimeoutMicros(): number;
 
@@ -47,16 +47,17 @@ declare module "tree-sitter" {
      * If parsing takes longer than this, it will halt early, returning null.
      *
      * @param timeout - The maximum parsing duration in microseconds
+     *
+     * @deprecated Use the {@link progressCallback}
      */
     setTimeoutMicros(timeout: number): void;
 
     /**
      * Instruct the parser to start the next parse from the beginning.
      *
-     * If the parser previously failed because of a timeout or cancellation,
-     * it will resume where it left off on the next parse by default.
-     * Call this method if you want to parse a different document instead
-     * of resuming.
+     * If the parser previously failed, it will resume where it left off
+     * on the next parse by default. Call this method if you want to parse
+     * a different document instead of resuming.
      */
     reset(): void;
 
@@ -110,6 +111,16 @@ declare module "tree-sitter" {
 
       /** Array of ranges to include when parsing the input */
       includedRanges?: Range[];
+
+      /**
+       * A callback that receives the parse state during parsing.
+       *
+       * @param index - The byte offset in the document that the parser is currently at
+       * @param hasError - Indicates whether the parser has encountered an error during parsing
+       *
+       * @returns `true` to stop parsing or `false` to continue
+       */
+      progressCallback?: (index: number, hasError: boolean) => boolean;
     };
 
     /**
@@ -166,7 +177,7 @@ declare module "tree-sitter" {
     };
 
     /**
-     * A callback that receives log messages during parser.
+     * A callback that receives log messages during parsing.
      *
      * @param message - The log message
      * @param params - Parameters associated with the log message
@@ -832,8 +843,19 @@ declare module "tree-sitter" {
        * take before halting.
        *
        * If query execution takes longer than this, it will halt early, returning None.
+       *
+       * @deprecated Use the {@link progressCallback}
        */
       timeoutMicros?: number;
+
+      /**
+       * A callback that receives the query state during execution.
+       *
+       * @param index - The current byte offset
+       *
+       * @returns `true` to stop the query or `false` to continue
+       */
+      progressCallback?: (index: number) => boolean;
     };
 
     export class Query {
@@ -955,6 +977,7 @@ declare module "tree-sitter" {
     export class LookaheadIterator {
       /** The current symbol of the lookahead iterator. */
       readonly currentTypeId: number;
+
       /** The current symbol name of the lookahead iterator. */
       readonly currentType: string;
 
@@ -1043,7 +1066,11 @@ declare module "tree-sitter" {
 
     /** Information about a language */
     interface Language {
-      /** The name of the language */
+      /**
+       * The name of the language
+       *
+       * @deprecated
+       */
       name?: string;
       /** The inner language object */
       language: unknown;

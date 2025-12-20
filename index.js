@@ -373,7 +373,7 @@ Parser.prototype.getLanguage = function(_language) {
   return this[languageSymbol] || null;
 };
 
-Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={}) {
+Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges, progressCallback}={}) {
   let getText, treeInput = input
   if (typeof input === 'string') {
     const inputString = input;
@@ -389,6 +389,7 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
       oldTree,
       bufferSize,
       includedRanges,
+      progressCallback,
     )
     : undefined;
 
@@ -696,13 +697,13 @@ Query.prototype.captures = function(
     matchLimit = 0xFFFFFFFF,
     maxStartDepth = 0xFFFFFFFF,
     timeoutMicros = 0,
+    progressCallback = undefined,
   } = {}
 ) {
   marshalNode(node);
   const [returnedMatches, returnedNodes] = _captures.call(this, node.tree,
-    startPosition.row, startPosition.column,
-    endPosition.row, endPosition.column,
-    startIndex, endIndex, matchLimit, maxStartDepth, timeoutMicros
+    startPosition.row, startPosition.column, endPosition.row, endPosition.column,
+    startIndex, endIndex, matchLimit, maxStartDepth, timeoutMicros, progressCallback
   );
   const nodes = unmarshalNodes(returnedNodes, node.tree);
   const results = [];

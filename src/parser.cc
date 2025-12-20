@@ -109,6 +109,29 @@ class CallbackInput final {
   ObjectReference partial_string;
 };
 
+class CallbackProgress final {
+ public:
+  static TSParseOptions Make(const Napi::Function &func) {
+    TSParseOptions options;
+    auto *callback = new CallbackProgress();
+    callback->func = Napi::Persistent(func);
+    options.payload = static_cast<void *>(callback);
+    options.progress_callback = Cancel;
+    return options;
+  }
+
+  private:
+  Napi::FunctionReference func;
+
+  static bool Cancel(TSParseState *state) {
+    auto *callback = static_cast<CallbackProgress *>(state->payload);
+    Env env = callback->func.Env();
+    Number index = Number::New(env, state->current_byte_offset);
+    Boolean has_error = Boolean::New(env, state->has_error);
+    return callback->func({ index, has_error }).As<Boolean>();
+  }
+};
+
 void Parser::Init(Napi::Env env, Napi::Object exports) {
   auto *data = env.GetInstanceData<AddonData>();
 
@@ -203,19 +226,22 @@ Napi::Value Parser::Parse(const CallbackInfo &info) {
     old_tree = tree->tree_;
   }
 
-  Napi::Value buffer_size = env.Null();
-  if (info.Length() > 2) {
-    buffer_size = info[2];
+  CallbackInput callback_input(callback, info.Length() > 2 ? info[2] : env.Null());
+
+  if (info.Length() > 3) {
+    if (!handle_included_ranges(env, parser_, info[3])) {
+      return env.Undefined();
+    }
   }
 
-  if (!handle_included_ranges(env, parser_, info[3])) {
-    return env.Undefined();
+  TSTree *tree;
+  if (info.Length() > 4 && info[4].IsFunction()) {
+    TSParseOptions options = CallbackProgress::Make(info[4].As<Function>());
+    tree = ts_parser_parse_with_options(parser_, old_tree, callback_input.Input(), options);
+  } else {
+    tree = ts_parser_parse(parser_, old_tree, callback_input.Input());
   }
-
-  CallbackInput callback_input(callback, buffer_size);
-  TSTree *tree = ts_parser_parse(parser_, old_tree, callback_input.Input());
-  Napi::Value result = Tree::NewInstance(env, tree);
-  return result;
+  return Tree::NewInstance(env, tree);
 }
 
 Napi::Value Parser::IncludedRanges(const Napi::CallbackInfo &info) {
