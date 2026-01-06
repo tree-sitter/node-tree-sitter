@@ -31,6 +31,29 @@ const char *query_error_names[] = {
   "TSQueryErrorStructure",
 };
 
+class CallbackProgress final {
+ public:
+  static TSQueryCursorOptions Make(const Napi::Function &func) {
+    TSQueryCursorOptions options;
+    auto *callback = new CallbackProgress();
+    callback->func = Napi::Persistent(func);
+    options.payload = static_cast<void *>(callback);
+    options.progress_callback = Cancel;
+    return options;
+  }
+
+  private:
+  Napi::FunctionReference func;
+
+  static bool Cancel(TSQueryCursorState *state) {
+    auto *callback = static_cast<CallbackProgress *>(state->payload);
+    Env env = callback->func.Env();
+    Number index = Number::New(env, state->current_byte_offset);
+    return callback->func({ index }).As<Boolean>();
+  }
+};
+
+
 void Query::Init(Napi::Env env, Napi::Object exports) {
   auto *data = env.GetInstanceData<AddonData>();
   data->ts_query_cursor = ts_query_cursor_new();
@@ -219,7 +242,12 @@ Napi::Value Query::Matches(const Napi::CallbackInfo &info) {
   ts_query_cursor_set_match_limit(data->ts_query_cursor, match_limit);
   ts_query_cursor_set_max_start_depth(data->ts_query_cursor, max_start_depth);
   ts_query_cursor_set_timeout_micros(data->ts_query_cursor, timeout_micros);
-  ts_query_cursor_exec(data->ts_query_cursor, ts_query, root_node);
+  if (info.Length() > 10 && info[10].IsFunction()) {
+    TSQueryCursorOptions options = CallbackProgress::Make(info[10].As<Function>());
+    ts_query_cursor_exec_with_options(data->ts_query_cursor, ts_query, root_node, &options);
+  } else {
+    ts_query_cursor_exec(data->ts_query_cursor, ts_query, root_node);
+  }
 
   Array js_matches = Array::New(env);
   unsigned index = 0;

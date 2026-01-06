@@ -1,4 +1,5 @@
-/** @type {typeof import('tree-sitter')} */
+/// <reference path="../tree-sitter.d.ts" />
+/** @type {typeof import("tree-sitter")} */
 const Parser = require("../index.js");
 
 const C = require("tree-sitter-c");

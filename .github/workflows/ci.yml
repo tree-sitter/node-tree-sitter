@@ -2,11 +2,9 @@ name: CI
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
-    branches:
-      - master
+    branches: [master]
   workflow_call:
 
 concurrency:
@@ -18,58 +16,50 @@ jobs:
     strategy:
       matrix:
         os:
-          - windows-latest
-          - macos-latest
-          - ubuntu-22.04
+          - windows-2025
+          - windows-11-arm
+          - macos-15
+          - macos-15-intel
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
         node:
-          - 18
-          - 20
-          - 22
+          - 20.19.6
+          - 22.21.1
+          - 24.12.0
+          - 25.2.1
       fail-fast: false
-    name: Test Node ${{ matrix.node }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Test Node ${{matrix.node}} on ${{matrix.os}}
+    runs-on: ${{matrix.os}}
     defaults:
       run:
         shell: bash
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: true
-          fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node }}
+          node-version: ${{matrix.node}}
+
+      - name: Set npm_config_target
+        run: printf 'npm_config_target=${{matrix.node}}\n' >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Set npm_config_target
-        run: echo "CONFIG_TARGET=${{ matrix.node == 22 && '22.12.0' || '20.9.0' }}" >> $GITHUB_ENV
-
-      - name: Build x64 binary
-        run: npm_config_target=${{ env.CONFIG_TARGET }} npm x -- prebuildify --napi --arch x64 -t 20.9.0
-
-      - name: Set up cross-compilation
-        if: runner.os == 'Linux'
-        run: |-
-          sudo apt-get update
-          sudo apt-get install g++-aarch64-linux-gnu
-          printf '%s\n' >> "$GITHUB_ENV" \
-            'CC=aarch64-linux-gnu-gcc' 'CXX=aarch64-linux-gnu-g++'
-
-      - name: Build arm64 binary
-        run: npm_config_target=${{ env.CONFIG_TARGET }} npm x -- prebuildify --napi --arch arm64 -t 20.9.0
+      - name: Build binary
+        run: npm x -- prebuildify --napi
 
       - name: Run tests
         run: npm test
 
       - name: Upload prebuilds
-        uses: actions/upload-artifact@v4
-        if: github.ref_type == 'tag' && matrix.node == 20
+        uses: actions/upload-artifact@v6
+        if: github.ref_type == 'tag' && startsWith(matrix.node, '24')
         with:
           path: prebuilds/**
-          name: prebuilds-${{matrix.os}}
+          name: prebuilds-${{runner.os}}-${{runner.arch}}
           retention-days: 2

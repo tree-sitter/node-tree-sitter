@@ -43,28 +43,28 @@
     "vendor/tree-sitter/lib/src/*"
   ],
   "dependencies": {
-    "node-addon-api": "^8.3.0",
+    "node-addon-api": "^8.5.0",
     "node-gyp-build": "^4.8.4"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@types/node": "^25.0.3",
     "@types/tmp": "^0.2.6",
-    "glob": "^11.0.0",
-    "node-gyp": "^11.0.0",
+    "glob": "^13.0.0",
+    "node-gyp": "^12.1.0",
     "prebuildify": "^6.0.1",
-    "tmp": "^0.2.3",
-    "tree-sitter-c": "^0.23.4",
-    "tree-sitter-embedded-template": "^0.23.2",
+    "tmp": "^0.2.5",
+    "tree-sitter-c": "^0.24.1",
+    "tree-sitter-embedded-template": "^0.25.0",
     "tree-sitter-html": "^0.23.2",
     "tree-sitter-java": "^0.23.5",
-    "tree-sitter-javascript": "^0.23.1",
+    "tree-sitter-javascript": "^0.25.0",
     "tree-sitter-json": "^0.24.8",
-    "tree-sitter-python": "^0.23.6",
+    "tree-sitter-python": "^0.25.0",
     "tree-sitter-ruby": "^0.23.1",
-    "tree-sitter-rust": "^0.23.2",
-    "typedoc": "^0.27.6",
-    "typedoc-plugin-rename-defaults": "^0.7.2",
-    "typescript": "^5.7.2"
+    "tree-sitter-rust": "^0.24.0",
+    "typedoc": "^0.28.15",
+    "typedoc-plugin-rename-defaults": "^0.7.3",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "docs": "typedoc --out docs/api tree-sitter.d.ts --readme README.md",

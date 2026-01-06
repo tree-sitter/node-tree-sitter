@@ -793,7 +793,7 @@ Napi::Value ChildWithDescendant(const Napi::CallbackInfo &info) {
   const Tree *child_tree = Tree::UnwrapTree(info[1]);
   TSNode child_node = UnmarshalNode(env, child_tree, 1);
   if (self.id != nullptr && child_node.id != nullptr) {
-	return MarshalNode(info, tree, ts_node_child_with_descendant(self, child_node));
+    return MarshalNode(info, tree, ts_node_child_with_descendant(self, child_node));
   }
   return MarshalNullNode(env);
 }

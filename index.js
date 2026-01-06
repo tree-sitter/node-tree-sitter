@@ -18,10 +18,10 @@ Object.defineProperty(Tree.prototype, 'rootNode', {
       Due to a race condition arising from Jest's worker pool, "this"
       has no knowledge of the native extension if the extension has not
       yet loaded when multiple Jest tests are being run simultaneously.
-      If the extension has correctly loaded, "this" should be an instance 
+      If the extension has correctly loaded, "this" should be an instance
       of the class whose prototype we are acting on (in this case, Tree).
-      Furthermore, the race condition sometimes results in the function in 
-      question being undefined even when the context is correct, so we also 
+      Furthermore, the race condition sometimes results in the function in
+      question being undefined even when the context is correct, so we also
       perform a null function check.
     */
     if (this instanceof Tree && rootNode) {
@@ -61,7 +61,10 @@ Tree.prototype.walk = function() {
 
 class SyntaxNode {
   constructor(tree) {
-    this.tree = tree;
+    Object.defineProperty(this, 'tree', {
+      value: tree,
+      enumerable: true
+    });
   }
 
   [util.inspect.custom]() {
@@ -239,6 +242,15 @@ class SyntaxNode {
     return NodeMethods.toString(this.tree);
   }
 
+  toJSON() {
+    return {
+      type: this.type,
+      startPosition: this.startPosition,
+      endPosition: this.endPosition,
+      childCount: this.childCount,
+    }
+  }
+
   child(index) {
     marshalNode(this);
     return unmarshalNode(NodeMethods.child(this.tree, index), this.tree);
@@ -361,7 +373,7 @@ Parser.prototype.getLanguage = function(_language) {
   return this[languageSymbol] || null;
 };
 
-Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={}) {
+Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges, progressCallback}={}) {
   let getText, treeInput = input
   if (typeof input === 'string') {
     const inputString = input;
@@ -377,6 +389,7 @@ Parser.prototype.parse = function(input, oldTree, {bufferSize, includedRanges}={
       oldTree,
       bufferSize,
       includedRanges,
+      progressCallback,
     )
     : undefined;
 
@@ -684,13 +697,13 @@ Query.prototype.captures = function(
     matchLimit = 0xFFFFFFFF,
     maxStartDepth = 0xFFFFFFFF,
     timeoutMicros = 0,
+    progressCallback = undefined,
   } = {}
 ) {
   marshalNode(node);
   const [returnedMatches, returnedNodes] = _captures.call(this, node.tree,
-    startPosition.row, startPosition.column,
-    endPosition.row, endPosition.column,
-    startIndex, endIndex, matchLimit, maxStartDepth, timeoutMicros
+    startPosition.row, startPosition.column, endPosition.row, endPosition.column,
+    startIndex, endIndex, matchLimit, maxStartDepth, timeoutMicros, progressCallback
   );
   const nodes = unmarshalNodes(returnedNodes, node.tree);
   const results = [];
@@ -855,7 +868,8 @@ function initializeLanguageNodeClasses(language) {
   const nodeTypeInfo = language.nodeTypeInfo || [];
 
   const nodeSubclasses = [];
-  for (let id = 0, n = nodeTypeNamesById.length; id < n; id++) {
+
+  for (let id = 0, n = nodeTypeNamesById.length; id < n; ++id) {
     nodeSubclasses[id] = SyntaxNode;
 
     const typeName = nodeTypeNamesById[id];
@@ -865,7 +879,8 @@ function initializeLanguageNodeClasses(language) {
     if (!typeInfo) continue;
 
     const fieldNames = [];
-    let classBody = '\n';
+    const fieldGetters = {};
+
     if (typeInfo.fields) {
       for (const fieldName in typeInfo.fields) {
         const fieldId = nodeFieldNamesById.indexOf(fieldName);
@@ -873,34 +888,53 @@ function initializeLanguageNodeClasses(language) {
         if (typeInfo.fields[fieldName].multiple) {
           const getterName = camelCase(fieldName) + 'Nodes';
           fieldNames.push(getterName);
-          classBody += `
-            get ${getterName}() {
+          fieldGetters[getterName] = {
+            get: function () {
               marshalNode(this);
-              return unmarshalNodes(NodeMethods.childNodesForFieldId(this.tree, ${fieldId}), this.tree);
-            }
-          `.replace(/\s+/g, ' ') + '\n';
+              return unmarshalNodes(
+                NodeMethods.childNodesForFieldId(this.tree, fieldId),
+                this.tree
+              );
+            },
+            enumerable: true
+          };
         } else {
           const getterName = camelCase(fieldName, false) + 'Node';
           fieldNames.push(getterName);
-          classBody += `
-            get ${getterName}() {
+          fieldGetters[getterName] = {
+            get: function () {
               marshalNode(this);
-              return unmarshalNode(NodeMethods.childNodeForFieldId(this.tree, ${fieldId}), this.tree);
-            }
-          `.replace(/\s+/g, ' ') + '\n';
+              return unmarshalNode(
+                NodeMethods.childNodeForFieldId(this.tree, fieldId),
+                this.tree
+              );
+            },
+            enumerable: true
+          };
         }
       }
     }
 
-    const className = camelCase(typeName, true) + 'Node';
-    const nodeSubclass = eval(`class ${className} extends SyntaxNode {${classBody}}; ${className}`);
-    nodeSubclass.prototype.type = typeName;
-    nodeSubclass.prototype.fields = Object.freeze(fieldNames.sort())
-    nodeSubclasses[id] = nodeSubclass;
+    nodeSubclasses[id] = new Function('SyntaxNode', `
+      return class ${camelCase(typeName, true)}Node extends SyntaxNode {}
+    `)(SyntaxNode);
+
+    Object.defineProperties(nodeSubclasses[id].prototype, {
+      type: {
+        value: typeName,
+        enumerable: true
+      },
+      fields: {
+        value: Object.freeze(fieldNames.sort()),
+        enumerable: true
+      },
+      ...fieldGetters
+    });
   }
 
-  language.nodeSubclasses = nodeSubclasses
+  language.nodeSubclasses = nodeSubclasses;
 }
+
 
 function camelCase(name, upperCase) {
   name = name.replace(/_(\w)/g, (_match, letter) => letter.toUpperCase());

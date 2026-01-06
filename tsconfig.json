@@ -1,19 +1,19 @@
 {
-	"compilerOptions": {
-		"checkJs": true,
-		"allowJs": true,
-		"noEmit": true,
-		"strict": true,
-		"strictNullChecks": false,
-		"noImplicitAny": false,
-		"lib": [
-			"es2020"
-		]
-	},
-	"include": [
-		"./test/*.js"
-	],
-	"exclude": [
-		"node_modules"
-	]
+  "compilerOptions": {
+    "checkJs": true,
+    "allowJs": true,
+    "noEmit": true,
+    "strict": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "lib": [
+      "ES2020"
+    ]
+  },
+  "include": [
+    "test/*.js"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
