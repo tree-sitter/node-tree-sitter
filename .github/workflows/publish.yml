@@ -44,7 +44,7 @@ jobs:
         run: npm install
 
       - name: Publish to NPM
-        run: npm publish
+        run: unset NODE_AUTH_TOKEN ; npm publish
 
       - name: Prepare release artifacts
         run: |
