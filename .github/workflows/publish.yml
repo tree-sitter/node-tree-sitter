@@ -44,7 +44,8 @@ jobs:
         run: npm install
 
       - name: Publish to NPM
-        run: unset NODE_AUTH_TOKEN ; npm publish
+        # FIXME: actions/setup-node#1440
+        run: NODE_AUTH_TOKEN= npm publish --verbose
 
       - name: Prepare release artifacts
         run: |
