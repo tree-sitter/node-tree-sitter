@@ -66,6 +66,9 @@
     "typedoc-plugin-rename-defaults": "^0.7.3",
     "typescript": "^5.9.3"
   },
+  "engines": {
+    "node": ">=18 <=22"
+  },
   "scripts": {
     "docs": "typedoc --out docs/api tree-sitter.d.ts --readme README.md",
     "install": "node-gyp-build",
