@@ -31,7 +31,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Download prebuilds
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: prebuilds
           pattern: prebuilds-*
@@ -57,7 +57,7 @@ jobs:
           ls -l dist
 
       - name: Generate attestations
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: dist/*
 
