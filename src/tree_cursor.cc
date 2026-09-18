@@ -146,6 +146,12 @@ Napi::Value TreeCursor::Reset(const Napi::CallbackInfo &info) {
 }
 
 Napi::Value TreeCursor::ResetTo(const Napi::CallbackInfo &info) {
+  auto *data = info.Env().GetInstanceData<AddonData>();
+  if (!info[0].IsObject() ||
+      !info[0].As<Object>().InstanceOf(data->tree_cursor_constructor.Value())) {
+    Napi::TypeError::New(info.Env(), "Argument must be a TreeCursor").ThrowAsJavaScriptException();
+    return info.Env().Undefined();
+  }
   TSTreeCursor other_cursor = TreeCursor::Unwrap(info[0].As<Object>())->cursor_;
   ts_tree_cursor_reset_to(&cursor_, &other_cursor);
   return info.Env().Undefined();

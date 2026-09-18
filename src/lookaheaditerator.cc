@@ -76,16 +76,28 @@ LookaheadIterator *LookaheadIterator::UnwrapLookaheadIterator(const Napi::Value 
 
 Napi::Value LookaheadIterator::CurrentType(const Napi::CallbackInfo &info) {
   LookaheadIterator *iterator = UnwrapLookaheadIterator(info.This());
+  if (iterator == nullptr) {
+    Napi::TypeError::New(info.Env(), "Receiver must be a LookaheadIterator").ThrowAsJavaScriptException();
+    return info.Env().Undefined();
+  }
   return Napi::String::New(info.Env(), ts_lookahead_iterator_current_symbol_name(iterator->iterator_));
 }
 
 Napi::Value LookaheadIterator::CurrentTypeId(const Napi::CallbackInfo &info) {
   LookaheadIterator *iterator = UnwrapLookaheadIterator(info.This());
+  if (iterator == nullptr) {
+    Napi::TypeError::New(info.Env(), "Receiver must be a LookaheadIterator").ThrowAsJavaScriptException();
+    return info.Env().Undefined();
+  }
   return Napi::Number::New(info.Env(), ts_lookahead_iterator_current_symbol(iterator->iterator_));
 }
 
 Napi::Value LookaheadIterator::Reset(const Napi::CallbackInfo &info) {
   LookaheadIterator *iterator = UnwrapLookaheadIterator(info.This());
+  if (iterator == nullptr) {
+    Napi::TypeError::New(info.Env(), "Receiver must be a LookaheadIterator").ThrowAsJavaScriptException();
+    return info.Env().Undefined();
+  }
   const TSLanguage *language = language_methods::UnwrapLanguage(info[0]);
 
   if (language == nullptr) {
@@ -104,6 +116,10 @@ Napi::Value LookaheadIterator::Reset(const Napi::CallbackInfo &info) {
 Napi::Value LookaheadIterator::ResetState(const Napi::CallbackInfo &info) { 
   Napi::Env env = info.Env();
   LookaheadIterator *iterator = UnwrapLookaheadIterator(info.This());
+  if (iterator == nullptr) {
+    Napi::TypeError::New(env, "Receiver must be a LookaheadIterator").ThrowAsJavaScriptException();
+    return env.Undefined();
+  }
 
   if (!info[0].IsNumber()) {
     Napi::Error::New(env, "Missing state argument").ThrowAsJavaScriptException();
@@ -116,6 +132,10 @@ Napi::Value LookaheadIterator::ResetState(const Napi::CallbackInfo &info) {
 
 Napi::Value LookaheadIterator::Next(const Napi::CallbackInfo &info) {
   LookaheadIterator *iterator = UnwrapLookaheadIterator(info.This());
+  if (iterator == nullptr) {
+    Napi::TypeError::New(info.Env(), "Receiver must be a LookaheadIterator").ThrowAsJavaScriptException();
+    return info.Env().Undefined();
+  }
   return Napi::Boolean::New(info.Env(), ts_lookahead_iterator_next(iterator->iterator_));
 }
 

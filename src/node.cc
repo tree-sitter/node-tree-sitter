@@ -107,6 +107,9 @@ Napi::Value GetMarshalNode(const Napi::CallbackInfo &info, const Tree *tree, TSN
 TSNode UnmarshalNode(Napi::Env env, const Tree *tree, uint8_t offset) {
   auto* data = env.GetInstanceData<AddonData>();
   TSNode result = {{0, 0, 0, 0}, nullptr, nullptr};
+  if (tree == nullptr) {
+    throw TypeError::New(env, "Argument must be a tree");
+  }
   result.tree = tree->tree_;
   if (result.tree == nullptr) {
     throw TypeError::New(env, "Argument must be a tree");
